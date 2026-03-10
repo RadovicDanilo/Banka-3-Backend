@@ -4,6 +4,8 @@ import (
 	"banka-raf/gen/notification"
 	"bytes"
 	"context"
+	"fmt"
+
 	//"github.com/joho/godotenv"
 	"html/template"
 	"log"
@@ -28,9 +30,11 @@ func (s *Server) SendConfirmationEmail(ctx context.Context, req *notification.Co
 
 func (s *Server) SendActivationEmail(ctx context.Context, req *notification.ActivationMailRequest) (*notification.SuccessResponse, error) {
 	log.Println("Sending activation email")
+	wd, _ := os.Getwd()
+	fmt.Println("Working directory:", wd)
 	//list of email we want to send to
 	to := strings.Split(req.ToAddr, ",")
-	templ, err := template.ParseFiles("templates/activation.html")
+	templ, err := template.ParseFiles("/internal/notification/templates/activation")
 	if err != nil {
 		log.Println("Cannot parse activation.html:", err)
 		return &notification.SuccessResponse{Successful: false}, nil

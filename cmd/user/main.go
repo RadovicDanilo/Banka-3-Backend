@@ -2,15 +2,13 @@ package main
 
 import (
 	"banka-raf/gen/notification"
+	"banka-raf/gen/user"
+	internalUser "banka-raf/internal/user"
 	"context"
 	"fmt"
 	"log"
 	"net"
 	"os"
-	"time"
-
-	"banka-raf/gen/user"
-	internalUser "banka-raf/internal/user"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -33,9 +31,8 @@ func main() {
 	reflection.Register(srv)
 
 	log.Printf("user service listening on :%s", port)
-	time.Sleep(5 * time.Second)
 	conn, err := grpc.Dial(
-		"localhost:50052",
+		"notification:50051",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {

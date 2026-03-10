@@ -16,6 +16,7 @@ services:
       retries: 10
 
   user:
+    container_name: user
     build:
       context: .
       dockerfile: cmd/user/Dockerfile
@@ -29,6 +30,7 @@ services:
         condition: service_healthy
 
   notification:
+    container_name: notification
     build:
       context: .
       dockerfile: cmd/notification/Dockerfile
