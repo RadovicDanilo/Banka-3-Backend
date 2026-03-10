@@ -1,0 +1,18 @@
+syntax = "proto3";
+package notification;
+option go_package = "/notification";
+service NotificationService{
+  rpc SendConfirmationEmail(ConfirmationMailRequest) returns (SuccessResponse);
+}
+
+message ConfirmationMailRequest{
+  string email = 1;
+}
+
+message ActivationMailRequest{
+  string email =1;
+}
+
+message SuccessResponse{
+  bool successful = 1;
+}

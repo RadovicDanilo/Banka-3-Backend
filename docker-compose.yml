@@ -28,5 +28,19 @@ services:
       postgres:
         condition: service_healthy
 
+  notification:
+    build:
+      context: .
+      dockerfile: cmd/notification/Dockerfile
+    ports:
+      - "${NOTIFICATION_GRPC_PORT:-50052}:50051"
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      GRPC_PORT: "50051"
+    depends_on: #potentially add message broker in future
+      postgres:
+        condition: service_healthy
+
+
 volumes:
   pgdata:
