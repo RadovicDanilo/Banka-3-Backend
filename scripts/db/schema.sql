@@ -42,3 +42,10 @@ CREATE TABLE IF NOT EXISTS clients (
     created_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMP    NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    email        VARCHAR(255) PRIMARY KEY,
+    hashed_token BYTEA        NOT NULL,
+    valid_until  TIMESTAMP    NOT NULL,
+    revoked      BOOLEAN      NOT NULL DEFAULT FALSE
+);
