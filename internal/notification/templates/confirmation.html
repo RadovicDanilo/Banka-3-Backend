@@ -1,41 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confirm your email</title>
+  <title>Registration confirmation</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: #e6f7ff;
+    }
+
+  </style>
+
 </head>
+
 <body>
+
 <div class="container">
-  <h2>Welcome! Please confirm your email address</h2>
-  <p class="content">
-    <a href="{{.ConfirmationLink}}" class="blue-button">Confirm Email</a>
+  <h2>Čestitamo!</h2>
+
+  <p>
+    Uspešno ste se registrovali preko maila <b>{{.ToAddr}}</b>.
   </p>
 </div>
+
 </body>
 </html>
-
-<style>
-  body { font-family: Arial, sans-serif; }
-  .container {
-    padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: aquamarine;
-  }
-  .content { margin: 20px 0; }
-  .blue-button {
-    background-color: #007BFF;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 12px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-  }
-  .blue-button:hover {
-    background-color: #0056b3;
-    transform: scale(1.05);
-  }
-</style>

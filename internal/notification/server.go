@@ -5,9 +5,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/joho/godotenv"
 	"html/template"
 	"log"
+
+	"github.com/joho/godotenv"
 	//"net/http"
 	"net/smtp" // protocol for sending mails
 	"os"
@@ -25,7 +26,7 @@ func (s *Server) SendConfirmationEmail(ctx context.Context, req *notification.Co
 	to := strings.Split(req.ToAddr, ",")
 
 	//parsiranje templejta
-	templ, err := template.ParseFiles("../templates/email_confirmation.tmpl")
+	templ, err := template.ParseFiles("templates/confirmation.html")
 	if err != nil {
 		log.Println("Cannot parse confirmation.html:", err)
 		return &notification.SuccessResponse{Successful: false}, nil
