@@ -27,6 +27,9 @@ services:
       GRPC_PORT: "50051"
       ACCESS_JWT_SECRET: ${ACCESS_JWT_SECRET}
       REFRESH_JWT_SECRET: ${REFRESH_JWT_SECRET}
+      NOTIFICATION_GRPC_ADDR: ${NOTIFICATION_GRPC_ADDR:-notification:50051}
+      PASSWORD_RESET_BASE_URL: ${PASSWORD_RESET_BASE_URL}
+      PASSWORD_SET_BASE_URL: ${PASSWORD_SET_BASE_URL}
     depends_on:
       postgres:
         condition: service_healthy

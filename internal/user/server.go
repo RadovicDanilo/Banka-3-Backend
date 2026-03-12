@@ -3,18 +3,35 @@ package user
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/url"
+	"os"
+	"strings"
 	"time"
 
+	"banka-raf/gen/notification"
 	"banka-raf/gen/user"
 	userpb "banka-raf/gen/user"
 
 	"github.com/golang-jwt/jwt/v5"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	passwordActionReset      = "reset"
+	passwordActionInitialSet = "initial_set"
+
+	resetPasswordTokenTTL  = 30 * time.Minute
+	initialSetPasswordTTL  = 24 * time.Hour
+	defaultNotificationURL = "notification:50051"
 )
 
 type Server struct {
@@ -68,7 +85,7 @@ func (s *Server) ValidateRefreshToken(ctx context.Context, req *userpb.ValidateT
 	if err != nil {
 		return nil, err
 	}
-	return &user.ValidateTokenResponse{
+	return &userpb.ValidateTokenResponse{
 		Valid: token.Valid,
 	}, nil
 }
@@ -81,7 +98,7 @@ func (s *Server) ValidateAccessToken(ctx context.Context, req *userpb.ValidateTo
 	if err != nil {
 		return nil, err
 	}
-	return &user.ValidateTokenResponse{
+	return &userpb.ValidateTokenResponse{
 		Valid: token.Valid,
 	}, nil
 }
@@ -112,12 +129,6 @@ func (s *Server) Refresh(ctx context.Context, req *userpb.RefreshRequest) (*user
 		return nil, fmt.Errorf("generating access token: %w", err)
 	}
 
-	hash := func(t string) []byte {
-		h := sha256.New()
-		h.Write([]byte(t))
-		return h.Sum(nil)
-	}
-
 	newParsed, _, err := jwt.NewParser().ParseUnverified(newSignedToken, &jwt.RegisteredClaims{})
 	if err != nil {
 		return nil, fmt.Errorf("parsing new token: %w", err)
@@ -133,7 +144,7 @@ func (s *Server) Refresh(ctx context.Context, req *userpb.RefreshRequest) (*user
 	}
 	defer tx.Rollback()
 
-	err = s.rotateRefreshToken(tx, email, hash(refreshToken), hash(newSignedToken), newExpiry.Time)
+	err = s.rotateRefreshToken(tx, email, hashValue(refreshToken), hashValue(newSignedToken), newExpiry.Time)
 	if err != nil {
 		return nil, err
 	}
@@ -146,9 +157,7 @@ func (s *Server) Refresh(ctx context.Context, req *userpb.RefreshRequest) (*user
 }
 
 func (s *Server) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.LoginResponse, error) {
-	hasher := sha256.New()
-	hasher.Write([]byte(req.Password))
-	hashedPassword := hasher.Sum(nil)
+	hashedPassword := hashValue(req.Password)
 	user, err := s.GetUserByEmail(req.Email)
 	if err != nil {
 		return nil, err
@@ -178,4 +187,172 @@ func (s *Server) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.L
 		AccessToken:  "",
 		RefreshToken: "",
 	}, errors.New("wrong creds")
+}
+
+func (s *Server) RequestPasswordReset(ctx context.Context, req *userpb.PasswordActionRequest) (*userpb.PasswordActionResponse, error) {
+	return s.requestPasswordAction(ctx, strings.TrimSpace(req.Email), passwordActionReset)
+}
+
+func (s *Server) RequestInitialPasswordSet(ctx context.Context, req *userpb.PasswordActionRequest) (*userpb.PasswordActionResponse, error) {
+	return s.requestPasswordAction(ctx, strings.TrimSpace(req.Email), passwordActionInitialSet)
+}
+
+func (s *Server) SetPasswordWithToken(ctx context.Context, req *userpb.SetPasswordWithTokenRequest) (*userpb.SetPasswordWithTokenResponse, error) {
+	token := strings.TrimSpace(req.Token)
+	newPassword := strings.TrimSpace(req.NewPassword)
+
+	if token == "" || newPassword == "" {
+		return nil, status.Error(codes.InvalidArgument, "token and new password are required")
+	}
+
+	tx, err := s.database.Begin()
+	if err != nil {
+		return nil, status.Error(codes.Internal, "starting transaction failed")
+	}
+	defer tx.Rollback()
+
+	email, _, err := s.ConsumePasswordActionToken(tx, hashValue(token))
+	if err != nil {
+		if errors.Is(err, ErrInvalidPasswordActionToken) {
+			return nil, status.Error(codes.InvalidArgument, "invalid or expired token")
+		}
+		return nil, status.Error(codes.Internal, "token validation failed")
+	}
+
+	if err := s.UpdatePasswordByEmail(tx, email, hashValue(newPassword)); err != nil {
+		return nil, status.Error(codes.Internal, "password update failed")
+	}
+
+	if err := s.RevokeRefreshTokensByEmail(tx, email); err != nil {
+		return nil, status.Error(codes.Internal, "refresh token revocation failed")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, status.Error(codes.Internal, "committing transaction failed")
+	}
+
+	return &userpb.SetPasswordWithTokenResponse{Successful: true}, nil
+}
+
+func (s *Server) requestPasswordAction(ctx context.Context, email string, actionType string) (*userpb.PasswordActionResponse, error) {
+	if email == "" {
+		return nil, status.Error(codes.InvalidArgument, "email is required")
+	}
+
+	user, err := s.GetUserByEmail(email)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "user lookup failed")
+	}
+	if user == nil {
+		return &userpb.PasswordActionResponse{Accepted: true}, nil
+	}
+
+	token, err := generateOpaqueToken()
+	if err != nil {
+		return nil, status.Error(codes.Internal, "token generation failed")
+	}
+
+	validUntil := time.Now().Add(resetPasswordTokenTTL)
+	if actionType == passwordActionInitialSet {
+		validUntil = time.Now().Add(initialSetPasswordTTL)
+	}
+
+	if err := s.UpsertPasswordActionToken(user.email, actionType, hashValue(token), validUntil); err != nil {
+		return nil, status.Error(codes.Internal, "storing token failed")
+	}
+
+	baseURL := os.Getenv("PASSWORD_RESET_BASE_URL")
+	if actionType == passwordActionInitialSet {
+		baseURL = os.Getenv("PASSWORD_SET_BASE_URL")
+	}
+	link, err := buildPasswordLink(baseURL, token)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "building password link failed")
+	}
+
+	if err := s.sendPasswordActionEmail(ctx, user.email, link, actionType); err != nil {
+		return nil, status.Error(codes.Internal, "sending password email failed")
+	}
+
+	return &userpb.PasswordActionResponse{Accepted: true}, nil
+}
+
+func (s *Server) sendPasswordActionEmail(ctx context.Context, email string, link string, actionType string) error {
+	notificationAddr := os.Getenv("NOTIFICATION_GRPC_ADDR")
+	if strings.TrimSpace(notificationAddr) == "" {
+		notificationAddr = defaultNotificationURL
+	}
+
+	dialCtx, cancelDial := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelDial()
+	conn, err := grpc.DialContext(
+		dialCtx,
+		notificationAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
+	if err != nil {
+		return fmt.Errorf("dialing notification service: %w", err)
+	}
+	defer conn.Close()
+
+	client := notification.NewNotificationServiceClient(conn)
+
+	sendCtx, cancelSend := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelSend()
+
+	req := &notification.PasswordLinkMailRequest{
+		ToAddr: email,
+		Link:   link,
+	}
+
+	if actionType == passwordActionInitialSet {
+		resp, err := client.SendInitialPasswordSetEmail(sendCtx, req)
+		if err != nil {
+			return fmt.Errorf("calling SendInitialPasswordSetEmail: %w", err)
+		}
+		if !resp.Successful {
+			return fmt.Errorf("notification service reported unsuccessful initial set send")
+		}
+		return nil
+	}
+
+	resp, err := client.SendPasswordResetEmail(sendCtx, req)
+	if err != nil {
+		return fmt.Errorf("calling SendPasswordResetEmail: %w", err)
+	}
+	if !resp.Successful {
+		return fmt.Errorf("notification service reported unsuccessful reset send")
+	}
+	return nil
+}
+
+func generateOpaqueToken() (string, error) {
+	random := make([]byte, 32)
+	if _, err := rand.Read(random); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(random), nil
+}
+
+func hashValue(value string) []byte {
+	sum := sha256.Sum256([]byte(value))
+	return sum[:]
+}
+
+func buildPasswordLink(baseURL string, token string) (string, error) {
+	if strings.TrimSpace(baseURL) == "" {
+		return "", fmt.Errorf("base URL is empty")
+	}
+
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return "", fmt.Errorf("parsing base URL: %w", err)
+	}
+
+	query := parsedURL.Query()
+	query.Set("token", token)
+	parsedURL.RawQuery = query.Encode()
+
+	return parsedURL.String(), nil
 }
