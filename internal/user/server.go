@@ -162,7 +162,7 @@ func (s *Server) Refresh(ctx context.Context, req *userpb.RefreshRequest) (*user
 	if err != nil {
 		return nil, fmt.Errorf("starting transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	err = s.rotateRefreshToken(tx, email, hashValue(refreshToken), hashValue(newSignedToken), newExpiry.Time)
 	if err != nil {
@@ -212,7 +212,7 @@ func (s *Server) Logout(ctx context.Context, req *userpb.LogoutRequest) (*userpb
 	if err != nil {
 		return nil, fmt.Errorf("starting transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	err = s.RevokeRefreshTokensByEmail(tx, email)
 	if err != nil {
 		return nil, err
@@ -247,7 +247,7 @@ func (s *Server) SetPasswordWithToken(ctx context.Context, req *userpb.SetPasswo
 	if err != nil {
 		return nil, status.Error(codes.Internal, "starting transaction failed")
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	email, _, err := s.ConsumePasswordActionToken(tx, hashValue(token))
 	if err != nil {
@@ -321,18 +321,14 @@ func (s *Server) sendPasswordActionEmail(ctx context.Context, email string, link
 		notificationAddr = defaultNotificationURL
 	}
 
-	dialCtx, cancelDial := context.WithTimeout(ctx, 5*time.Second)
-	defer cancelDial()
-	conn, err := grpc.DialContext(
-		dialCtx,
+	conn, err := grpc.NewClient(
 		notificationAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
 	)
 	if err != nil {
 		return fmt.Errorf("dialing notification service: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := notificationpb.NewNotificationServiceClient(conn)
 
@@ -407,7 +403,7 @@ func (s *Server) CreateClientAccount(ctx context.Context, req *userpb.CreateClie
 		}
 	}
 	if req.Gender != "M" && req.Gender != "F" {
-		return nil, errors.New("Gender must be M of F")
+		return nil, errors.New("gender must be M or F")
 	}
 
 	salt, salt_err := generateSalt()
@@ -442,7 +438,7 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 	}
 	if req.Gender != "M" && req.Gender != "F" {
 		log.Print("create employee gender must be M or F")
-		return nil, errors.New("Gender must be M of F")
+		return nil, errors.New("gender must be M or F")
 	}
 
 	salt, salt_err := generateSalt()

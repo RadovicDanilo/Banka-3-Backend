@@ -52,10 +52,10 @@ func (s *Server) rotateRefreshToken(tx *sql.Tx, email string, oldHash, newHash [
 	if !bytes.Equal(storedHash, oldHash) {
 		_, err := tx.Exec(`UPDATE refresh_tokens SET revoked = TRUE WHERE email = $1`, email)
 		if err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return fmt.Errorf("failed to revoke tokens: %w", err)
 		}
-		tx.Commit()
+		_ = tx.Commit()
 		return fmt.Errorf("token mismatch: possible reuse attack")
 	}
 

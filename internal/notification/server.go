@@ -147,4 +147,3 @@ func (s *Server) SendInitialPasswordSetEmail(ctx context.Context, req *notificat
 		Successful: true,
 	}, nil
 }
-
