@@ -12,8 +12,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"gorm.io/gorm"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 type User struct {
@@ -193,41 +193,40 @@ func (s *Server) RevokeRefreshTokensByEmail(tx *sql.Tx, email string) error {
 	return nil
 }
 
-
-func create_user_from_model[T Clients | Employees](user T, s *Server) error{
+func create_user_from_model[T Clients | Employees](user T, s *Server) error {
 	result := s.db_gorm.Create(&user)
-	if result.Error != nil{
+	if result.Error != nil {
 		log.Printf("We got this error: %s", result.Error.Error())
 		return result.Error
 	}
 	return nil
 }
 
-func get_user_by_id_from_model[T Clients | Employees | Employee_by_Id_response](user T, id int, s *Server) (*T, error){
+func get_user_by_id_from_model[T Clients | Employees | Employee_by_Id_response](user T, id int, s *Server) (*T, error) {
 	// LOBANJA
 	// Try to figure this shit out when you can be bothered
 	// meanwhile this function serves no purpose
 	var result *gorm.DB
-	switch any(user).(type){
-		case Clients:
-		    result = s.db_gorm.First(&user, id)
+	switch any(user).(type) {
+	case Clients:
+		result = s.db_gorm.First(&user, id)
 
-		case Employee_by_Id_response:
-		    result = s.db_gorm.Table("employees e").
+	case Employee_by_Id_response:
+		result = s.db_gorm.Table("employees e").
 			Select("e.id, e.first_name, e.last_name, e.date_of_birth, e.gender, e.email, e.phone_number, e.address, e.username, e.position, e.active, e.department p.id AS Permission_id, p.name AS Permission_name").
 			Joins("JOIN employee_permissions ep ON e.id = ep.employee_id").
 			Joins("JOIN permissions p ON ep.permission_id = p.id").
 			Where("e.id = ?", id).
 			First(&user)
 
-		default:
-		    return nil, errors.New("Function not called with supported types")
+	default:
+		return nil, errors.New("Function not called with supported types")
 	}
-	if result.Error != nil{
+	if result.Error != nil {
 		log.Printf(" Error in get_user_by_id: %v", result.Error)
-		 return nil, result.Error
+		return nil, result.Error
 	}
-	return &user, nil	
+	return &user, nil
 }
 
 func (s *Server) GetUserByID(id int64) (*Employee_by_Id_response, error) {
@@ -255,7 +254,7 @@ func (s *Server) GetAllEmployees(email string, name string, last_name string, po
 	FROM employees e 
 	JOIN employee_permissions ep ON e.id = ep.employee_id 
 	JOIN permissions p ON ep.permission_id = p.id`
-	
+
 	var conditions []string
 	// Query is variadic, and interface{}
 	// is basically the most generic type
@@ -304,23 +303,23 @@ func (s *Server) GetAllEmployees(email string, name string, last_name string, po
 		return nil, fmt.Errorf("Error: %w", err)
 	}
 
-	return &employees, nil	
+	return &employees, nil
 }
 
 func (s *Server) UpdateEmployee_(emp *Employees, perms []Permissions) error {
 	updates := map[string]any{
-		"id": emp.Id,
-		"last_name": emp.First_name,
-		"gender": emp.Gender,
+		"id":           emp.Id,
+		"last_name":    emp.First_name,
+		"gender":       emp.Gender,
 		"phone_number": emp.Phone_number,
-		"address": emp.Address,
-		"position": emp.Position,
-		"department": emp.Department,
-		"active": emp.Active,
+		"address":      emp.Address,
+		"position":     emp.Position,
+		"department":   emp.Department,
+		"active":       emp.Active,
 	}
 	if err := s.db_gorm.Model(emp).Updates(updates).Error; err != nil {
-	    log.Printf("Error updating employee %v", err)
-	    return err
+		log.Printf("Error updating employee %v", err)
+		return err
 	}
 
 	var currentPermissions []Permissions
@@ -334,11 +333,11 @@ func (s *Server) UpdateEmployee_(emp *Employees, perms []Permissions) error {
 	}
 
 	var contains = func(perms []Permissions, perm Permissions) bool {
-	    for _, p := range perms {
-		    if p.Id == perm.Id {
-			    return true
-		    }
-	    }
+		for _, p := range perms {
+			if p.Id == perm.Id {
+				return true
+			}
+		}
 		return false
 	}
 
@@ -355,4 +354,3 @@ func (s *Server) UpdateEmployee_(emp *Employees, perms []Permissions) error {
 	}
 	return nil
 }
-

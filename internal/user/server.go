@@ -60,7 +60,6 @@ func hashPassword(password string, salt []byte) []byte {
 	return hashed.Sum(nil)
 }
 
-
 func NewServer(accessJwtSecret string, refreshJwtSecret string, database *sql.DB, gorm_db *gorm.DB) *Server {
 	return &Server{
 		accessJwtSecret:  accessJwtSecret,
@@ -71,27 +70,27 @@ func NewServer(accessJwtSecret string, refreshJwtSecret string, database *sql.DB
 }
 
 func (s *Server) GetEmployeeById(ctx context.Context, req *userpb.GetEmployeeByIdRequest) (*userpb.GetEmployeeByIdResponse, error) {
-	map_to_protobuff_resp := func (emp Employee_by_Id_response) *userpb.GetEmployeeByIdResponse{
-	return &userpb.GetEmployeeByIdResponse{
-		Id: int64(emp.Id),
-		FirstName: emp.First_name,
-		LastName: emp.Last_name,
-		DateOfBirth: emp.Date_of_birth.Unix(),
-		Gender: emp.Gender,
-		Email: emp.Email,
-		PhoneNumber: emp.Phone_number,
-		Address: emp.Address,
-		Username: emp.Username,
-		Position: emp.Position,
-		Department: emp.Department,
-		Active: emp.Active,
-		Perms: &userpb.Permissions{Id: int64(emp.Permission_id), Permision: emp.Permission_name},
+	map_to_protobuff_resp := func(emp Employee_by_Id_response) *userpb.GetEmployeeByIdResponse {
+		return &userpb.GetEmployeeByIdResponse{
+			Id:          int64(emp.Id),
+			FirstName:   emp.First_name,
+			LastName:    emp.Last_name,
+			DateOfBirth: emp.Date_of_birth.Unix(),
+			Gender:      emp.Gender,
+			Email:       emp.Email,
+			PhoneNumber: emp.Phone_number,
+			Address:     emp.Address,
+			Username:    emp.Username,
+			Position:    emp.Position,
+			Department:  emp.Department,
+			Active:      emp.Active,
+			Perms:       &userpb.Permissions{Id: int64(emp.Permission_id), Permision: emp.Permission_name},
+		}
 	}
-}
 
 	// user, err := get_user_by_id_from_model(Employee_by_Id_response{}, int(req.Id), s)
 	user, err := s.GetUserByID(req.Id)
-	if err != nil{
+	if err != nil {
 		log.Printf("Error in employee retrieval%s", err.Error())
 		return nil, status.Error(codes.Internal, "Employee creation failed")
 	}
@@ -101,19 +100,18 @@ func (s *Server) GetEmployeeById(ctx context.Context, req *userpb.GetEmployeeByI
 	return resp, nil
 }
 
-
-func (s *Server) GetEmployees(ctx context.Context, req *userpb.GetEmployeesRequest) (*userpb.GetEmployeesResponse, error){
-	map_func := func (emp Get_employees) *userpb.GetEmployeesResponse_Employee {
-	return &userpb.GetEmployeesResponse_Employee{
-		Id:          int64(emp.Id),
-		FirstName:   emp.First_name,
-		LastName:    emp.Last_name,
-		Email:       emp.Email,
-		Position:    emp.Position,
-		PhoneNumber: emp.Phone_number,
-		Active:      emp.Active,
-		Perms: &userpb.Permissions{Id: emp.Permission_id, Permision: emp.Permission_name},
-	        }
+func (s *Server) GetEmployees(ctx context.Context, req *userpb.GetEmployeesRequest) (*userpb.GetEmployeesResponse, error) {
+	map_func := func(emp Get_employees) *userpb.GetEmployeesResponse_Employee {
+		return &userpb.GetEmployeesResponse_Employee{
+			Id:          int64(emp.Id),
+			FirstName:   emp.First_name,
+			LastName:    emp.Last_name,
+			Email:       emp.Email,
+			Position:    emp.Position,
+			PhoneNumber: emp.Phone_number,
+			Active:      emp.Active,
+			Perms:       &userpb.Permissions{Id: emp.Permission_id, Permision: emp.Permission_name},
+		}
 	}
 	employees, err := s.GetAllEmployees(req.Email, req.FirstName, req.LastName, req.Position)
 	if err != nil {
@@ -121,27 +119,26 @@ func (s *Server) GetEmployees(ctx context.Context, req *userpb.GetEmployeesReque
 		return nil, status.Error(codes.Internal, "Failed to retrieve employees")
 	}
 	var employee_responses []*userpb.GetEmployeesResponse_Employee
-	for _, emp := range *employees{
+	for _, emp := range *employees {
 		employee_responses = append(employee_responses, map_func(emp))
 	}
-
 
 	return &userpb.GetEmployeesResponse{Employees: employee_responses}, nil
 }
 
-func (s *Server) UpdateEmployee(ctx context.Context, req *userpb.UpdateEmployeeRequest) (*userpb.UpdateEmployeeResponse, error){
+func (s *Server) UpdateEmployee(ctx context.Context, req *userpb.UpdateEmployeeRequest) (*userpb.UpdateEmployeeResponse, error) {
 	emp := Employees{Last_name: req.LastName, Gender: req.Gender,
 		Phone_number: req.PhoneNumber, Address: req.Address, Position: req.Position,
 		Department: req.Department, Active: req.Active, Id: uint64(req.Id)}
-	var map_from_pbs = func(perms *userpb.Permissions) Permissions{
+	var map_from_pbs = func(perms *userpb.Permissions) Permissions {
 		return Permissions{Id: uint64(perms.Id), Name: perms.Permision}
 	}
 	var permissions []Permissions
-	for _, perm := range req.Perms{
+	for _, perm := range req.Perms {
 		permissions = append(permissions, map_from_pbs(perm))
 	}
 	err := s.UpdateEmployee_(&emp, permissions)
-	if err != nil{
+	if err != nil {
 		return nil, status.Error(codes.Internal, "Messed something up in UpdateEmployee_ in repo")
 	}
 	return &userpb.UpdateEmployeeResponse{Valid: true, Response: "You made it"}, nil
@@ -473,12 +470,11 @@ func (s *Server) CreateClientAccount(ctx context.Context, req *userpb.CreateClie
 	vals := []string{req.FirstName, req.LastName, req.Gender, req.Email, req.PhoneNumber,
 		req.Address}
 
-	
 	if slices.ContainsFunc(vals, is_null) {
 		return nil, status.Error(codes.InvalidArgument, "One of the required cols is null")
 	}
-	
-	if req.Gender != "M" && req.Gender != "F"{
+
+	if req.Gender != "M" && req.Gender != "F" {
 		return nil, status.Error(codes.InvalidArgument, "Gender must be one of M or F")
 	}
 
@@ -495,7 +491,7 @@ func (s *Server) CreateClientAccount(ctx context.Context, req *userpb.CreateClie
 		Salt_password: salt}
 
 	err := create_user_from_model(client, s)
-	if err != nil{
+	if err != nil {
 		log.Printf("Error in user creation%s", err.Error())
 		return nil, status.Error(codes.Internal, "Employee creation failed")
 	}
@@ -513,7 +509,7 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 		return nil, status.Error(codes.InvalidArgument, "One of the required cols is null")
 	}
 
-	if req.Gender != "M" && req.Gender != "F"{
+	if req.Gender != "M" && req.Gender != "F" {
 		log.Print("create employee gender must be M or F")
 		return nil, errors.New("gender must be M or F")
 	}
@@ -532,8 +528,7 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 
 	err := create_user_from_model(employee, s)
 
-
-	if err != nil{
+	if err != nil {
 		log.Printf("Error in user creation%s", err.Error())
 		return nil, status.Error(codes.Internal, "Employee creation failed")
 	}
