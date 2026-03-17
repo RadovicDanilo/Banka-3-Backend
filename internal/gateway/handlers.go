@@ -12,7 +12,7 @@ import (
 
 func SetupApi(router *gin.Engine, server *Server) {
 	router.GET("/healthz", server.Healthz)
-
+	router.Use(CORSMiddleware())
 	api := router.Group("/api")
 	{
 		api.POST("/login", server.Login)
