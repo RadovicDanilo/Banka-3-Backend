@@ -198,7 +198,6 @@ func (s *Server) RevokeRefreshTokensByEmail(tx *sql.Tx, email string) error {
 	return nil
 }
 
-
 func scanCompany(scanner interface {
 	Scan(dest ...any) error
 }) (*Companies, error) {
