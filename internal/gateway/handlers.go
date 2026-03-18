@@ -36,6 +36,14 @@ func SetupApi(router *gin.Engine, server *Server) {
 		employees.POST("", server.CreateEmployeeAccount)
 		employees.GET("/:id", server.GetEmployeeByID)
 	}
+
+	loans := api.Group("/loans")
+	{
+		loans.GET("", server.GetLoans)
+		loans.GET("/:loanNumber", server.GetLoanByNumber)
+	}
+
+	api.POST("/loan-requests", server.CreateLoanRequest)
 }
 
 func (s *Server) Healthz(c *gin.Context) {
@@ -261,4 +269,16 @@ func (s *Server) ConfirmPasswordReset(c *gin.Context) {
 	} else {
 		c.Status(http.StatusUnprocessableEntity)
 	}
+}
+
+func (s *Server) GetLoans(c *gin.Context) {
+
+}
+
+func (s *Server) GetLoanByNumber(c *gin.Context) {
+
+}
+
+func (s *Server) CreateLoanRequest(c *gin.Context) {
+
 }
