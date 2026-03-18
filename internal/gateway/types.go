@@ -18,6 +18,7 @@ type getEmployeesURI struct {
 	FirstName string `form:"first_name"`
 	LastName  string `form:"last_name"`
 	Position  string `form:"position"`
+}
 type companyByIDURI struct {
 	CompanyID int64 `uri:"id" binding:"required"`
 }

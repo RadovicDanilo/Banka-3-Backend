@@ -1208,7 +1208,7 @@ type CreateEmployeeRequest struct {
 
 func (x *CreateEmployeeRequest) Reset() {
 	*x = CreateEmployeeRequest{}
-	mi := &file_user_user_proto_msgTypes[13]
+	mi := &file_user_user_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1220,7 +1220,7 @@ func (x *CreateEmployeeRequest) String() string {
 func (*CreateEmployeeRequest) ProtoMessage() {}
 
 func (x *CreateEmployeeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[13]
+	mi := &file_user_user_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1233,7 +1233,7 @@ func (x *CreateEmployeeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateEmployeeRequest.ProtoReflect.Descriptor instead.
 func (*CreateEmployeeRequest) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{13}
+	return file_user_user_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *CreateEmployeeRequest) GetFirstName() string {
@@ -1322,7 +1322,7 @@ type CreateEmployeeResponse struct {
 
 func (x *CreateEmployeeResponse) Reset() {
 	*x = CreateEmployeeResponse{}
-	mi := &file_user_user_proto_msgTypes[14]
+	mi := &file_user_user_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1334,7 +1334,7 @@ func (x *CreateEmployeeResponse) String() string {
 func (*CreateEmployeeResponse) ProtoMessage() {}
 
 func (x *CreateEmployeeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[14]
+	mi := &file_user_user_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1347,7 +1347,7 @@ func (x *CreateEmployeeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateEmployeeResponse.ProtoReflect.Descriptor instead.
 func (*CreateEmployeeResponse) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{14}
+	return file_user_user_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *CreateEmployeeResponse) GetValid() bool {
@@ -1373,7 +1373,7 @@ type CreateClientRequest struct {
 
 func (x *CreateClientRequest) Reset() {
 	*x = CreateClientRequest{}
-	mi := &file_user_user_proto_msgTypes[15]
+	mi := &file_user_user_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1385,7 +1385,7 @@ func (x *CreateClientRequest) String() string {
 func (*CreateClientRequest) ProtoMessage() {}
 
 func (x *CreateClientRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[15]
+	mi := &file_user_user_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1398,7 +1398,7 @@ func (x *CreateClientRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateClientRequest.ProtoReflect.Descriptor instead.
 func (*CreateClientRequest) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{15}
+	return file_user_user_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *CreateClientRequest) GetFirstName() string {
@@ -1466,7 +1466,7 @@ type CreateClientResponse struct {
 
 func (x *CreateClientResponse) Reset() {
 	*x = CreateClientResponse{}
-	mi := &file_user_user_proto_msgTypes[16]
+	mi := &file_user_user_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1478,7 +1478,7 @@ func (x *CreateClientResponse) String() string {
 func (*CreateClientResponse) ProtoMessage() {}
 
 func (x *CreateClientResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[16]
+	mi := &file_user_user_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1491,7 +1491,7 @@ func (x *CreateClientResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateClientResponse.ProtoReflect.Descriptor instead.
 func (*CreateClientResponse) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{16}
+	return file_user_user_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CreateClientResponse) GetValid() bool {
@@ -1513,7 +1513,7 @@ type GetEmployeesRequest struct {
 
 func (x *GetEmployeesRequest) Reset() {
 	*x = GetEmployeesRequest{}
-	mi := &file_user_user_proto_msgTypes[17]
+	mi := &file_user_user_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1525,7 +1525,7 @@ func (x *GetEmployeesRequest) String() string {
 func (*GetEmployeesRequest) ProtoMessage() {}
 
 func (x *GetEmployeesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[17]
+	mi := &file_user_user_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1538,7 +1538,7 @@ func (x *GetEmployeesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEmployeesRequest.ProtoReflect.Descriptor instead.
 func (*GetEmployeesRequest) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{17}
+	return file_user_user_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetEmployeesRequest) GetFirstName() string {
@@ -1578,7 +1578,7 @@ type GetEmployeesResponse struct {
 
 func (x *GetEmployeesResponse) Reset() {
 	*x = GetEmployeesResponse{}
-	mi := &file_user_user_proto_msgTypes[18]
+	mi := &file_user_user_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1590,7 +1590,7 @@ func (x *GetEmployeesResponse) String() string {
 func (*GetEmployeesResponse) ProtoMessage() {}
 
 func (x *GetEmployeesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[18]
+	mi := &file_user_user_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1603,7 +1603,7 @@ func (x *GetEmployeesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEmployeesResponse.ProtoReflect.Descriptor instead.
 func (*GetEmployeesResponse) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{18}
+	return file_user_user_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GetEmployeesResponse) GetEmployees() []*GetEmployeesResponse_Employee {
@@ -1622,7 +1622,7 @@ type GetEmployeeByIdRequest struct {
 
 func (x *GetEmployeeByIdRequest) Reset() {
 	*x = GetEmployeeByIdRequest{}
-	mi := &file_user_user_proto_msgTypes[19]
+	mi := &file_user_user_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1634,7 +1634,7 @@ func (x *GetEmployeeByIdRequest) String() string {
 func (*GetEmployeeByIdRequest) ProtoMessage() {}
 
 func (x *GetEmployeeByIdRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[19]
+	mi := &file_user_user_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1647,7 +1647,7 @@ func (x *GetEmployeeByIdRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEmployeeByIdRequest.ProtoReflect.Descriptor instead.
 func (*GetEmployeeByIdRequest) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{19}
+	return file_user_user_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetEmployeeByIdRequest) GetId() int64 {
@@ -1666,7 +1666,7 @@ type GetEmployeeByEmailRequest struct {
 
 func (x *GetEmployeeByEmailRequest) Reset() {
 	*x = GetEmployeeByEmailRequest{}
-	mi := &file_user_user_proto_msgTypes[20]
+	mi := &file_user_user_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1678,7 +1678,7 @@ func (x *GetEmployeeByEmailRequest) String() string {
 func (*GetEmployeeByEmailRequest) ProtoMessage() {}
 
 func (x *GetEmployeeByEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[20]
+	mi := &file_user_user_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1691,7 +1691,7 @@ func (x *GetEmployeeByEmailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEmployeeByEmailRequest.ProtoReflect.Descriptor instead.
 func (*GetEmployeeByEmailRequest) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{20}
+	return file_user_user_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetEmployeeByEmailRequest) GetEmail() string {
@@ -1722,7 +1722,7 @@ type GetEmployeeResponse struct {
 
 func (x *GetEmployeeResponse) Reset() {
 	*x = GetEmployeeResponse{}
-	mi := &file_user_user_proto_msgTypes[21]
+	mi := &file_user_user_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1734,7 +1734,7 @@ func (x *GetEmployeeResponse) String() string {
 func (*GetEmployeeResponse) ProtoMessage() {}
 
 func (x *GetEmployeeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[21]
+	mi := &file_user_user_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1747,7 +1747,7 @@ func (x *GetEmployeeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEmployeeResponse.ProtoReflect.Descriptor instead.
 func (*GetEmployeeResponse) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{21}
+	return file_user_user_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetEmployeeResponse) GetId() int64 {
@@ -2041,7 +2041,7 @@ func (x *GetEmployeesResponse_Employee) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEmployeesResponse_Employee.ProtoReflect.Descriptor instead.
 func (*GetEmployeesResponse_Employee) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{18, 0}
+	return file_user_user_proto_rawDescGZIP(), []int{27, 0}
 }
 
 func (x *GetEmployeesResponse_Employee) GetId() int64 {
@@ -2256,7 +2256,8 @@ const file_user_user_proto_rawDesc = "" +
 	"\vpermissions\x18\t \x03(\tR\vpermissions\"J\n" +
 	"\x16UpdateEmployeeResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x1a\n" +
-	"\bresponse\x18\x02 \x01(\tR\bresponse2\xab\b\n" +
+	"\bresponse\x18\x02 \x01(\tR\bresponse2\xd3\n" +
+	"\n" +
 	"\vUserService\x12J\n" +
 	"\x0fGetEmployeeById\x12\x1c.user.GetEmployeeByIdRequest\x1a\x19.user.GetEmployeeResponse\x12P\n" +
 	"\x12GetEmployeeByEmail\x12\x1f.user.GetEmployeeByEmailRequest\x1a\x19.user.GetEmployeeResponse\x12E\n" +
@@ -2293,65 +2294,86 @@ var file_user_user_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
 var file_user_user_proto_goTypes = []any{
 	(*ValidateTokenRequest)(nil),          // 0: user.ValidateTokenRequest
 	(*ValidateTokenResponse)(nil),         // 1: user.ValidateTokenResponse
-	(*RefreshRequest)(nil),                // 2: user.RefreshRequest
-	(*RefreshResponse)(nil),               // 3: user.RefreshResponse
-	(*EmployeeResponse)(nil),              // 4: user.EmployeeResponse
-	(*LogoutRequest)(nil),                 // 5: user.LogoutRequest
-	(*LogoutResponse)(nil),                // 6: user.LogoutResponse
-	(*LoginRequest)(nil),                  // 7: user.LoginRequest
-	(*LoginResponse)(nil),                 // 8: user.LoginResponse
-	(*PasswordActionRequest)(nil),         // 9: user.PasswordActionRequest
-	(*PasswordActionResponse)(nil),        // 10: user.PasswordActionResponse
-	(*SetPasswordWithTokenRequest)(nil),   // 11: user.SetPasswordWithTokenRequest
-	(*SetPasswordWithTokenResponse)(nil),  // 12: user.SetPasswordWithTokenResponse
-	(*CreateEmployeeRequest)(nil),         // 13: user.CreateEmployeeRequest
-	(*CreateEmployeeResponse)(nil),        // 14: user.CreateEmployeeResponse
-	(*CreateClientRequest)(nil),           // 15: user.CreateClientRequest
-	(*CreateClientResponse)(nil),          // 16: user.CreateClientResponse
-	(*GetEmployeesRequest)(nil),           // 17: user.GetEmployeesRequest
-	(*GetEmployeesResponse)(nil),          // 18: user.GetEmployeesResponse
-	(*GetEmployeeByIdRequest)(nil),        // 19: user.GetEmployeeByIdRequest
-	(*GetEmployeeByEmailRequest)(nil),     // 20: user.GetEmployeeByEmailRequest
-	(*GetEmployeeResponse)(nil),           // 21: user.GetEmployeeResponse
-	(*UpdateEmployeeRequest)(nil),         // 22: user.UpdateEmployeeRequest
-	(*UpdateEmployeeResponse)(nil),        // 23: user.UpdateEmployeeResponse
-	(*GetEmployeesResponse_Employee)(nil), // 24: user.GetEmployeesResponse.Employee
+	(*Company)(nil),                       // 2: user.Company
+	(*CreateCompanyRequest)(nil),          // 3: user.CreateCompanyRequest
+	(*CreateCompanyResponse)(nil),         // 4: user.CreateCompanyResponse
+	(*GetCompanyByIdRequest)(nil),         // 5: user.GetCompanyByIdRequest
+	(*GetCompanyByIdResponse)(nil),        // 6: user.GetCompanyByIdResponse
+	(*GetCompaniesRequest)(nil),           // 7: user.GetCompaniesRequest
+	(*GetCompaniesResponse)(nil),          // 8: user.GetCompaniesResponse
+	(*UpdateCompanyRequest)(nil),          // 9: user.UpdateCompanyRequest
+	(*UpdateCompanyResponse)(nil),         // 10: user.UpdateCompanyResponse
+	(*RefreshRequest)(nil),                // 11: user.RefreshRequest
+	(*RefreshResponse)(nil),               // 12: user.RefreshResponse
+	(*EmployeeResponse)(nil),              // 13: user.EmployeeResponse
+	(*LogoutRequest)(nil),                 // 14: user.LogoutRequest
+	(*LogoutResponse)(nil),                // 15: user.LogoutResponse
+	(*LoginRequest)(nil),                  // 16: user.LoginRequest
+	(*LoginResponse)(nil),                 // 17: user.LoginResponse
+	(*PasswordActionRequest)(nil),         // 18: user.PasswordActionRequest
+	(*PasswordActionResponse)(nil),        // 19: user.PasswordActionResponse
+	(*SetPasswordWithTokenRequest)(nil),   // 20: user.SetPasswordWithTokenRequest
+	(*SetPasswordWithTokenResponse)(nil),  // 21: user.SetPasswordWithTokenResponse
+	(*CreateEmployeeRequest)(nil),         // 22: user.CreateEmployeeRequest
+	(*CreateEmployeeResponse)(nil),        // 23: user.CreateEmployeeResponse
+	(*CreateClientRequest)(nil),           // 24: user.CreateClientRequest
+	(*CreateClientResponse)(nil),          // 25: user.CreateClientResponse
+	(*GetEmployeesRequest)(nil),           // 26: user.GetEmployeesRequest
+	(*GetEmployeesResponse)(nil),          // 27: user.GetEmployeesResponse
+	(*GetEmployeeByIdRequest)(nil),        // 28: user.GetEmployeeByIdRequest
+	(*GetEmployeeByEmailRequest)(nil),     // 29: user.GetEmployeeByEmailRequest
+	(*GetEmployeeResponse)(nil),           // 30: user.GetEmployeeResponse
+	(*UpdateEmployeeRequest)(nil),         // 31: user.UpdateEmployeeRequest
+	(*UpdateEmployeeResponse)(nil),        // 32: user.UpdateEmployeeResponse
+	(*GetEmployeesResponse_Employee)(nil), // 33: user.GetEmployeesResponse.Employee
 }
 var file_user_user_proto_depIdxs = []int32{
-	24, // 0: user.GetEmployeesResponse.employees:type_name -> user.GetEmployeesResponse.Employee
-	19, // 1: user.UserService.GetEmployeeById:input_type -> user.GetEmployeeByIdRequest
-	20, // 2: user.UserService.GetEmployeeByEmail:input_type -> user.GetEmployeeByEmailRequest
-	17, // 3: user.UserService.GetEmployees:input_type -> user.GetEmployeesRequest
-	22, // 4: user.UserService.UpdateEmployee:input_type -> user.UpdateEmployeeRequest
-	7,  // 5: user.UserService.Login:input_type -> user.LoginRequest
-	5,  // 6: user.UserService.Logout:input_type -> user.LogoutRequest
-	2,  // 7: user.UserService.Refresh:input_type -> user.RefreshRequest
-	0,  // 8: user.UserService.ValidateAccessToken:input_type -> user.ValidateTokenRequest
-	0,  // 9: user.UserService.ValidateRefreshToken:input_type -> user.ValidateTokenRequest
-	9,  // 10: user.UserService.RequestPasswordReset:input_type -> user.PasswordActionRequest
-	9,  // 11: user.UserService.RequestInitialPasswordSet:input_type -> user.PasswordActionRequest
-	11, // 12: user.UserService.SetPasswordWithToken:input_type -> user.SetPasswordWithTokenRequest
-	15, // 13: user.UserService.CreateClientAccount:input_type -> user.CreateClientRequest
-	13, // 14: user.UserService.CreateEmployeeAccount:input_type -> user.CreateEmployeeRequest
-	21, // 15: user.UserService.GetEmployeeById:output_type -> user.GetEmployeeResponse
-	21, // 16: user.UserService.GetEmployeeByEmail:output_type -> user.GetEmployeeResponse
-	18, // 17: user.UserService.GetEmployees:output_type -> user.GetEmployeesResponse
-	23, // 18: user.UserService.UpdateEmployee:output_type -> user.UpdateEmployeeResponse
-	8,  // 19: user.UserService.Login:output_type -> user.LoginResponse
-	6,  // 20: user.UserService.Logout:output_type -> user.LogoutResponse
-	3,  // 21: user.UserService.Refresh:output_type -> user.RefreshResponse
-	1,  // 22: user.UserService.ValidateAccessToken:output_type -> user.ValidateTokenResponse
-	1,  // 23: user.UserService.ValidateRefreshToken:output_type -> user.ValidateTokenResponse
-	10, // 24: user.UserService.RequestPasswordReset:output_type -> user.PasswordActionResponse
-	10, // 25: user.UserService.RequestInitialPasswordSet:output_type -> user.PasswordActionResponse
-	12, // 26: user.UserService.SetPasswordWithToken:output_type -> user.SetPasswordWithTokenResponse
-	16, // 27: user.UserService.CreateClientAccount:output_type -> user.CreateClientResponse
-	14, // 28: user.UserService.CreateEmployeeAccount:output_type -> user.CreateEmployeeResponse
-	15, // [15:29] is the sub-list for method output_type
-	1,  // [1:15] is the sub-list for method input_type
-	1,  // [1:1] is the sub-list for extension type_name
-	1,  // [1:1] is the sub-list for extension extendee
-	0,  // [0:1] is the sub-list for field type_name
+	2,  // 0: user.CreateCompanyResponse.company:type_name -> user.Company
+	2,  // 1: user.GetCompanyByIdResponse.company:type_name -> user.Company
+	2,  // 2: user.GetCompaniesResponse.companies:type_name -> user.Company
+	2,  // 3: user.UpdateCompanyResponse.company:type_name -> user.Company
+	33, // 4: user.GetEmployeesResponse.employees:type_name -> user.GetEmployeesResponse.Employee
+	28, // 5: user.UserService.GetEmployeeById:input_type -> user.GetEmployeeByIdRequest
+	29, // 6: user.UserService.GetEmployeeByEmail:input_type -> user.GetEmployeeByEmailRequest
+	26, // 7: user.UserService.GetEmployees:input_type -> user.GetEmployeesRequest
+	31, // 8: user.UserService.UpdateEmployee:input_type -> user.UpdateEmployeeRequest
+	3,  // 9: user.UserService.CreateCompany:input_type -> user.CreateCompanyRequest
+	5,  // 10: user.UserService.GetCompanyById:input_type -> user.GetCompanyByIdRequest
+	7,  // 11: user.UserService.GetCompanies:input_type -> user.GetCompaniesRequest
+	9,  // 12: user.UserService.UpdateCompany:input_type -> user.UpdateCompanyRequest
+	16, // 13: user.UserService.Login:input_type -> user.LoginRequest
+	14, // 14: user.UserService.Logout:input_type -> user.LogoutRequest
+	11, // 15: user.UserService.Refresh:input_type -> user.RefreshRequest
+	0,  // 16: user.UserService.ValidateAccessToken:input_type -> user.ValidateTokenRequest
+	0,  // 17: user.UserService.ValidateRefreshToken:input_type -> user.ValidateTokenRequest
+	18, // 18: user.UserService.RequestPasswordReset:input_type -> user.PasswordActionRequest
+	18, // 19: user.UserService.RequestInitialPasswordSet:input_type -> user.PasswordActionRequest
+	20, // 20: user.UserService.SetPasswordWithToken:input_type -> user.SetPasswordWithTokenRequest
+	24, // 21: user.UserService.CreateClientAccount:input_type -> user.CreateClientRequest
+	22, // 22: user.UserService.CreateEmployeeAccount:input_type -> user.CreateEmployeeRequest
+	30, // 23: user.UserService.GetEmployeeById:output_type -> user.GetEmployeeResponse
+	30, // 24: user.UserService.GetEmployeeByEmail:output_type -> user.GetEmployeeResponse
+	27, // 25: user.UserService.GetEmployees:output_type -> user.GetEmployeesResponse
+	32, // 26: user.UserService.UpdateEmployee:output_type -> user.UpdateEmployeeResponse
+	4,  // 27: user.UserService.CreateCompany:output_type -> user.CreateCompanyResponse
+	6,  // 28: user.UserService.GetCompanyById:output_type -> user.GetCompanyByIdResponse
+	8,  // 29: user.UserService.GetCompanies:output_type -> user.GetCompaniesResponse
+	10, // 30: user.UserService.UpdateCompany:output_type -> user.UpdateCompanyResponse
+	17, // 31: user.UserService.Login:output_type -> user.LoginResponse
+	15, // 32: user.UserService.Logout:output_type -> user.LogoutResponse
+	12, // 33: user.UserService.Refresh:output_type -> user.RefreshResponse
+	1,  // 34: user.UserService.ValidateAccessToken:output_type -> user.ValidateTokenResponse
+	1,  // 35: user.UserService.ValidateRefreshToken:output_type -> user.ValidateTokenResponse
+	19, // 36: user.UserService.RequestPasswordReset:output_type -> user.PasswordActionResponse
+	19, // 37: user.UserService.RequestInitialPasswordSet:output_type -> user.PasswordActionResponse
+	21, // 38: user.UserService.SetPasswordWithToken:output_type -> user.SetPasswordWithTokenResponse
+	25, // 39: user.UserService.CreateClientAccount:output_type -> user.CreateClientResponse
+	23, // 40: user.UserService.CreateEmployeeAccount:output_type -> user.CreateEmployeeResponse
+	23, // [23:41] is the sub-list for method output_type
+	5,  // [5:23] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_user_user_proto_init() }

@@ -161,7 +161,7 @@ func (s *Server) UpdateEmployee(ctx context.Context, req *userpb.UpdateEmployeeR
 
 }
 
-func mapCompanyToProto(company *Companies) *userpb.Company {
+func mapCompanyToProto(company *Company) *userpb.Company {
 	if company == nil {
 		return nil
 	}
@@ -217,7 +217,7 @@ func (s *Server) CreateCompany(ctx context.Context, req *userpb.CreateCompanyReq
 		return nil, err
 	}
 
-	company, err := s.CreateCompanyRecord(Companies{
+	company, err := s.CreateCompanyRecord(Company{
 		Registered_id:    req.RegisteredId,
 		Name:             strings.TrimSpace(req.Name),
 		Tax_code:         req.TaxCode,
@@ -278,7 +278,7 @@ func (s *Server) UpdateCompany(ctx context.Context, req *userpb.UpdateCompanyReq
 		return nil, err
 	}
 
-	company, err := s.UpdateCompanyRecord(Companies{
+	company, err := s.UpdateCompanyRecord(Company{
 		Id:               req.Id,
 		Name:             strings.TrimSpace(req.Name),
 		Activity_code_id: req.ActivityCodeId,

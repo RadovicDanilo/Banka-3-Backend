@@ -198,11 +198,10 @@ func (s *Server) RevokeRefreshTokensByEmail(tx *sql.Tx, email string) error {
 	return nil
 }
 
-func create_user_from_model[T Client | Employee](user T, s *Server) error {
 func scanCompany(scanner interface {
 	Scan(dest ...any) error
-}) (*Companies, error) {
-	var company Companies
+}) (*Company, error) {
+	var company Company
 	var activityCodeID sql.NullInt64
 	err := scanner.Scan(
 		&company.Id,
@@ -227,7 +226,7 @@ func isUniqueViolation(err error) bool {
 	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
-func (s *Server) CreateCompanyRecord(company Companies) (*Companies, error) {
+func (s *Server) CreateCompanyRecord(company Company) (*Company, error) {
 	tx, err := s.database.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("starting transaction: %w", err)
@@ -282,7 +281,7 @@ func (s *Server) CreateCompanyRecord(company Companies) (*Companies, error) {
 	return created, nil
 }
 
-func (s *Server) GetCompanyByIDRecord(companyID int64) (*Companies, error) {
+func (s *Server) GetCompanyByIDRecord(companyID int64) (*Company, error) {
 	row := s.database.QueryRow(`
 		SELECT id, registered_id, name, tax_code, activity_code_id, address, owner_id
 		FROM companies
@@ -300,7 +299,7 @@ func (s *Server) GetCompanyByIDRecord(companyID int64) (*Companies, error) {
 	return company, nil
 }
 
-func (s *Server) GetCompaniesRecords() ([]*Companies, error) {
+func (s *Server) GetCompaniesRecords() ([]*Company, error) {
 	rows, err := s.database.Query(`
 		SELECT id, registered_id, name, tax_code, activity_code_id, address, owner_id
 		FROM companies
@@ -311,7 +310,7 @@ func (s *Server) GetCompaniesRecords() ([]*Companies, error) {
 	}
 	defer func() { _ = rows.Close() }()
 
-	var companies []*Companies
+	var companies []*Company
 	for rows.Next() {
 		company, err := scanCompany(rows)
 		if err != nil {
@@ -326,7 +325,7 @@ func (s *Server) GetCompaniesRecords() ([]*Companies, error) {
 	return companies, nil
 }
 
-func (s *Server) UpdateCompanyRecord(company Companies) (*Companies, error) {
+func (s *Server) UpdateCompanyRecord(company Company) (*Company, error) {
 	tx, err := s.database.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("starting transaction: %w", err)
@@ -391,7 +390,7 @@ func (s *Server) UpdateCompanyRecord(company Companies) (*Companies, error) {
 	return updated, nil
 }
 
-func create_user_from_model[T Clients | Employees](user T, s *Server) error {
+func create_user_from_model[T Client | Employee](user T, s *Server) error {
 	result := s.db_gorm.Create(&user)
 	if result.Error != nil {
 		log.Printf("We got this error: %s", result.Error.Error())

@@ -306,14 +306,6 @@ func (s *Server) UpdateCompany(c *gin.Context) {
 	c.JSON(http.StatusOK, companyResponse(resp.Company))
 }
 
-func permissionNamesFromProtoPerm(perm *userpb.Permissions) []string {
-	if perm == nil || perm.Permision == "" {
-		return []string{}
-	}
-
-	return []string{perm.Permision}
-}
-
 func (s *Server) GetEmployeeByID(c *gin.Context) {
 	var uri getEmployeeByIDURI
 	if err := c.ShouldBindUri(&uri); err != nil {
