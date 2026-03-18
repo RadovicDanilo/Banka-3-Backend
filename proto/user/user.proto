@@ -73,9 +73,7 @@ message GetCompaniesResponse {
 
 message UpdateCompanyRequest {
   int64 id = 1;
-  int64 registered_id = 2;
   string name = 3;
-  int64 tax_code = 4;
   int64 activity_code_id = 5;
   string address = 6;
   int64 owner_id = 7;

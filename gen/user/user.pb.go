@@ -516,9 +516,7 @@ func (x *GetCompaniesResponse) GetCompanies() []*Company {
 type UpdateCompanyRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	RegisteredId   int64                  `protobuf:"varint,2,opt,name=registered_id,json=registeredId,proto3" json:"registered_id,omitempty"`
 	Name           string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	TaxCode        int64                  `protobuf:"varint,4,opt,name=tax_code,json=taxCode,proto3" json:"tax_code,omitempty"`
 	ActivityCodeId int64                  `protobuf:"varint,5,opt,name=activity_code_id,json=activityCodeId,proto3" json:"activity_code_id,omitempty"`
 	Address        string                 `protobuf:"bytes,6,opt,name=address,proto3" json:"address,omitempty"`
 	OwnerId        int64                  `protobuf:"varint,7,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
@@ -563,25 +561,11 @@ func (x *UpdateCompanyRequest) GetId() int64 {
 	return 0
 }
 
-func (x *UpdateCompanyRequest) GetRegisteredId() int64 {
-	if x != nil {
-		return x.RegisteredId
-	}
-	return 0
-}
-
 func (x *UpdateCompanyRequest) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
-}
-
-func (x *UpdateCompanyRequest) GetTaxCode() int64 {
-	if x != nil {
-		return x.TaxCode
-	}
-	return 0
 }
 
 func (x *UpdateCompanyRequest) GetActivityCodeId() int64 {
@@ -2159,12 +2143,10 @@ const file_user_user_proto_rawDesc = "" +
 	"\acompany\x18\x01 \x01(\v2\r.user.CompanyR\acompany\"\x15\n" +
 	"\x13GetCompaniesRequest\"C\n" +
 	"\x14GetCompaniesResponse\x12+\n" +
-	"\tcompanies\x18\x01 \x03(\v2\r.user.CompanyR\tcompanies\"\xd9\x01\n" +
+	"\tcompanies\x18\x01 \x03(\v2\r.user.CompanyR\tcompanies\"\x99\x01\n" +
 	"\x14UpdateCompanyRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12#\n" +
-	"\rregistered_id\x18\x02 \x01(\x03R\fregisteredId\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x19\n" +
-	"\btax_code\x18\x04 \x01(\x03R\ataxCode\x12(\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12(\n" +
 	"\x10activity_code_id\x18\x05 \x01(\x03R\x0eactivityCodeId\x12\x18\n" +
 	"\aaddress\x18\x06 \x01(\tR\aaddress\x12\x19\n" +
 	"\bowner_id\x18\a \x01(\x03R\aownerId\"@\n" +
