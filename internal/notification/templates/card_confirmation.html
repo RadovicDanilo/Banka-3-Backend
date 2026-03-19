@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Potvrda zahteva za karticu</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: aquamarine;
+      text-align: center;
+    }
+
+    .content {
+      margin: 20px 0;
+      color: #333;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 25px;
+      background-color: #007BFF;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+
+    .btn:hover {
+      background-color: #0056b3;
+    }
+
+    .footer {
+      margin-top: 20px;
+      font-size: 0.8em;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Zahtev za novu platnu karticu</h2>
+  <p class="content">
+    Primili smo vaš zahtev za izdavanje nove platne kartice.
+    Molimo vas da kliknete na dugme ispod kako biste potvrdili ovaj zahtev.
+  </p>
+  <p class="content">
+    <a href="{{.Link}}" class="btn">Potvrdi zahtev</a>
+  </p>
+  <p class="footer">
+    Ako niste vi podneli ovaj zahtev, slobodno ignorišite ovaj mejl.
+    Link je validan 24 sata.
+  </p>
+</div>
+
+</body>
+</html>

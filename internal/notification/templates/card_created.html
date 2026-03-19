@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kartica je Kreirana</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: #e0fff7;
+      text-align: center;
+    }
+
+    .card-box {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      display: inline-block;
+      margin: 20px 0;
+      border: 1px dashed #007BFF;
+    }
+
+    .success-icon {
+      color: #28a745;
+      font-size: 24px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="success-icon">✔ Uspešno</div>
+  <h2>Vaša kartica je aktivirana!</h2>
+  <p>Obaveštavamo vas da je proces kreiranja vaše nove platne kartice završen.</p>
+
+  <div class="card-box">
+    <strong>Tip:</strong> {{.CardType}}<br>
+    <strong>Broj:</strong> {{.CardNumber}}
+  </div>
+
+  <p>Kartica je odmah spremna za korišćenje u okviru vašeg digitalnog novčanika.</p>
+  <p>Hvala vam na poverenju,<br>Vaša <strong>Banka 3</strong></p>
+</div>
+
+</body>
+</html>
