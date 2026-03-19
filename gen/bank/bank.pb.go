@@ -97,6 +97,162 @@ func (x *CreateCardRequest) GetAuthorizedPartyId() int64 {
 	return 0
 }
 
+type RequestCardRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountNumber string                 `protobuf:"bytes,1,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
+	CardType      string                 `protobuf:"bytes,2,opt,name=card_type,json=cardType,proto3" json:"card_type,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Limit         int64                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestCardRequest) Reset() {
+	*x = RequestCardRequest{}
+	mi := &file_bank_bank_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestCardRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestCardRequest) ProtoMessage() {}
+
+func (x *RequestCardRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_bank_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestCardRequest.ProtoReflect.Descriptor instead.
+func (*RequestCardRequest) Descriptor() ([]byte, []int) {
+	return file_bank_bank_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *RequestCardRequest) GetAccountNumber() string {
+	if x != nil {
+		return x.AccountNumber
+	}
+	return ""
+}
+
+func (x *RequestCardRequest) GetCardType() string {
+	if x != nil {
+		return x.CardType
+	}
+	return ""
+}
+
+func (x *RequestCardRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RequestCardRequest) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type RequestCardResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Accepted      bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestCardResponse) Reset() {
+	*x = RequestCardResponse{}
+	mi := &file_bank_bank_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestCardResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestCardResponse) ProtoMessage() {}
+
+func (x *RequestCardResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_bank_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestCardResponse.ProtoReflect.Descriptor instead.
+func (*RequestCardResponse) Descriptor() ([]byte, []int) {
+	return file_bank_bank_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RequestCardResponse) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+type ConfirmCardRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmCardRequest) Reset() {
+	*x = ConfirmCardRequest{}
+	mi := &file_bank_bank_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmCardRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmCardRequest) ProtoMessage() {}
+
+func (x *ConfirmCardRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_bank_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmCardRequest.ProtoReflect.Descriptor instead.
+func (*ConfirmCardRequest) Descriptor() ([]byte, []int) {
+	return file_bank_bank_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ConfirmCardRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
 type CardResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	CardNumber     string                 `protobuf:"bytes,1,opt,name=card_number,json=cardNumber,proto3" json:"card_number,omitempty"`
@@ -114,7 +270,7 @@ type CardResponse struct {
 
 func (x *CardResponse) Reset() {
 	*x = CardResponse{}
-	mi := &file_bank_bank_proto_msgTypes[1]
+	mi := &file_bank_bank_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -126,7 +282,7 @@ func (x *CardResponse) String() string {
 func (*CardResponse) ProtoMessage() {}
 
 func (x *CardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_bank_proto_msgTypes[1]
+	mi := &file_bank_bank_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -139,7 +295,7 @@ func (x *CardResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CardResponse.ProtoReflect.Descriptor instead.
 func (*CardResponse) Descriptor() ([]byte, []int) {
-	return file_bank_bank_proto_rawDescGZIP(), []int{1}
+	return file_bank_bank_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CardResponse) GetCardNumber() string {
@@ -215,7 +371,16 @@ const file_bank_bank_proto_rawDesc = "" +
 	"\tcard_type\x18\x02 \x01(\tR\bcardType\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x14\n" +
 	"\x05limit\x18\x04 \x01(\x03R\x05limit\x12.\n" +
-	"\x13authorized_party_id\x18\x05 \x01(\x03R\x11authorizedPartyId\"\x9e\x02\n" +
+	"\x13authorized_party_id\x18\x05 \x01(\x03R\x11authorizedPartyId\"\x82\x01\n" +
+	"\x12RequestCardRequest\x12%\n" +
+	"\x0eaccount_number\x18\x01 \x01(\tR\raccountNumber\x12\x1b\n" +
+	"\tcard_type\x18\x02 \x01(\tR\bcardType\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\x03R\x05limit\"1\n" +
+	"\x13RequestCardResponse\x12\x1a\n" +
+	"\baccepted\x18\x01 \x01(\bR\baccepted\"*\n" +
+	"\x12ConfirmCardRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"\x9e\x02\n" +
 	"\fCardResponse\x12\x1f\n" +
 	"\vcard_number\x18\x01 \x01(\tR\n" +
 	"cardNumber\x12\x1b\n" +
@@ -226,10 +391,12 @@ const file_bank_bank_proto_rawDesc = "" +
 	"\x0eaccount_number\x18\x06 \x01(\tR\raccountNumber\x12\x10\n" +
 	"\x03cvv\x18\a \x01(\tR\x03cvv\x12\x14\n" +
 	"\x05limit\x18\b \x01(\x03R\x05limit\x12\x16\n" +
-	"\x06status\x18\t \x01(\tR\x06status2H\n" +
+	"\x06status\x18\t \x01(\tR\x06status2\xc9\x01\n" +
 	"\vBankService\x129\n" +
 	"\n" +
-	"CreateCard\x12\x17.bank.CreateCardRequest\x1a\x12.bank.CardResponseB1Z/github.com/RAF-SI-2025/Banka-3-Backend/gen/bankb\x06proto3"
+	"CreateCard\x12\x17.bank.CreateCardRequest\x1a\x12.bank.CardResponse\x12B\n" +
+	"\vRequestCard\x12\x18.bank.RequestCardRequest\x1a\x19.bank.RequestCardResponse\x12;\n" +
+	"\vConfirmCard\x12\x18.bank.ConfirmCardRequest\x1a\x12.bank.CardResponseB1Z/github.com/RAF-SI-2025/Banka-3-Backend/gen/bankb\x06proto3"
 
 var (
 	file_bank_bank_proto_rawDescOnce sync.Once
@@ -243,16 +410,23 @@ func file_bank_bank_proto_rawDescGZIP() []byte {
 	return file_bank_bank_proto_rawDescData
 }
 
-var file_bank_bank_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_bank_bank_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_bank_bank_proto_goTypes = []any{
-	(*CreateCardRequest)(nil), // 0: bank.CreateCardRequest
-	(*CardResponse)(nil),      // 1: bank.CardResponse
+	(*CreateCardRequest)(nil),   // 0: bank.CreateCardRequest
+	(*RequestCardRequest)(nil),  // 1: bank.RequestCardRequest
+	(*RequestCardResponse)(nil), // 2: bank.RequestCardResponse
+	(*ConfirmCardRequest)(nil),  // 3: bank.ConfirmCardRequest
+	(*CardResponse)(nil),        // 4: bank.CardResponse
 }
 var file_bank_bank_proto_depIdxs = []int32{
 	0, // 0: bank.BankService.CreateCard:input_type -> bank.CreateCardRequest
-	1, // 1: bank.BankService.CreateCard:output_type -> bank.CardResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	1, // 1: bank.BankService.RequestCard:input_type -> bank.RequestCardRequest
+	3, // 2: bank.BankService.ConfirmCard:input_type -> bank.ConfirmCardRequest
+	4, // 3: bank.BankService.CreateCard:output_type -> bank.CardResponse
+	2, // 4: bank.BankService.RequestCard:output_type -> bank.RequestCardResponse
+	4, // 5: bank.BankService.ConfirmCard:output_type -> bank.CardResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -269,7 +443,7 @@ func file_bank_bank_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bank_bank_proto_rawDesc), len(file_bank_bank_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

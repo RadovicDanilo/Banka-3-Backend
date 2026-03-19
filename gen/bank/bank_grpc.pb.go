@@ -19,7 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	BankService_CreateCard_FullMethodName = "/bank.BankService/CreateCard"
+	BankService_CreateCard_FullMethodName  = "/bank.BankService/CreateCard"
+	BankService_RequestCard_FullMethodName = "/bank.BankService/RequestCard"
+	BankService_ConfirmCard_FullMethodName = "/bank.BankService/ConfirmCard"
 )
 
 // BankServiceClient is the client API for BankService service.
@@ -27,6 +29,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BankServiceClient interface {
 	CreateCard(ctx context.Context, in *CreateCardRequest, opts ...grpc.CallOption) (*CardResponse, error)
+	RequestCard(ctx context.Context, in *RequestCardRequest, opts ...grpc.CallOption) (*RequestCardResponse, error)
+	ConfirmCard(ctx context.Context, in *ConfirmCardRequest, opts ...grpc.CallOption) (*CardResponse, error)
 }
 
 type bankServiceClient struct {
@@ -47,11 +51,33 @@ func (c *bankServiceClient) CreateCard(ctx context.Context, in *CreateCardReques
 	return out, nil
 }
 
+func (c *bankServiceClient) RequestCard(ctx context.Context, in *RequestCardRequest, opts ...grpc.CallOption) (*RequestCardResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RequestCardResponse)
+	err := c.cc.Invoke(ctx, BankService_RequestCard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *bankServiceClient) ConfirmCard(ctx context.Context, in *ConfirmCardRequest, opts ...grpc.CallOption) (*CardResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CardResponse)
+	err := c.cc.Invoke(ctx, BankService_ConfirmCard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BankServiceServer is the server API for BankService service.
 // All implementations must embed UnimplementedBankServiceServer
 // for forward compatibility.
 type BankServiceServer interface {
 	CreateCard(context.Context, *CreateCardRequest) (*CardResponse, error)
+	RequestCard(context.Context, *RequestCardRequest) (*RequestCardResponse, error)
+	ConfirmCard(context.Context, *ConfirmCardRequest) (*CardResponse, error)
 	mustEmbedUnimplementedBankServiceServer()
 }
 
@@ -64,6 +90,12 @@ type UnimplementedBankServiceServer struct{}
 
 func (UnimplementedBankServiceServer) CreateCard(context.Context, *CreateCardRequest) (*CardResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateCard not implemented")
+}
+func (UnimplementedBankServiceServer) RequestCard(context.Context, *RequestCardRequest) (*RequestCardResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RequestCard not implemented")
+}
+func (UnimplementedBankServiceServer) ConfirmCard(context.Context, *ConfirmCardRequest) (*CardResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ConfirmCard not implemented")
 }
 func (UnimplementedBankServiceServer) mustEmbedUnimplementedBankServiceServer() {}
 func (UnimplementedBankServiceServer) testEmbeddedByValue()                     {}
@@ -104,6 +136,42 @@ func _BankService_CreateCard_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BankService_RequestCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestCardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BankServiceServer).RequestCard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BankService_RequestCard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BankServiceServer).RequestCard(ctx, req.(*RequestCardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BankService_ConfirmCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfirmCardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BankServiceServer).ConfirmCard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BankService_ConfirmCard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BankServiceServer).ConfirmCard(ctx, req.(*ConfirmCardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BankService_ServiceDesc is the grpc.ServiceDesc for BankService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +182,14 @@ var BankService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateCard",
 			Handler:    _BankService_CreateCard_Handler,
+		},
+		{
+			MethodName: "RequestCard",
+			Handler:    _BankService_RequestCard_Handler,
+		},
+		{
+			MethodName: "ConfirmCard",
+			Handler:    _BankService_ConfirmCard_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

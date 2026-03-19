@@ -2,12 +2,20 @@ package bank
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"errors"
+	"net/url"
+	"os"
 	"strings"
 	"time"
 
+	notificationpb "github.com/RAF-SI-2025/Banka-3-Backend/gen/notification"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 
@@ -17,6 +25,7 @@ import (
 
 const (
 	defaultNotificationURL = "notification:50051"
+	cardRequestTokenTTL    = 24 * time.Hour
 )
 
 type Server struct {
@@ -32,15 +41,37 @@ func NewServer(database *sql.DB, gorm_db *gorm.DB) *Server {
 	}
 }
 
+func generateOpaqueToken() (string, error) {
+	random := make([]byte, 32)
+	if _, err := rand.Read(random); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(random), nil
+}
+
+func hashValue(value string) []byte {
+	sum := sha256.Sum256([]byte(value))
+	return sum[:]
+}
+
+func buildConfirmationLink(token string) (string, error) {
+	baseURL := os.Getenv("CARD_CONFIRMATION_BASE_URL")
+	if strings.TrimSpace(baseURL) == "" {
+		return "", errors.New("CARD_CONFIRMATION_BASE_URL is not set")
+	}
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return "", err
+	}
+	query := parsedURL.Query()
+	query.Set("token", token)
+	parsedURL.RawQuery = query.Encode()
+	return parsedURL.String(), nil
+}
+
 func validateCreateCardInput(req *bankpb.CreateCardRequest) error {
-	if strings.TrimSpace(req.AccountNumber) == "" {
-		return status.Error(codes.InvalidArgument, "account number is required")
-	}
-	if strings.TrimSpace(req.CardType) == "" {
-		return status.Error(codes.InvalidArgument, "card type is required")
-	}
-	if strings.TrimSpace(req.Name) == "" {
-		return status.Error(codes.InvalidArgument, "card name is required")
+	if strings.TrimSpace(req.AccountNumber) == "" || strings.TrimSpace(req.CardType) == "" || strings.TrimSpace(req.Name) == "" {
+		return status.Error(codes.InvalidArgument, "account number, type and name are required")
 	}
 	if req.Limit <= 0 {
 		return status.Error(codes.InvalidArgument, "limit must be greater than zero")
@@ -61,27 +92,9 @@ func (s *Server) CreateCard(ctx context.Context, req *bankpb.CreateCardRequest) 
 		return nil, status.Error(codes.Internal, "failed to fetch account")
 	}
 
-	if account.Owner_type == Personal {
-		var count int64
-		s.db_gorm.Model(&Card{}).Where("account_number = ?", account.Number).Count(&count)
-		if count >= 2 {
-			return nil, status.Error(codes.ResourceExhausted, "personal account can have a maximum of 2 cards")
-		}
-	} else if account.Owner_type == Business {
-		var authParty AuthorizedParty
-		if err := s.db_gorm.Where("id = ?", req.AuthorizedPartyId).First(&authParty).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, status.Error(codes.NotFound, "authorized party not found")
-			}
-			return nil, status.Error(codes.Internal, "failed to verify authorized party")
-		}
-
-		var count int64
-		fullName := authParty.Name + " " + authParty.Last_name
-		s.db_gorm.Model(&Card{}).Where("account_number = ? AND name = ?", account.Number, fullName).Count(&count)
-		if count >= 1 {
-			return nil, status.Error(codes.ResourceExhausted, "this person already has a card for this business account")
-		}
+	// Provera limita (Max 2 za personal, unikatno po imenu za business)
+	if err := s.checkCardLimits(&account, req); err != nil {
+		return nil, err
 	}
 
 	cardNum, err := GenerateCardNumber(req.CardType, account.Number)
@@ -89,36 +102,23 @@ func (s *Server) CreateCard(ctx context.Context, req *bankpb.CreateCardRequest) 
 		return nil, status.Error(codes.Internal, "failed to generate card number")
 	}
 
-	cvv := GenerateCVV()
-	now := time.Now()
-	expiry := now.AddDate(5, 0, 0)
-
 	newCard := Card{
 		Number:         cardNum,
 		Type:           card_type(req.CardType),
 		Name:           req.Name,
-		Creation_date:  now,
-		Valid_until:    expiry,
+		Creation_date:  time.Now(),
+		Valid_until:    time.Now().AddDate(5, 0, 0),
 		Account_number: account.Number,
-		Cvv:            cvv,
+		Cvv:            GenerateCVV(),
 		Card_limit:     req.Limit,
 		Status:         Active,
 	}
 
-	err = s.db_gorm.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&newCard).Error; err != nil {
-			return err
-		}
-		return nil
-	})
-
-	if err != nil {
-		switch {
-		case strings.Contains(err.Error(), "duplicate key"):
+	if err := s.db_gorm.Create(&newCard).Error; err != nil {
+		if strings.Contains(err.Error(), "duplicate key") {
 			return nil, status.Error(codes.AlreadyExists, "card number already exists")
-		default:
-			return nil, status.Error(codes.Internal, "card creation failed in database")
 		}
+		return nil, status.Error(codes.Internal, "database error")
 	}
 
 	return &bankpb.CardResponse{
@@ -134,11 +134,108 @@ func (s *Server) CreateCard(ctx context.Context, req *bankpb.CreateCardRequest) 
 	}, nil
 }
 
+func (s *Server) RequestCard(ctx context.Context, req *bankpb.RequestCardRequest) (*bankpb.RequestCardResponse, error) {
+	var account Account
+	if err := s.db_gorm.Where("number = ?", req.AccountNumber).First(&account).Error; err != nil {
+		return nil, status.Error(codes.NotFound, "account not found")
+	}
+
+	token, err := generateOpaqueToken()
+	if err != nil {
+		return nil, status.Error(codes.Internal, "token generation failed")
+	}
+
+	cardRequest := CardRequest{
+		AccountNumber: req.AccountNumber,
+		CardType:      req.CardType,
+		Name:          req.Name,
+		Limit:         req.Limit,
+		TokenHash:     hashValue(token),
+		ValidUntil:    time.Now().Add(cardRequestTokenTTL),
+	}
+
+	if err := s.db_gorm.Create(&cardRequest).Error; err != nil {
+		return nil, status.Error(codes.Internal, "failed to store card request")
+	}
+
+	link, err := buildConfirmationLink(token)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to build link")
+	}
+
+	// TODO: Izvuci pravi email klijenta iz baze
+	if err := s.sendCardConfirmationEmail(ctx, "klijent@email.com", link); err != nil {
+		return nil, status.Error(codes.Internal, "failed to send confirmation email")
+	}
+
+	return &bankpb.RequestCardResponse{Accepted: true}, nil
+}
+
+func (s *Server) ConfirmCard(ctx context.Context, req *bankpb.ConfirmCardRequest) (*bankpb.CardResponse, error) {
+	var cardReq CardRequest
+	tokenHash := hashValue(req.Token)
+
+	err := s.db_gorm.Where("token_hash = ? AND valid_until > ? AND confirmed = ?",
+		tokenHash, time.Now(), false).First(&cardReq).Error
+
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid or expired token")
+	}
+
+	resp, err := s.CreateCard(ctx, &bankpb.CreateCardRequest{
+		AccountNumber: cardReq.AccountNumber,
+		CardType:      cardReq.CardType,
+		Name:          cardReq.Name,
+		Limit:         cardReq.Limit,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	s.db_gorm.Model(&cardReq).Update("confirmed", true)
+	return resp, nil
+}
+
+func (s *Server) checkCardLimits(acc *Account, req *bankpb.CreateCardRequest) error {
+	var count int64
+	if acc.Owner_type == Personal {
+		s.db_gorm.Model(&Card{}).Where("account_number = ?", acc.Number).Count(&count)
+		if count >= 2 {
+			return status.Error(codes.ResourceExhausted, "personal account can have a maximum of 2 cards")
+		}
+	} else if acc.Owner_type == Business {
+		s.db_gorm.Model(&Card{}).Where("account_number = ? AND name = ?", acc.Number, req.Name).Count(&count)
+		if count >= 1 {
+			return status.Error(codes.ResourceExhausted, "this person already has a card for this business account")
+		}
+	}
+	return nil
+}
+
+func (s *Server) sendCardConfirmationEmail(ctx context.Context, email string, link string) error {
+	addr := os.Getenv("NOTIFICATION_GRPC_ADDR")
+	if addr == "" {
+		addr = defaultNotificationURL
+	}
+
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	client := notificationpb.NewNotificationServiceClient(conn)
+	_, err = client.SendCardConfirmationEmail(ctx, &notificationpb.CardConfirmationMailRequest{
+		ToAddr: email,
+		Link:   link,
+	})
+	return err
+}
+
 func mapCompanyToProto(company *Company) *userpb.Company {
 	if company == nil {
 		return nil
 	}
-
 	return &userpb.Company{
 		Id:             company.Id,
 		RegisteredId:   company.Registered_id,

@@ -235,3 +235,16 @@ CREATE TABLE IF NOT EXISTS verification_codes (
     valid           BOOLEAN     NOT NULL DEFAULT TRUE,
     used            BOOLEAN     NOT NULL DEFAULT FALSE
 );
+
+CREATE TABLE IF NOT EXISTS card_requests (
+    id             BIGSERIAL     PRIMARY KEY,
+    account_number VARCHAR(20)   NOT NULL REFERENCES accounts(number) ON UPDATE CASCADE ON DELETE RESTRICT,
+    card_type      VARCHAR(20)   NOT NULL,
+    name           VARCHAR(127)  NOT NULL,
+    card_limit     BIGINT        NOT NULL,
+    token_hash     BYTEA         NOT NULL UNIQUE,
+    valid_until    TIMESTAMP     NOT NULL,
+    confirmed      BOOLEAN       NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_requests_token_hash ON card_requests(token_hash);
