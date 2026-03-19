@@ -121,6 +121,8 @@ func (s *Server) CreateCard(ctx context.Context, req *bankpb.CreateCardRequest) 
 		return nil, status.Error(codes.Internal, "database error")
 	}
 
+	s.sendCardCreatedEmail(ctx, "klijent@email.com", newCard.Number, string(newCard.Type))
+
 	return &bankpb.CardResponse{
 		CardNumber:     newCard.Number,
 		CardType:       string(newCard.Type),
@@ -163,7 +165,6 @@ func (s *Server) RequestCard(ctx context.Context, req *bankpb.RequestCardRequest
 		return nil, status.Error(codes.Internal, "failed to build link")
 	}
 
-	// TODO: Izvuci pravi email klijenta iz baze
 	if err := s.sendCardConfirmationEmail(ctx, "klijent@email.com", link); err != nil {
 		return nil, status.Error(codes.Internal, "failed to send confirmation email")
 	}
@@ -210,6 +211,27 @@ func (s *Server) checkCardLimits(acc *Account, req *bankpb.CreateCardRequest) er
 		}
 	}
 	return nil
+}
+
+func (s *Server) sendCardCreatedEmail(ctx context.Context, email string, card_type string, number string) error {
+	addr := os.Getenv("NOTIFICATION_GRPC_ADDR")
+	if addr == "" {
+		addr = defaultNotificationURL
+	}
+
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	client := notificationpb.NewNotificationServiceClient(conn)
+	_, err = client.SendCardCreatedEmail(ctx, &notificationpb.CardCreatedMailRequest{
+		ToAddr:     email,
+		CardType:   card_type,
+		CardNumber: number,
+	})
+	return err
 }
 
 func (s *Server) sendCardConfirmationEmail(ctx context.Context, email string, link string) error {

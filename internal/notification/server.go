@@ -173,3 +173,29 @@ func (s *Server) SendCardConfirmationEmail(ctx context.Context, req *notificatio
 
 	return &notification.SuccessResponse{Successful: true}, nil
 }
+
+func (s *Server) SendCardCreatedEmail(ctx context.Context, req *notification.CardCreatedMailRequest) (*notification.SuccessResponse, error) {
+	log.Println("Sending card created success email to:", req.ToAddr)
+
+	to := strings.Split(req.ToAddr, ",")
+
+	templ, err := template.ParseFiles("templates/card_created.html")
+	if err != nil {
+		log.Println("Cannot parse card_created.html:", err)
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	var rendered bytes.Buffer
+	if err := templ.Execute(&rendered, req); err != nil {
+		log.Println("Cannot execute card_created.html:", err)
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	err = s.sender.Send(to, "Vaša Banka 3 kartica je spremna!", rendered.String())
+	if err != nil {
+		log.Println("Couldn't send card created email:", err)
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	return &notification.SuccessResponse{Successful: true}, nil
+}

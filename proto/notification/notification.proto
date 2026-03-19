@@ -10,6 +10,7 @@ service NotificationService {
   rpc SendPasswordResetEmail(PasswordLinkMailRequest) returns (SuccessResponse);
   rpc SendInitialPasswordSetEmail(PasswordLinkMailRequest) returns (SuccessResponse);
   rpc SendCardConfirmationEmail(CardConfirmationMailRequest) returns (SuccessResponse);
+  rpc SendCardCreatedEmail(CardCreatedMailRequest) returns (SuccessResponse);
 }
 
 message ConfirmationMailRequest {
@@ -33,4 +34,10 @@ message CardConfirmationMailRequest {
   string link = 2;
 }
 
-message SuccessResponse { bool successful = 1; }
+message CardCreatedMailRequest {
+  string to_addr = 1;
+  string card_number = 2;
+  string card_type = 3;
+}
+
+message SuccessResponse {bool successful = 1;}
