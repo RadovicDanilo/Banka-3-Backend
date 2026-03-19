@@ -23,6 +23,7 @@ const (
 	NotificationService_SendActivationEmail_FullMethodName         = "/notification.NotificationService/SendActivationEmail"
 	NotificationService_SendPasswordResetEmail_FullMethodName      = "/notification.NotificationService/SendPasswordResetEmail"
 	NotificationService_SendInitialPasswordSetEmail_FullMethodName = "/notification.NotificationService/SendInitialPasswordSetEmail"
+	NotificationService_SendCardConfirmationEmail_FullMethodName   = "/notification.NotificationService/SendCardConfirmationEmail"
 )
 
 // NotificationServiceClient is the client API for NotificationService service.
@@ -33,6 +34,7 @@ type NotificationServiceClient interface {
 	SendActivationEmail(ctx context.Context, in *ActivationMailRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
 	SendPasswordResetEmail(ctx context.Context, in *PasswordLinkMailRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
 	SendInitialPasswordSetEmail(ctx context.Context, in *PasswordLinkMailRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
+	SendCardConfirmationEmail(ctx context.Context, in *CardConfirmationMailRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
 }
 
 type notificationServiceClient struct {
@@ -83,6 +85,16 @@ func (c *notificationServiceClient) SendInitialPasswordSetEmail(ctx context.Cont
 	return out, nil
 }
 
+func (c *notificationServiceClient) SendCardConfirmationEmail(ctx context.Context, in *CardConfirmationMailRequest, opts ...grpc.CallOption) (*SuccessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SuccessResponse)
+	err := c.cc.Invoke(ctx, NotificationService_SendCardConfirmationEmail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NotificationServiceServer is the server API for NotificationService service.
 // All implementations must embed UnimplementedNotificationServiceServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type NotificationServiceServer interface {
 	SendActivationEmail(context.Context, *ActivationMailRequest) (*SuccessResponse, error)
 	SendPasswordResetEmail(context.Context, *PasswordLinkMailRequest) (*SuccessResponse, error)
 	SendInitialPasswordSetEmail(context.Context, *PasswordLinkMailRequest) (*SuccessResponse, error)
+	SendCardConfirmationEmail(context.Context, *CardConfirmationMailRequest) (*SuccessResponse, error)
 	mustEmbedUnimplementedNotificationServiceServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedNotificationServiceServer) SendPasswordResetEmail(context.Con
 }
 func (UnimplementedNotificationServiceServer) SendInitialPasswordSetEmail(context.Context, *PasswordLinkMailRequest) (*SuccessResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SendInitialPasswordSetEmail not implemented")
+}
+func (UnimplementedNotificationServiceServer) SendCardConfirmationEmail(context.Context, *CardConfirmationMailRequest) (*SuccessResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SendCardConfirmationEmail not implemented")
 }
 func (UnimplementedNotificationServiceServer) mustEmbedUnimplementedNotificationServiceServer() {}
 func (UnimplementedNotificationServiceServer) testEmbeddedByValue()                             {}
@@ -206,6 +222,24 @@ func _NotificationService_SendInitialPasswordSetEmail_Handler(srv interface{}, c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NotificationService_SendCardConfirmationEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CardConfirmationMailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationServiceServer).SendCardConfirmationEmail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NotificationService_SendCardConfirmationEmail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationServiceServer).SendCardConfirmationEmail(ctx, req.(*CardConfirmationMailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NotificationService_ServiceDesc is the grpc.ServiceDesc for NotificationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +262,10 @@ var NotificationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendInitialPasswordSetEmail",
 			Handler:    _NotificationService_SendInitialPasswordSetEmail_Handler,
+		},
+		{
+			MethodName: "SendCardConfirmationEmail",
+			Handler:    _NotificationService_SendCardConfirmationEmail_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

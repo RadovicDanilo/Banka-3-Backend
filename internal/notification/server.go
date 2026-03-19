@@ -147,3 +147,29 @@ func (s *Server) SendInitialPasswordSetEmail(ctx context.Context, req *notificat
 		Successful: true,
 	}, nil
 }
+
+func (s *Server) SendCardConfirmationEmail(ctx context.Context, req *notification.CardConfirmationMailRequest) (*notification.SuccessResponse, error) {
+	log.Println("Sending card confirmation email to:", req.ToAddr)
+
+	to := strings.Split(req.ToAddr, ",")
+
+	templ, err := template.ParseFiles("templates/card_confirmation.html")
+	if err != nil {
+		log.Println("Greška pri parsiranju card_confirmation.html:", err)
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	var rendered bytes.Buffer
+	if err := templ.Execute(&rendered, req); err != nil {
+		log.Println("Greška pri izvršavanju template-a:", err)
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	err = s.sender.Send(to, "Potvrda zahteva za karticu - Banka 3", rendered.String())
+	if err != nil {
+		log.Println("Neuspešno slanje mejla za karticu:", err)
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	return &notification.SuccessResponse{Successful: true}, nil
+}
