@@ -5,5 +5,25 @@ package bank;
 option go_package = "github.com/RAF-SI-2025/Banka-3-Backend/gen/bank";
 
 service BankService {
+  rpc CreateCard (CreateCardRequest) returns (CardResponse);
+}
 
+message CreateCardRequest {
+  string account_number = 1;
+  string card_type = 2;
+  string name = 3;
+  int64 limit = 4;
+  int64 authorized_party_id = 5;
+}
+
+message CardResponse {
+  string card_number = 1;
+  string card_type = 2;
+  string card_name = 3;
+  string creation_date = 4;
+  string expiration_date = 5;
+  string account_number = 6;
+  string cvv = 7;
+  int64 limit = 8;
+  string status = 9;
 }

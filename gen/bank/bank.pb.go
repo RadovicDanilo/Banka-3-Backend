@@ -10,6 +10,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
+	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -20,17 +21,238 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type CreateCardRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	AccountNumber     string                 `protobuf:"bytes,1,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
+	CardType          string                 `protobuf:"bytes,2,opt,name=card_type,json=cardType,proto3" json:"card_type,omitempty"`
+	Name              string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Limit             int64                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	AuthorizedPartyId int64                  `protobuf:"varint,5,opt,name=authorized_party_id,json=authorizedPartyId,proto3" json:"authorized_party_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *CreateCardRequest) Reset() {
+	*x = CreateCardRequest{}
+	mi := &file_bank_bank_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateCardRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateCardRequest) ProtoMessage() {}
+
+func (x *CreateCardRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_bank_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateCardRequest.ProtoReflect.Descriptor instead.
+func (*CreateCardRequest) Descriptor() ([]byte, []int) {
+	return file_bank_bank_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *CreateCardRequest) GetAccountNumber() string {
+	if x != nil {
+		return x.AccountNumber
+	}
+	return ""
+}
+
+func (x *CreateCardRequest) GetCardType() string {
+	if x != nil {
+		return x.CardType
+	}
+	return ""
+}
+
+func (x *CreateCardRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateCardRequest) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *CreateCardRequest) GetAuthorizedPartyId() int64 {
+	if x != nil {
+		return x.AuthorizedPartyId
+	}
+	return 0
+}
+
+type CardResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	CardNumber     string                 `protobuf:"bytes,1,opt,name=card_number,json=cardNumber,proto3" json:"card_number,omitempty"`
+	CardType       string                 `protobuf:"bytes,2,opt,name=card_type,json=cardType,proto3" json:"card_type,omitempty"`
+	CardName       string                 `protobuf:"bytes,3,opt,name=card_name,json=cardName,proto3" json:"card_name,omitempty"`
+	CreationDate   string                 `protobuf:"bytes,4,opt,name=creation_date,json=creationDate,proto3" json:"creation_date,omitempty"`
+	ExpirationDate string                 `protobuf:"bytes,5,opt,name=expiration_date,json=expirationDate,proto3" json:"expiration_date,omitempty"`
+	AccountNumber  string                 `protobuf:"bytes,6,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
+	Cvv            string                 `protobuf:"bytes,7,opt,name=cvv,proto3" json:"cvv,omitempty"`
+	Limit          int64                  `protobuf:"varint,8,opt,name=limit,proto3" json:"limit,omitempty"`
+	Status         string                 `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *CardResponse) Reset() {
+	*x = CardResponse{}
+	mi := &file_bank_bank_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CardResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CardResponse) ProtoMessage() {}
+
+func (x *CardResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_bank_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CardResponse.ProtoReflect.Descriptor instead.
+func (*CardResponse) Descriptor() ([]byte, []int) {
+	return file_bank_bank_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *CardResponse) GetCardNumber() string {
+	if x != nil {
+		return x.CardNumber
+	}
+	return ""
+}
+
+func (x *CardResponse) GetCardType() string {
+	if x != nil {
+		return x.CardType
+	}
+	return ""
+}
+
+func (x *CardResponse) GetCardName() string {
+	if x != nil {
+		return x.CardName
+	}
+	return ""
+}
+
+func (x *CardResponse) GetCreationDate() string {
+	if x != nil {
+		return x.CreationDate
+	}
+	return ""
+}
+
+func (x *CardResponse) GetExpirationDate() string {
+	if x != nil {
+		return x.ExpirationDate
+	}
+	return ""
+}
+
+func (x *CardResponse) GetAccountNumber() string {
+	if x != nil {
+		return x.AccountNumber
+	}
+	return ""
+}
+
+func (x *CardResponse) GetCvv() string {
+	if x != nil {
+		return x.Cvv
+	}
+	return ""
+}
+
+func (x *CardResponse) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *CardResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
 var File_bank_bank_proto protoreflect.FileDescriptor
 
 const file_bank_bank_proto_rawDesc = "" +
 	"\n" +
-	"\x0fbank/bank.proto\x12\x04bank2\r\n" +
-	"\vBankServiceB1Z/github.com/RAF-SI-2025/Banka-3-Backend/gen/bankb\x06proto3"
+	"\x0fbank/bank.proto\x12\x04bank\"\xb1\x01\n" +
+	"\x11CreateCardRequest\x12%\n" +
+	"\x0eaccount_number\x18\x01 \x01(\tR\raccountNumber\x12\x1b\n" +
+	"\tcard_type\x18\x02 \x01(\tR\bcardType\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\x03R\x05limit\x12.\n" +
+	"\x13authorized_party_id\x18\x05 \x01(\x03R\x11authorizedPartyId\"\x9e\x02\n" +
+	"\fCardResponse\x12\x1f\n" +
+	"\vcard_number\x18\x01 \x01(\tR\n" +
+	"cardNumber\x12\x1b\n" +
+	"\tcard_type\x18\x02 \x01(\tR\bcardType\x12\x1b\n" +
+	"\tcard_name\x18\x03 \x01(\tR\bcardName\x12#\n" +
+	"\rcreation_date\x18\x04 \x01(\tR\fcreationDate\x12'\n" +
+	"\x0fexpiration_date\x18\x05 \x01(\tR\x0eexpirationDate\x12%\n" +
+	"\x0eaccount_number\x18\x06 \x01(\tR\raccountNumber\x12\x10\n" +
+	"\x03cvv\x18\a \x01(\tR\x03cvv\x12\x14\n" +
+	"\x05limit\x18\b \x01(\x03R\x05limit\x12\x16\n" +
+	"\x06status\x18\t \x01(\tR\x06status2H\n" +
+	"\vBankService\x129\n" +
+	"\n" +
+	"CreateCard\x12\x17.bank.CreateCardRequest\x1a\x12.bank.CardResponseB1Z/github.com/RAF-SI-2025/Banka-3-Backend/gen/bankb\x06proto3"
 
-var file_bank_bank_proto_goTypes = []any{}
+var (
+	file_bank_bank_proto_rawDescOnce sync.Once
+	file_bank_bank_proto_rawDescData []byte
+)
+
+func file_bank_bank_proto_rawDescGZIP() []byte {
+	file_bank_bank_proto_rawDescOnce.Do(func() {
+		file_bank_bank_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bank_bank_proto_rawDesc), len(file_bank_bank_proto_rawDesc)))
+	})
+	return file_bank_bank_proto_rawDescData
+}
+
+var file_bank_bank_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_bank_bank_proto_goTypes = []any{
+	(*CreateCardRequest)(nil), // 0: bank.CreateCardRequest
+	(*CardResponse)(nil),      // 1: bank.CardResponse
+}
 var file_bank_bank_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
+	0, // 0: bank.BankService.CreateCard:input_type -> bank.CreateCardRequest
+	1, // 1: bank.BankService.CreateCard:output_type -> bank.CardResponse
+	1, // [1:2] is the sub-list for method output_type
+	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -47,12 +269,13 @@ func file_bank_bank_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bank_bank_proto_rawDesc), len(file_bank_bank_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   0,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_bank_bank_proto_goTypes,
 		DependencyIndexes: file_bank_bank_proto_depIdxs,
+		MessageInfos:      file_bank_bank_proto_msgTypes,
 	}.Build()
 	File_bank_bank_proto = out.File
 	file_bank_bank_proto_goTypes = nil

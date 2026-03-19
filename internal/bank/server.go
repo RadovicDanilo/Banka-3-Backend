@@ -1,20 +1,22 @@
 package bank
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"strings"
+	"time"
 
-	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/gen/bank"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 
+	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/gen/bank"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/gen/user"
 )
 
 const (
-// defaultNotificationURL = "notification:50051"
+	defaultNotificationURL = "notification:50051"
 )
 
 type Server struct {
@@ -28,6 +30,108 @@ func NewServer(database *sql.DB, gorm_db *gorm.DB) *Server {
 		database: database,
 		db_gorm:  gorm_db,
 	}
+}
+
+func validateCreateCardInput(req *bankpb.CreateCardRequest) error {
+	if strings.TrimSpace(req.AccountNumber) == "" {
+		return status.Error(codes.InvalidArgument, "account number is required")
+	}
+	if strings.TrimSpace(req.CardType) == "" {
+		return status.Error(codes.InvalidArgument, "card type is required")
+	}
+	if strings.TrimSpace(req.Name) == "" {
+		return status.Error(codes.InvalidArgument, "card name is required")
+	}
+	if req.Limit <= 0 {
+		return status.Error(codes.InvalidArgument, "limit must be greater than zero")
+	}
+	return nil
+}
+
+func (s *Server) CreateCard(ctx context.Context, req *bankpb.CreateCardRequest) (*bankpb.CardResponse, error) {
+	if err := validateCreateCardInput(req); err != nil {
+		return nil, err
+	}
+
+	var account Account
+	if err := s.db_gorm.Where("number = ?", req.AccountNumber).First(&account).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "account not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to fetch account")
+	}
+
+	if account.Owner_type == Personal {
+		var count int64
+		s.db_gorm.Model(&Card{}).Where("account_number = ?", account.Number).Count(&count)
+		if count >= 2 {
+			return nil, status.Error(codes.ResourceExhausted, "personal account can have a maximum of 2 cards")
+		}
+	} else if account.Owner_type == Business {
+		var authParty AuthorizedParty
+		if err := s.db_gorm.Where("id = ?", req.AuthorizedPartyId).First(&authParty).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, status.Error(codes.NotFound, "authorized party not found")
+			}
+			return nil, status.Error(codes.Internal, "failed to verify authorized party")
+		}
+
+		var count int64
+		fullName := authParty.Name + " " + authParty.Last_name
+		s.db_gorm.Model(&Card{}).Where("account_number = ? AND name = ?", account.Number, fullName).Count(&count)
+		if count >= 1 {
+			return nil, status.Error(codes.ResourceExhausted, "this person already has a card for this business account")
+		}
+	}
+
+	cardNum, err := GenerateCardNumber(req.CardType, account.Number)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to generate card number")
+	}
+
+	cvv := GenerateCVV()
+	now := time.Now()
+	expiry := now.AddDate(5, 0, 0)
+
+	newCard := Card{
+		Number:         cardNum,
+		Type:           card_type(req.CardType),
+		Name:           req.Name,
+		Creation_date:  now,
+		Valid_until:    expiry,
+		Account_number: account.Number,
+		Cvv:            cvv,
+		Card_limit:     req.Limit,
+		Status:         Active,
+	}
+
+	err = s.db_gorm.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&newCard).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		switch {
+		case strings.Contains(err.Error(), "duplicate key"):
+			return nil, status.Error(codes.AlreadyExists, "card number already exists")
+		default:
+			return nil, status.Error(codes.Internal, "card creation failed in database")
+		}
+	}
+
+	return &bankpb.CardResponse{
+		CardNumber:     newCard.Number,
+		CardType:       string(newCard.Type),
+		CardName:       newCard.Name,
+		CreationDate:   newCard.Creation_date.Format(time.RFC3339),
+		ExpirationDate: newCard.Valid_until.Format(time.RFC3339),
+		AccountNumber:  newCard.Account_number,
+		Cvv:            newCard.Cvv,
+		Limit:          newCard.Card_limit,
+		Status:         "Aktivna",
+	}, nil
 }
 
 func mapCompanyToProto(company *Company) *userpb.Company {
