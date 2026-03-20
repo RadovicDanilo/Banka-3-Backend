@@ -19,10 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	BankService_CreateCompany_FullMethodName  = "/bank.BankService/CreateCompany"
-	BankService_GetCompanyById_FullMethodName = "/bank.BankService/GetCompanyById"
-	BankService_GetCompanies_FullMethodName   = "/bank.BankService/GetCompanies"
-	BankService_UpdateCompany_FullMethodName  = "/bank.BankService/UpdateCompany"
+	BankService_CreateCompany_FullMethodName    = "/bank.BankService/CreateCompany"
+	BankService_GetCompanyById_FullMethodName   = "/bank.BankService/GetCompanyById"
+	BankService_GetCompanies_FullMethodName     = "/bank.BankService/GetCompanies"
+	BankService_UpdateCompany_FullMethodName    = "/bank.BankService/UpdateCompany"
+	BankService_CreateCard_FullMethodName       = "/bank.BankService/CreateCard"
+	BankService_RequestCard_FullMethodName      = "/bank.BankService/RequestCard"
+	BankService_ConfirmCard_FullMethodName      = "/bank.BankService/ConfirmCard"
+	BankService_GetCards_FullMethodName         = "/bank.BankService/GetCards"
+	BankService_ToggleCardStatus_FullMethodName = "/bank.BankService/ToggleCardStatus"
 )
 
 // BankServiceClient is the client API for BankService service.
@@ -33,6 +38,11 @@ type BankServiceClient interface {
 	GetCompanyById(ctx context.Context, in *GetCompanyByIdRequest, opts ...grpc.CallOption) (*GetCompanyByIdResponse, error)
 	GetCompanies(ctx context.Context, in *GetCompaniesRequest, opts ...grpc.CallOption) (*GetCompaniesResponse, error)
 	UpdateCompany(ctx context.Context, in *UpdateCompanyRequest, opts ...grpc.CallOption) (*UpdateCompanyResponse, error)
+	CreateCard(ctx context.Context, in *CreateCardRequest, opts ...grpc.CallOption) (*CardResponse, error)
+	RequestCard(ctx context.Context, in *RequestCardRequest, opts ...grpc.CallOption) (*RequestCardResponse, error)
+	ConfirmCard(ctx context.Context, in *ConfirmCardRequest, opts ...grpc.CallOption) (*CardResponse, error)
+	GetCards(ctx context.Context, in *GetCardsRequest, opts ...grpc.CallOption) (*GetCardsResponse, error)
+	ToggleCardStatus(ctx context.Context, in *ToggleCardStatusRequest, opts ...grpc.CallOption) (*ToggleCardStatusResponse, error)
 }
 
 type bankServiceClient struct {
@@ -83,6 +93,56 @@ func (c *bankServiceClient) UpdateCompany(ctx context.Context, in *UpdateCompany
 	return out, nil
 }
 
+func (c *bankServiceClient) CreateCard(ctx context.Context, in *CreateCardRequest, opts ...grpc.CallOption) (*CardResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CardResponse)
+	err := c.cc.Invoke(ctx, BankService_CreateCard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *bankServiceClient) RequestCard(ctx context.Context, in *RequestCardRequest, opts ...grpc.CallOption) (*RequestCardResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RequestCardResponse)
+	err := c.cc.Invoke(ctx, BankService_RequestCard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *bankServiceClient) ConfirmCard(ctx context.Context, in *ConfirmCardRequest, opts ...grpc.CallOption) (*CardResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CardResponse)
+	err := c.cc.Invoke(ctx, BankService_ConfirmCard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *bankServiceClient) GetCards(ctx context.Context, in *GetCardsRequest, opts ...grpc.CallOption) (*GetCardsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCardsResponse)
+	err := c.cc.Invoke(ctx, BankService_GetCards_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *bankServiceClient) ToggleCardStatus(ctx context.Context, in *ToggleCardStatusRequest, opts ...grpc.CallOption) (*ToggleCardStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ToggleCardStatusResponse)
+	err := c.cc.Invoke(ctx, BankService_ToggleCardStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BankServiceServer is the server API for BankService service.
 // All implementations must embed UnimplementedBankServiceServer
 // for forward compatibility.
@@ -91,6 +151,11 @@ type BankServiceServer interface {
 	GetCompanyById(context.Context, *GetCompanyByIdRequest) (*GetCompanyByIdResponse, error)
 	GetCompanies(context.Context, *GetCompaniesRequest) (*GetCompaniesResponse, error)
 	UpdateCompany(context.Context, *UpdateCompanyRequest) (*UpdateCompanyResponse, error)
+	CreateCard(context.Context, *CreateCardRequest) (*CardResponse, error)
+	RequestCard(context.Context, *RequestCardRequest) (*RequestCardResponse, error)
+	ConfirmCard(context.Context, *ConfirmCardRequest) (*CardResponse, error)
+	GetCards(context.Context, *GetCardsRequest) (*GetCardsResponse, error)
+	ToggleCardStatus(context.Context, *ToggleCardStatusRequest) (*ToggleCardStatusResponse, error)
 	mustEmbedUnimplementedBankServiceServer()
 }
 
@@ -112,6 +177,21 @@ func (UnimplementedBankServiceServer) GetCompanies(context.Context, *GetCompanie
 }
 func (UnimplementedBankServiceServer) UpdateCompany(context.Context, *UpdateCompanyRequest) (*UpdateCompanyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateCompany not implemented")
+}
+func (UnimplementedBankServiceServer) CreateCard(context.Context, *CreateCardRequest) (*CardResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateCard not implemented")
+}
+func (UnimplementedBankServiceServer) RequestCard(context.Context, *RequestCardRequest) (*RequestCardResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RequestCard not implemented")
+}
+func (UnimplementedBankServiceServer) ConfirmCard(context.Context, *ConfirmCardRequest) (*CardResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ConfirmCard not implemented")
+}
+func (UnimplementedBankServiceServer) GetCards(context.Context, *GetCardsRequest) (*GetCardsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCards not implemented")
+}
+func (UnimplementedBankServiceServer) ToggleCardStatus(context.Context, *ToggleCardStatusRequest) (*ToggleCardStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ToggleCardStatus not implemented")
 }
 func (UnimplementedBankServiceServer) mustEmbedUnimplementedBankServiceServer() {}
 func (UnimplementedBankServiceServer) testEmbeddedByValue()                     {}
@@ -206,6 +286,96 @@ func _BankService_UpdateCompany_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BankService_CreateCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateCardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BankServiceServer).CreateCard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BankService_CreateCard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BankServiceServer).CreateCard(ctx, req.(*CreateCardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BankService_RequestCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestCardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BankServiceServer).RequestCard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BankService_RequestCard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BankServiceServer).RequestCard(ctx, req.(*RequestCardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BankService_ConfirmCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfirmCardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BankServiceServer).ConfirmCard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BankService_ConfirmCard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BankServiceServer).ConfirmCard(ctx, req.(*ConfirmCardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BankService_GetCards_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCardsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BankServiceServer).GetCards(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BankService_GetCards_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BankServiceServer).GetCards(ctx, req.(*GetCardsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BankService_ToggleCardStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ToggleCardStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BankServiceServer).ToggleCardStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BankService_ToggleCardStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BankServiceServer).ToggleCardStatus(ctx, req.(*ToggleCardStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BankService_ServiceDesc is the grpc.ServiceDesc for BankService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +398,26 @@ var BankService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateCompany",
 			Handler:    _BankService_UpdateCompany_Handler,
+		},
+		{
+			MethodName: "CreateCard",
+			Handler:    _BankService_CreateCard_Handler,
+		},
+		{
+			MethodName: "RequestCard",
+			Handler:    _BankService_RequestCard_Handler,
+		},
+		{
+			MethodName: "ConfirmCard",
+			Handler:    _BankService_ConfirmCard_Handler,
+		},
+		{
+			MethodName: "GetCards",
+			Handler:    _BankService_GetCards_Handler,
+		},
+		{
+			MethodName: "ToggleCardStatus",
+			Handler:    _BankService_ToggleCardStatus_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

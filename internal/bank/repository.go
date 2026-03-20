@@ -204,3 +204,34 @@ func (s *Server) UpdateCompanyRecord(company Company) (*Company, error) {
 
 	return updated, nil
 }
+
+func (s *Server) GetCardsByEmailRecord(email string) ([]*Card, error) {
+	query := `
+		SELECT c.number, c.card_type, c.name, c.creation_date, c.valid_until, c.account_number, c.cvv, c.card_limit, c.status
+		FROM cards c
+		JOIN accounts a ON c.account_number = a.number
+		LEFT JOIN clients cl ON a.owner_id = cl.id AND a.owner_type = 'Personal'
+		LEFT JOIN companies co ON a.owner_id = co.id AND a.owner_type = 'Business'
+		LEFT JOIN authorized_parties ap ON co.id = ap.company_id
+		WHERE cl.email = $1 OR co.email = $1 OR ap.email = $1
+	`
+	rows, err := s.database.Query(query, email)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var cards []*Card
+	for rows.Next() {
+		var c Card
+		var ct, st string
+		err := rows.Scan(&c.Number, &ct, &c.Name, &c.Creation_date, &c.Valid_until, &c.Account_number, &c.Cvv, &c.Card_limit, &st)
+		if err != nil {
+			return nil, err
+		}
+		c.Type = card_type(ct)
+		c.Status = card_status(st)
+		cards = append(cards, &c)
+	}
+	return cards, nil
+}

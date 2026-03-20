@@ -9,6 +9,65 @@ service BankService {
   rpc GetCompanyById(GetCompanyByIdRequest) returns (GetCompanyByIdResponse);
   rpc GetCompanies(GetCompaniesRequest) returns (GetCompaniesResponse);
   rpc UpdateCompany(UpdateCompanyRequest) returns (UpdateCompanyResponse);
+
+  rpc CreateCard(CreateCardRequest) returns (CardResponse);
+  rpc RequestCard(RequestCardRequest) returns (RequestCardResponse);
+  rpc ConfirmCard(ConfirmCardRequest) returns (CardResponse);
+  rpc GetCards(GetCardsRequest) returns (GetCardsResponse);
+  rpc ToggleCardStatus(ToggleCardStatusRequest) returns (ToggleCardStatusResponse);
+}
+
+message CreateCardRequest {
+  string account_number = 1;
+  string card_type = 2;
+  string name = 3;
+  int64 limit = 4;
+}
+
+message RequestCardRequest {
+  string account_number = 1;
+  string card_type = 2;
+  string name = 3;
+  int64 limit = 4;
+  string email = 5;
+  string phone = 6;
+  string address = 7;
+}
+
+message RequestCardResponse {
+  bool accepted = 1;
+}
+
+message ConfirmCardRequest {
+  string token = 1;
+}
+
+message GetCardsRequest {}
+
+message GetCardsResponse {
+  repeated CardResponse cards = 1;
+}
+
+message ToggleCardStatusRequest {
+  string card_id = 1;
+  bool active = 2;
+}
+
+message ToggleCardStatusResponse {
+  bool success = 1;
+}
+
+message CardResponse {
+  string card_id = 1;
+  string card_number = 2;
+  string card_type = 3;
+  string card_name = 4;
+  string creation_date = 5;
+  string expiration_date = 6;
+  string account_number = 7;
+  string cvv = 8;
+  int64 limit = 9;
+  string status = 10;
 }
 
 message Company {
@@ -50,10 +109,10 @@ message GetCompaniesResponse {
 
 message UpdateCompanyRequest {
   int64 id = 1;
-  string name = 3;
-  int64 activity_code_id = 5;
-  string address = 6;
-  int64 owner_id = 7;
+  string name = 2;
+  int64 activity_code_id = 3;
+  string address = 4;
+  int64 owner_id = 5;
 }
 
 message UpdateCompanyResponse {

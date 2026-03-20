@@ -225,6 +225,20 @@ type (
 		Valid          bool      `gorm:"column:valid;type:boolean;not null;default true"`
 		Used           bool      `gorm:"column:used;type:boolean;not null;default false"`
 	}
+
+	CardRequest struct {
+		Id             int64     `gorm:"primaryKey;autoIncrement"`
+		AccountNumber  string    `gorm:"type:varchar(20);not null;index"`
+		CardHolderName string    `gorm:"type:varchar(127);not null"`
+		Email          string    `gorm:"type:varchar(255);not null"`
+		CardType       string    `gorm:"type:varchar(20);not null"`
+		Limit          int64     `gorm:"type:bigint;not null;default:0"`
+		TokenHash      string    `gorm:"type:varchar(255);not null;uniqueIndex"`
+		ValidUntil     time.Time `gorm:"not null"`
+		Confirmed      bool      `gorm:"default:false"`
+		RequestedBy    string    `gorm:"type:varchar(255);not null"`
+		CreatedAt      time.Time
+	}
 )
 
 func (Currency) TableName() string {

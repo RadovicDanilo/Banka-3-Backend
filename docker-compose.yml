@@ -77,9 +77,11 @@ services:
       HTTP_PORT: "8080"
       USER_GRPC_ADDR: "user:50051"
       NOTIFICATION_GRPC_ADDR: "notification:50051"
+      BANK_GRPC_ADDR: "bank:50051"
     depends_on:
       - user
       - notification
+      - bank
     networks: [banka]
 
 volumes:

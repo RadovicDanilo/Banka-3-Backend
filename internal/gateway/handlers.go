@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc/metadata"
 
 	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/gen/bank"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/gen/user"
@@ -48,6 +49,15 @@ func SetupApi(router *gin.Engine, server *Server) {
 		companies.GET("", server.GetCompanies)
 		companies.GET("/:id", server.GetCompanyByID)
 		companies.PUT("/:id", server.UpdateCompany)
+	}
+
+	cards := api.Group("/cards")
+	cards.Use(AuthenticatedMiddleware(server.UserClient))
+	{
+		cards.GET("", server.GetCards)
+		cards.POST("/request", server.RequestCard)
+		cards.GET("/confirm", server.ConfirmCardRequest)
+		cards.PATCH("/:id", server.ToggleCardStatus)
 	}
 }
 
@@ -514,4 +524,100 @@ func (s *Server) ConfirmPasswordReset(c *gin.Context) {
 	} else {
 		c.Status(http.StatusUnprocessableEntity)
 	}
+}
+
+func (s *Server) GetCards(c *gin.Context) {
+	email := c.GetString("email")
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("user-email", email))
+
+	resp, err := s.BankClient.GetCards(ctx, &bankpb.GetCardsRequest{})
+	if err != nil {
+		writeGRPCError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp.Cards)
+}
+
+func (s *Server) RequestCard(c *gin.Context) {
+	var req struct {
+		AccountNumber string `json:"account_number" binding:"required"`
+		CardType      string `json:"card_type" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		writeBindError(c, err)
+		return
+	}
+
+	email := c.GetString("email")
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("user-email", email))
+
+	_, err := s.BankClient.RequestCard(ctx, &bankpb.RequestCardRequest{
+		AccountNumber: req.AccountNumber,
+		CardType:      req.CardType,
+	})
+
+	if err != nil {
+		writeGRPCError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusAccepted, gin.H{"message": "Card request submitted successfully"})
+}
+
+func (s *Server) ToggleCardStatus(c *gin.Context) {
+	cardID := c.Param("id")
+
+	var req struct {
+		Status bool `json:"status"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		writeBindError(c, err)
+		return
+	}
+
+	email := c.GetString("email")
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("user-email", email))
+
+	_, err := s.BankClient.ToggleCardStatus(ctx, &bankpb.ToggleCardStatusRequest{
+		CardId: cardID,
+		Active: req.Status,
+	})
+
+	if err != nil {
+		writeGRPCError(c, err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func (s *Server) ConfirmCardRequest(c *gin.Context) {
+	token := c.Query("token")
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	_, err := s.BankClient.ConfirmCard(ctx, &bankpb.ConfirmCardRequest{
+		Token: token,
+	})
+
+	if err != nil {
+		writeGRPCError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "Card activated and created!"})
 }
