@@ -1,5 +1,3 @@
-// shared testing utils
-
 package user
 
 import (
