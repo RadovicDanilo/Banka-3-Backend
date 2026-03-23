@@ -25,7 +25,7 @@ Sve komande koriste Docker po defaultu. Dodajte `-l` suffix za lokalno
 pokretanje (potreban Go na sistemu).
 
 | Komanda        | Opis                                         |
-| -------------- | -------------------------------------------- |
+|----------------|----------------------------------------------|
 | `make all`     | Pokreni sve (proto, up, schema, seed)        |
 | `make up`      | Pokreni servise/containere                   |
 | `make down`    | Ugasi servise/containere                     |

@@ -45,7 +45,7 @@ func NewServer(sender EmailSender) *Server {
 	return &Server{sender: sender}
 }
 
-func (s *Server) SendConfirmationEmail(ctx context.Context, req *notification.ConfirmationMailRequest) (*notification.SuccessResponse, error) {
+func (s *Server) SendConfirmationEmail(_ context.Context, req *notification.ConfirmationMailRequest) (*notification.SuccessResponse, error) {
 	log.Println("Sending confirmation email")
 
 	to := strings.Split(req.ToAddr, ",")
@@ -73,7 +73,7 @@ func (s *Server) SendConfirmationEmail(ctx context.Context, req *notification.Co
 	}, nil
 }
 
-func (s *Server) SendActivationEmail(ctx context.Context, req *notification.ActivationMailRequest) (*notification.SuccessResponse, error) {
+func (s *Server) SendActivationEmail(_ context.Context, req *notification.ActivationMailRequest) (*notification.SuccessResponse, error) {
 	to := strings.Split(req.ToAddr, ",")
 	templ, err := template.ParseFiles("templates/activation.html")
 	if err != nil {
@@ -98,7 +98,7 @@ func (s *Server) SendActivationEmail(ctx context.Context, req *notification.Acti
 	}, nil
 }
 
-func (s *Server) SendPasswordResetEmail(ctx context.Context, req *notification.PasswordLinkMailRequest) (*notification.SuccessResponse, error) {
+func (s *Server) SendPasswordResetEmail(_ context.Context, req *notification.PasswordLinkMailRequest) (*notification.SuccessResponse, error) {
 	to := strings.Split(req.ToAddr, ",")
 	templ, err := template.ParseFiles("templates/password_reset.html")
 	if err != nil {
@@ -123,7 +123,7 @@ func (s *Server) SendPasswordResetEmail(ctx context.Context, req *notification.P
 	}, nil
 }
 
-func (s *Server) SendInitialPasswordSetEmail(ctx context.Context, req *notification.PasswordLinkMailRequest) (*notification.SuccessResponse, error) {
+func (s *Server) SendInitialPasswordSetEmail(_ context.Context, req *notification.PasswordLinkMailRequest) (*notification.SuccessResponse, error) {
 	to := strings.Split(req.ToAddr, ",")
 	templ, err := template.ParseFiles("templates/initial_password_set.html")
 	if err != nil {
@@ -146,4 +146,51 @@ func (s *Server) SendInitialPasswordSetEmail(ctx context.Context, req *notificat
 	return &notification.SuccessResponse{
 		Successful: true,
 	}, nil
+}
+
+func (s *Server) SendCardConfirmationEmail(_ context.Context, req *notification.CardConfirmationMailRequest) (*notification.SuccessResponse, error) {
+	to := strings.Split(req.ToAddr, ",")
+	templ, err := template.ParseFiles("templates/card_confirmation.html")
+	if err != nil {
+		log.Println("Cannot parse car_confirmation.html:", err)
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	data := struct {
+		Link string
+	}{
+		Link: req.Link,
+	}
+
+	var rendered bytes.Buffer
+	if err := templ.Execute(&rendered, data); err != nil {
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	err = s.sender.Send(to, "Potvrda zahteva za karticu - Banka 3", rendered.String())
+	if err != nil {
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	return &notification.SuccessResponse{Successful: true}, nil
+}
+
+func (s *Server) SendCardCreatedEmail(_ context.Context, req *notification.CardCreatedMailRequest) (*notification.SuccessResponse, error) {
+	to := strings.Split(req.ToAddr, ",")
+	templ, err := template.ParseFiles("templates/card_created.html")
+	if err != nil {
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	var rendered bytes.Buffer
+	if err := templ.Execute(&rendered, req); err != nil {
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	err = s.sender.Send(to, "Vaša Banka 3 kartica je spremna!", rendered.String())
+	if err != nil {
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	return &notification.SuccessResponse{Successful: true}, nil
 }

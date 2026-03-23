@@ -1,4 +1,4 @@
-package user
+package bank
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	userpb "github.com/RAF-SI-2025/Banka-3-Backend/gen/user"
+	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/gen/bank"
 	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -29,7 +29,7 @@ func TestCreateCompanySuccess(t *testing.T) {
 		WillReturnRows(sqlmockCompanyRows().AddRow(int64(10), int64(12345), "ACME", int64(999), int64(2), "Main street", int64(1)))
 	mock.ExpectCommit()
 
-	resp, err := server.CreateCompany(context.Background(), &userpb.CreateCompanyRequest{
+	resp, err := server.CreateCompany(context.Background(), &bankpb.CreateCompanyRequest{
 		RegisteredId:   12345,
 		Name:           "ACME",
 		TaxCode:        999,
@@ -64,7 +64,7 @@ func TestCreateCompanyDuplicateRegisteredID(t *testing.T) {
 		WithArgs(int64(12345), "ACME", int64(999), "Main street", int64(1)).
 		WillReturnError(&pgconn.PgError{Code: "23505"})
 
-	_, err := server.CreateCompany(context.Background(), &userpb.CreateCompanyRequest{
+	_, err := server.CreateCompany(context.Background(), &bankpb.CreateCompanyRequest{
 		RegisteredId: 12345,
 		Name:         "ACME",
 		TaxCode:      999,
@@ -92,7 +92,7 @@ func TestCreateCompanyOwnerNotFound(t *testing.T) {
 		WithArgs(int64(77)).
 		WillReturnRows(sqlmockBoolRow(false))
 
-	_, err := server.CreateCompany(context.Background(), &userpb.CreateCompanyRequest{
+	_, err := server.CreateCompany(context.Background(), &bankpb.CreateCompanyRequest{
 		RegisteredId: 12345,
 		Name:         "ACME",
 		TaxCode:      999,
@@ -123,7 +123,7 @@ func TestCreateCompanyActivityCodeNotFound(t *testing.T) {
 		WithArgs(int64(99)).
 		WillReturnRows(sqlmockBoolRow(false))
 
-	_, err := server.CreateCompany(context.Background(), &userpb.CreateCompanyRequest{
+	_, err := server.CreateCompany(context.Background(), &bankpb.CreateCompanyRequest{
 		RegisteredId:   12345,
 		Name:           "ACME",
 		TaxCode:        999,
@@ -151,7 +151,7 @@ func TestGetCompanyByIDSuccess(t *testing.T) {
 		WithArgs(int64(10)).
 		WillReturnRows(sqlmockCompanyRows().AddRow(int64(10), int64(12345), "ACME", int64(999), int64(2), "Main street", int64(1)))
 
-	resp, err := server.GetCompanyById(context.Background(), &userpb.GetCompanyByIdRequest{Id: 10})
+	resp, err := server.GetCompanyById(context.Background(), &bankpb.GetCompanyByIdRequest{Id: 10})
 	if err != nil {
 		t.Fatalf("GetCompanyById returned error: %v", err)
 	}
@@ -175,7 +175,7 @@ func TestGetCompanyByIDNotFound(t *testing.T) {
 		WithArgs(int64(404)).
 		WillReturnError(sql.ErrNoRows)
 
-	_, err := server.GetCompanyById(context.Background(), &userpb.GetCompanyByIdRequest{Id: 404})
+	_, err := server.GetCompanyById(context.Background(), &bankpb.GetCompanyByIdRequest{Id: 404})
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
@@ -197,7 +197,7 @@ func TestGetCompaniesSuccess(t *testing.T) {
 			AddRow(int64(1), int64(12345), "ACME", int64(999), int64(2), "Main street", int64(1)).
 			AddRow(int64(2), int64(54321), "Beta", int64(555), nil, "Side street", int64(2)))
 
-	resp, err := server.GetCompanies(context.Background(), &userpb.GetCompaniesRequest{})
+	resp, err := server.GetCompanies(context.Background(), &bankpb.GetCompaniesRequest{})
 	if err != nil {
 		t.Fatalf("GetCompanies returned error: %v", err)
 	}
@@ -217,6 +217,10 @@ func TestUpdateCompanySuccess(t *testing.T) {
 	server, mock, db := newTestServer(t)
 	defer func() { _ = db.Close() }()
 
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+
 	mock.ExpectBegin()
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT EXISTS(SELECT 1 FROM companies WHERE id = $1)`)).
 		WithArgs(int64(10)).
@@ -229,7 +233,7 @@ func TestUpdateCompanySuccess(t *testing.T) {
 		WillReturnRows(sqlmockCompanyRows().AddRow(int64(10), int64(12345), "ACME Updated", int64(999), nil, "Main street 2", int64(1)))
 	mock.ExpectCommit()
 
-	resp, err := server.UpdateCompany(context.Background(), &userpb.UpdateCompanyRequest{
+	resp, err := server.UpdateCompany(context.Background(), &bankpb.UpdateCompanyRequest{
 		Id:      10,
 		Name:    "ACME Updated",
 		Address: "Main street 2",
@@ -259,7 +263,7 @@ func TestUpdateCompanyNotFound(t *testing.T) {
 		WithArgs(int64(404)).
 		WillReturnRows(sqlmockBoolRow(false))
 
-	_, err := server.UpdateCompany(context.Background(), &userpb.UpdateCompanyRequest{
+	_, err := server.UpdateCompany(context.Background(), &bankpb.UpdateCompanyRequest{
 		Id:      404,
 		Name:    "ACME",
 		Address: "Main street",

@@ -11,7 +11,7 @@ import (
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/gen/user"
 )
 
-// Placeholder for future middleware (auth, logging, prometheus, etc.).
+// NoopMiddleware Placeholder for future middleware (auth, logging, prometheus, etc.).
 func NoopMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()

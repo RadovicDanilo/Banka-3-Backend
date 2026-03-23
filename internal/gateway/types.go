@@ -88,6 +88,23 @@ type createEmployeeAccountRequest struct {
 	Password    string `json:"password"`
 }
 
+type createLoanRequestRequest struct {
+	AccountNumber   string  `json:"account_number" binding:"required"`
+	LoanType        string  `json:"loan_type" binding:"required"`
+	Amount          float64 `json:"amount" binding:"required"`
+	RepaymentPeriod int32   `json:"repayment_period" binding:"required"`
+	Currency        string  `json:"currency" binding:"required"`
+}
+
+type getLoansQuery struct {
+	LoanType      string `form:"loan_type"`
+	AccountNumber string `form:"account_number"`
+	Status        string `form:"status"`
+}
+
+type getLoanByNumberURI struct {
+	LoanNumber string `uri:"loanNumber" binding:"required"`
+}
 type createCompanyRequest struct {
 	RegisteredID   int64  `json:"registered_id" binding:"required"`
 	Name           string `json:"name" binding:"required"`
@@ -97,11 +114,71 @@ type createCompanyRequest struct {
 	OwnerID        int64  `json:"owner_id" binding:"required"`
 }
 
+type createAccountRequest struct {
+	Name             string `json:"name" binding:"required"`
+	Owner            int64  `json:"owner" binding:"required"`
+	Currency         string `json:"currency" binding:"required"`
+	OwnerType        string `json:"owner_type" binding:"required"`
+	AccountType      string `json:"account_type" binding:"required"`
+	MaintainanceCost int64  `json:"maintainance_cost" binding:"required"`
+	DailyLimit       int64  `json:"daily_limit"`
+	MonthlyLimit     int64  `json:"monthly_limit"`
+	CreatedBy        int64  `json:"created_by" binding:"required"`
+	ValidUntil       int64  `json:"valid_until"`
+}
+
 type updateCompanyRequest struct {
 	Name           string `json:"name" binding:"required"`
 	ActivityCodeID int64  `json:"activity_code_id"`
 	Address        string `json:"address" binding:"required"`
 	OwnerID        int64  `json:"owner_id" binding:"required"`
+}
+type createPaymentRecipientRequest struct {
+	Name          string `json:"name" binding:"required"`
+	AccountNumber string `json:"account_number" binding:"required"`
+}
+type updatePaymentRecipientRequest struct {
+	Name          string `json:"name" binding:"required"`
+	AccountNumber string `json:"account_number" binding:"required"`
+}
+
+type paymentRecipientByIDURI struct {
+	ID int64 `uri:"id" binding:"required"`
+}
+
+type getTransactionsQuery struct {
+	DateFrom   string  `form:"date_from"`
+	DateTo     string  `form:"date_to"`
+	AmountFrom float64 `form:"amount_from"`
+	AmountTo   float64 `form:"amount_to"`
+	Status     string  `form:"status"`
+
+	Page     int32 `form:"page"`
+	PageSize int32 `form:"page_size"`
+
+	SortBy    string `form:"sort_by"`
+	SortOrder string `form:"sort_order"`
+}
+type transactionByIDURI struct {
+	ID int64 `uri:"id" binding:"required"`
+}
+
+type transactionTypeQuery struct {
+	Type string `form:"type" binding:"required"`
+}
+
+type requestCardRequest struct {
+	AccountNumber string `json:"account_number" binding:"required"`
+	CardType      string `json:"card_type" binding:"required"`
+	CardBrand     string `json:"card_brand" binding:"required"`
+}
+
+type confirmCardQuery struct {
+	Token string `form:"token" binding:"required"`
+}
+
+type blockCardURI struct {
+	CardID int64 `uri:"id" binding:"required"`
 }
 
 type paymentRequest struct {

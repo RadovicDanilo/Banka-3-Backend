@@ -6,11 +6,245 @@ option go_package = "github.com/RAF-SI-2025/Banka-3-Backend/gen/bank";
 import "google/protobuf/empty.proto";
 
 service BankService {
+  rpc CreateCompany(CreateCompanyRequest) returns (CreateCompanyResponse);
+  rpc GetCompanyById(GetCompanyByIdRequest) returns (GetCompanyByIdResponse);
+  rpc GetCompanies(GetCompaniesRequest) returns (GetCompaniesResponse);
+  rpc UpdateCompany(UpdateCompanyRequest) returns (UpdateCompanyResponse);
+
+  rpc CreateCard(CreateCardRequest) returns (CardResponse);
+  rpc RequestCard(RequestCardRequest) returns (RequestCardResponse);
+  rpc ConfirmCard(ConfirmCardRequest) returns (ConfirmCardResponse);
+  rpc GetCards(GetCardsRequest) returns (GetCardsResponse);
+  rpc BlockCard(BlockCardRequest) returns (BlockCardResponse);
+
+  rpc GetPaymentRecipients(GetPaymentRecipientsRequest) returns (GetPaymentRecipientsResponse);
+  rpc CreatePaymentRecipient(CreatePaymentRecipientRequest) returns (CreatePaymentRecipientResponse);
+  rpc UpdatePaymentRecipient(UpdatePaymentRecipientRequest) returns (UpdatePaymentRecipientResponse);
+  rpc DeletePaymentRecipient(DeletePaymentRecipientRequest) returns (DeletePaymentRecipientResponse);
+
+  rpc GetTransactions(GetTransactionsRequest) returns (GetTransactionsResponse);
+  rpc GetTransactionById(GetTransactionByIdRequest) returns (GetTransactionByIdResponse);
+  rpc GenerateTransactionPdf(GenerateTransactionPdfRequest) returns (GenerateTransactionPdfResponse);
+
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+
+  rpc GetLoans(GetLoansRequest) returns (GetLoansResponse); // move to bank.proto later
+  rpc GetLoanByNumber(GetLoanByNumberRequest) returns (Loan);
+  rpc CreateLoanRequest(CreateLoanRequestRequest) returns (CreateLoanRequestResponse);
+
   rpc TransferMoneyBetweenAccounts(TransferRequest) returns (TransferResponse);
   rpc PayoutMoneyToOtherAccount(PaymentRequest) returns (PaymentResponse);
-  rpc GetTransactions(google.protobuf.Empty) returns (GetTransactionsResponse);
+
 }
 
+message CreateCardRequest {
+  string account_number = 1;
+  string card_type = 2;
+  string card_brand = 3;
+  string email = 4;
+}
+
+message RequestCardRequest {
+  string account_number = 1;
+  string card_type = 2;
+  string card_brand = 3;
+}
+
+message RequestCardResponse {
+  bool accepted = 1;
+}
+
+message ConfirmCardRequest {
+  string token = 1;
+}
+
+message ConfirmCardResponse {}
+
+message GetCardsRequest {}
+
+message GetCardsResponse {
+  repeated CardResponse cards = 1;
+}
+
+message BlockCardRequest {
+  int64 card_id = 1;
+}
+
+message BlockCardResponse {
+  bool success = 1;
+}
+
+message CardResponse {
+  string card_id = 1;
+  string card_number = 2;
+  string card_type = 3;
+  string card_brand = 4;
+  string creation_date = 5;
+  string expiration_date = 6;
+  string account_number = 7;
+  string cvv = 8;
+  int64 limit = 9;
+  string status = 10;
+}
+
+message Company {
+  int64 id = 1;
+  int64 registered_id = 2;
+  string name = 3;
+  int64 tax_code = 4;
+  int64 activity_code_id = 5;
+  string address = 6;
+  int64 owner_id = 7;
+}
+
+message CreateCompanyRequest {
+  int64 registered_id = 1;
+  string name = 2;
+  int64 tax_code = 3;
+  int64 activity_code_id = 4;
+  string address = 5;
+  int64 owner_id = 6;
+}
+
+message CreateCompanyResponse {
+  Company company = 1;
+}
+
+message GetCompanyByIdRequest {
+  int64 id = 1;
+}
+
+message GetCompanyByIdResponse {
+  Company company = 1;
+}
+
+message GetCompaniesRequest {}
+
+message GetCompaniesResponse {
+  repeated Company companies = 1;
+}
+
+message PaymentRecipient {
+  int64 id = 1;
+  string name = 2;
+  string account_number = 3;
+}
+
+message GetPaymentRecipientsRequest {
+  int64 client_id = 1;
+}
+
+message GetPaymentRecipientsResponse {
+  repeated PaymentRecipient recipients = 1;
+}
+
+message CreatePaymentRecipientRequest {
+  int64 client_id = 1;
+  string name = 2;
+  string account_number = 3;
+}
+
+message CreatePaymentRecipientResponse {
+  PaymentRecipient recipient = 1;
+}
+
+message UpdatePaymentRecipientRequest {
+  int64 id = 1;
+  int64 client_id = 2;
+  string name = 3;
+  string account_number = 4;
+}
+
+message UpdatePaymentRecipientResponse {
+  PaymentRecipient recipient = 1;
+}
+
+message DeletePaymentRecipientRequest {
+  int64 id = 1;
+  int64 client_id = 2;
+}
+
+message DeletePaymentRecipientResponse {
+  bool success = 1;
+}
+
+message UpdateCompanyRequest {
+  int64 id = 1;
+  string name = 3;
+  int64 activity_code_id = 5;
+  string address = 6;
+  int64 owner_id = 7;
+}
+
+message UpdateCompanyResponse {
+  Company company = 1;
+}
+message Transaction {
+  int64 id = 1;
+  string type = 2;
+  string from_account = 3;
+  string to_account = 4;
+  double start_amount = 5;
+  double end_amount = 6;
+  double commission = 7;
+  string status = 8;
+  int64 timestamp = 9;
+
+  int64 recipient_id = 10;
+  string transaction_code = 11;
+  string call_number = 12;
+  string reason = 13;
+
+  int64 start_currency_id = 14;
+  double exchange_rate = 15;
+}
+
+message GetTransactionsRequest {
+  int64 client_id = 1;
+
+  string date_from = 2;
+  string date_to = 3;
+
+  double amount_from = 4;
+  double amount_to = 5;
+
+  string status = 6;
+
+  int32 page = 7;
+  int32 page_size = 8;
+
+  string sort_by = 9;
+  string sort_order = 10;
+}
+
+message GetTransactionsResponse {
+  repeated Transaction transactions = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  int64 total = 4;
+  int32 total_pages = 5;
+}
+
+message GetTransactionByIdRequest {
+  int64 client_id = 1;
+  int64 id = 2;
+  string type = 3;
+}
+
+message GetTransactionByIdResponse {
+  Transaction transaction = 1;
+}
+
+message GenerateTransactionPdfRequest {
+  int64 client_id = 1;
+  int64 id = 2;
+  string type = 3;
+}
+
+message GenerateTransactionPdfResponse {
+  bytes pdf = 1;
+  string file_name = 2;
+}
 
 message PaymentRequest{
   string sender_account = 1;
@@ -57,19 +291,65 @@ message TransferResponse{
   string timestamp = 11;
 }
 
-message GetTransactionsResponse{
-  message Transaction{
-    string from_account =1;
-    string to_account = 2;
-    int64 initial_amount = 3;
-    int64 final_amount = 4;
-    int64 fee = 5;
-    string currency = 6;
-    string payment_code = 7;
-    string reference_number = 8;
-    string purpose = 9;
-    string status = 10;
-    string timestamp = 11;
-  }
-  repeated Transaction transactions = 1;
+message CreateAccountRequest {
+  string Name = 1;
+  int64 Owner = 2;
+  string Currency = 3;
+  string OwnerType = 4;
+  string AccountType = 5;
+  int64 MaintainanceCost = 6;
+  int64 DailyLimit = 7;
+  int64 MonthlyLimit = 8;
+  int64 CreatedBy = 9;
+  int64 ValidUntil = 10;
 }
+
+message CreateAccountResponse {
+  bool Valid = 1;
+  string AccountNumber = 2;
+  string Error = 3;
+}
+
+message Loan {
+  string loan_number = 1;
+  string loan_type = 2;
+  string account_number = 3;
+  double loan_amount = 4;
+  int32 repayment_period = 5;
+  double nominal_rate = 6;
+  double effective_rate = 7;
+  string agreement_date = 8;
+  string maturity_date = 9;
+  double next_installment_amount = 10;
+  string next_installment_date = 11;
+  double remaining_debt = 12;
+  string currency = 13;
+  string status = 14;
+}
+
+message GetLoansRequest {
+  string client_email = 1;
+  string loan_type = 2;
+  string account_number = 3;
+  string status = 4;
+}
+
+message GetLoansResponse {
+  repeated Loan loans = 1;
+}
+
+message GetLoanByNumberRequest {
+  string client_email = 1;
+  string loan_number = 2;
+}
+
+message CreateLoanRequestRequest {
+  string client_email = 1;
+  string account_number = 2;
+  string loan_type = 3;
+  double amount = 4;
+  int32 repayment_period = 5;
+  string currency = 6;
+}
+
+message CreateLoanRequestResponse {} // intentionally empty

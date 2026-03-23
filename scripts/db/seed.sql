@@ -37,8 +37,8 @@ INSERT INTO clients (
 VALUES (
     'Petar', 'Petrovic', '1990-05-20', 'M', 'petar@primer.raf',
     '+381645555555', 'Njegoseva 25',
-    '\x0fadf52a4580cfebb99e61162139af3d3a6403c1d36b83e4962b721d1c8cbd0b'::BYTEA,
-    '\x00'::BYTEA
+    '\xa514f71947f5447cdfc2845f40d020cea4146ba28e84cb1a82662a6286f8228d'::BYTEA,
+    '\x11223344556677889900aabbccddeeff'::BYTEA
 )
 ON CONFLICT (email) DO NOTHING;
 
@@ -62,8 +62,8 @@ Insert into companies(registered_id, name, tax_code, activity_code_id, address, 
 31415926, 'Marvin the android corp', 42, 1, 'At the restaurant at the end of the universe', 1
 );
 
-Insert into cards (number, name, valid_until, account_number, cvv, card_limit) values(
-'271828', 'Ford Perfect card', '2030-12-31', '14159265358979323846', '357', 10000
+Insert into cards (number, brand, valid_until, account_number, cvv, card_limit) values(
+'271828', 'visa', '2030-12-31', '14159265358979323846', '357', 10000
 );
 
 Insert into authorized_party (name, last_name, date_of_birth, gender, email, phone_number, address) values(
