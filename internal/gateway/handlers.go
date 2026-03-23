@@ -662,7 +662,11 @@ func (s *Server) GetAccounts(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
-	resp, err := s.BankClient.GetAccounts(ctx, &bankpb.GetAccountsRequest{
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(
+		"user-email", c.GetString("email"),
+	))
+
+	resp, err := s.BankClient.ListAccounts(ctx, &bankpb.ListAccountsRequest{
 		FirstName:     query.FirstName,
 		LastName:      query.LastName,
 		AccountNumber: query.AccountNumber,
@@ -672,34 +676,24 @@ func (s *Server) GetAccounts(c *gin.Context) {
 		return
 	}
 
-	accounts := make([]gin.H, 0, len(resp.Accounts))
-	for _, acc := range resp.Accounts {
-		accounts = append(accounts, gin.H{
-			"account_number": acc.AccountNumber,
-			"name":           acc.Name,
-			"client_id":      acc.ClientId,
-			"balance":        acc.Balance,
-			"currency":       acc.Currency,
-			"daily_limit":    acc.DailyLimit,
-			"monthly_limit":  acc.MonthlyLimit,
-			"status":         acc.Status,
-		})
-	}
-
-	c.JSON(http.StatusOK, accounts)
+	c.JSON(http.StatusOK, resp.Accounts)
 }
 
 func (s *Server) GetAccountByNumber(c *gin.Context) {
 	var uri accountNumberURI
 	if err := c.ShouldBindUri(&uri); err != nil {
-		c.String(http.StatusBadRequest, "account number is required")
+		writeBindError(c, err)
 		return
 	}
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
-	resp, err := s.BankClient.GetAccountByNumber(ctx, &bankpb.GetAccountByNumberRequest{
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(
+		"user-email", c.GetString("email"),
+	))
+
+	resp, err := s.BankClient.GetAccountDetails(ctx, &bankpb.GetAccountDetailsRequest{
 		AccountNumber: uri.AccountNumber,
 	})
 	if err != nil {
@@ -707,16 +701,7 @@ func (s *Server) GetAccountByNumber(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"account_number": resp.AccountNumber,
-		"name":           resp.Name,
-		"client_id":      resp.ClientId,
-		"balance":        resp.Balance,
-		"currency":       resp.Currency,
-		"daily_limit":    resp.DailyLimit,
-		"monthly_limit":  resp.MonthlyLimit,
-		"status":         resp.Status,
-	})
+	c.JSON(http.StatusOK, resp)
 }
 
 func (s *Server) UpdateAccountName(c *gin.Context) {
