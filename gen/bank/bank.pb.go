@@ -9,6 +9,7 @@ package bank
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	_ "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -2089,6 +2090,414 @@ func (x *GenerateTransactionPdfResponse) GetFileName() string {
 	return ""
 }
 
+type PaymentRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	SenderAccount    string                 `protobuf:"bytes,1,opt,name=sender_account,json=senderAccount,proto3" json:"sender_account,omitempty"`
+	RecipientAccount string                 `protobuf:"bytes,2,opt,name=recipient_account,json=recipientAccount,proto3" json:"recipient_account,omitempty"`
+	RecipientName    string                 `protobuf:"bytes,3,opt,name=recipient_name,json=recipientName,proto3" json:"recipient_name,omitempty"`
+	Amount           int64                  `protobuf:"varint,4,opt,name=amount,proto3" json:"amount,omitempty"`
+	PaymentCode      string                 `protobuf:"bytes,5,opt,name=payment_code,json=paymentCode,proto3" json:"payment_code,omitempty"`
+	ReferenceNumber  string                 `protobuf:"bytes,6,opt,name=reference_number,json=referenceNumber,proto3" json:"reference_number,omitempty"`
+	Purpose          string                 `protobuf:"bytes,7,opt,name=purpose,proto3" json:"purpose,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *PaymentRequest) Reset() {
+	*x = PaymentRequest{}
+	mi := &file_bank_bank_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PaymentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PaymentRequest) ProtoMessage() {}
+
+func (x *PaymentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_bank_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PaymentRequest.ProtoReflect.Descriptor instead.
+func (*PaymentRequest) Descriptor() ([]byte, []int) {
+	return file_bank_bank_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *PaymentRequest) GetSenderAccount() string {
+	if x != nil {
+		return x.SenderAccount
+	}
+	return ""
+}
+
+func (x *PaymentRequest) GetRecipientAccount() string {
+	if x != nil {
+		return x.RecipientAccount
+	}
+	return ""
+}
+
+func (x *PaymentRequest) GetRecipientName() string {
+	if x != nil {
+		return x.RecipientName
+	}
+	return ""
+}
+
+func (x *PaymentRequest) GetAmount() int64 {
+	if x != nil {
+		return x.Amount
+	}
+	return 0
+}
+
+func (x *PaymentRequest) GetPaymentCode() string {
+	if x != nil {
+		return x.PaymentCode
+	}
+	return ""
+}
+
+func (x *PaymentRequest) GetReferenceNumber() string {
+	if x != nil {
+		return x.ReferenceNumber
+	}
+	return ""
+}
+
+func (x *PaymentRequest) GetPurpose() string {
+	if x != nil {
+		return x.Purpose
+	}
+	return ""
+}
+
+type PaymentResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	FromAccount     string                 `protobuf:"bytes,1,opt,name=from_account,json=fromAccount,proto3" json:"from_account,omitempty"`
+	ToAccount       string                 `protobuf:"bytes,2,opt,name=to_account,json=toAccount,proto3" json:"to_account,omitempty"`
+	InitialAmount   int64                  `protobuf:"varint,3,opt,name=initial_amount,json=initialAmount,proto3" json:"initial_amount,omitempty"`
+	FinalAmount     int64                  `protobuf:"varint,4,opt,name=final_amount,json=finalAmount,proto3" json:"final_amount,omitempty"`
+	Fee             int64                  `protobuf:"varint,5,opt,name=fee,proto3" json:"fee,omitempty"`
+	Currency        string                 `protobuf:"bytes,6,opt,name=currency,proto3" json:"currency,omitempty"`
+	PaymentCode     string                 `protobuf:"bytes,7,opt,name=payment_code,json=paymentCode,proto3" json:"payment_code,omitempty"`
+	ReferenceNumber string                 `protobuf:"bytes,8,opt,name=reference_number,json=referenceNumber,proto3" json:"reference_number,omitempty"`
+	Purpose         string                 `protobuf:"bytes,9,opt,name=purpose,proto3" json:"purpose,omitempty"`
+	Status          string                 `protobuf:"bytes,10,opt,name=status,proto3" json:"status,omitempty"`
+	Timestamp       string                 `protobuf:"bytes,11,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *PaymentResponse) Reset() {
+	*x = PaymentResponse{}
+	mi := &file_bank_bank_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PaymentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PaymentResponse) ProtoMessage() {}
+
+func (x *PaymentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_bank_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PaymentResponse.ProtoReflect.Descriptor instead.
+func (*PaymentResponse) Descriptor() ([]byte, []int) {
+	return file_bank_bank_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *PaymentResponse) GetFromAccount() string {
+	if x != nil {
+		return x.FromAccount
+	}
+	return ""
+}
+
+func (x *PaymentResponse) GetToAccount() string {
+	if x != nil {
+		return x.ToAccount
+	}
+	return ""
+}
+
+func (x *PaymentResponse) GetInitialAmount() int64 {
+	if x != nil {
+		return x.InitialAmount
+	}
+	return 0
+}
+
+func (x *PaymentResponse) GetFinalAmount() int64 {
+	if x != nil {
+		return x.FinalAmount
+	}
+	return 0
+}
+
+func (x *PaymentResponse) GetFee() int64 {
+	if x != nil {
+		return x.Fee
+	}
+	return 0
+}
+
+func (x *PaymentResponse) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *PaymentResponse) GetPaymentCode() string {
+	if x != nil {
+		return x.PaymentCode
+	}
+	return ""
+}
+
+func (x *PaymentResponse) GetReferenceNumber() string {
+	if x != nil {
+		return x.ReferenceNumber
+	}
+	return ""
+}
+
+func (x *PaymentResponse) GetPurpose() string {
+	if x != nil {
+		return x.Purpose
+	}
+	return ""
+}
+
+func (x *PaymentResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *PaymentResponse) GetTimestamp() string {
+	if x != nil {
+		return x.Timestamp
+	}
+	return ""
+}
+
+type TransferRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FromAccount   string                 `protobuf:"bytes,1,opt,name=from_account,json=fromAccount,proto3" json:"from_account,omitempty"`
+	ToAccount     string                 `protobuf:"bytes,2,opt,name=to_account,json=toAccount,proto3" json:"to_account,omitempty"`
+	Amount        int64                  `protobuf:"varint,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TransferRequest) Reset() {
+	*x = TransferRequest{}
+	mi := &file_bank_bank_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TransferRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransferRequest) ProtoMessage() {}
+
+func (x *TransferRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_bank_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransferRequest.ProtoReflect.Descriptor instead.
+func (*TransferRequest) Descriptor() ([]byte, []int) {
+	return file_bank_bank_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *TransferRequest) GetFromAccount() string {
+	if x != nil {
+		return x.FromAccount
+	}
+	return ""
+}
+
+func (x *TransferRequest) GetToAccount() string {
+	if x != nil {
+		return x.ToAccount
+	}
+	return ""
+}
+
+func (x *TransferRequest) GetAmount() int64 {
+	if x != nil {
+		return x.Amount
+	}
+	return 0
+}
+
+func (x *TransferRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+type TransferResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	FromAccount     string                 `protobuf:"bytes,1,opt,name=from_account,json=fromAccount,proto3" json:"from_account,omitempty"`
+	ToAccount       string                 `protobuf:"bytes,2,opt,name=to_account,json=toAccount,proto3" json:"to_account,omitempty"`
+	InitialAmount   int64                  `protobuf:"varint,3,opt,name=initial_amount,json=initialAmount,proto3" json:"initial_amount,omitempty"`
+	FinalAmount     int64                  `protobuf:"varint,4,opt,name=final_amount,json=finalAmount,proto3" json:"final_amount,omitempty"`
+	Fee             int64                  `protobuf:"varint,5,opt,name=fee,proto3" json:"fee,omitempty"`
+	Currency        string                 `protobuf:"bytes,6,opt,name=currency,proto3" json:"currency,omitempty"`
+	PaymentCode     string                 `protobuf:"bytes,7,opt,name=payment_code,json=paymentCode,proto3" json:"payment_code,omitempty"`
+	ReferenceNumber string                 `protobuf:"bytes,8,opt,name=reference_number,json=referenceNumber,proto3" json:"reference_number,omitempty"`
+	Purpose         string                 `protobuf:"bytes,9,opt,name=purpose,proto3" json:"purpose,omitempty"`
+	Status          string                 `protobuf:"bytes,10,opt,name=status,proto3" json:"status,omitempty"`
+	Timestamp       string                 `protobuf:"bytes,11,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *TransferResponse) Reset() {
+	*x = TransferResponse{}
+	mi := &file_bank_bank_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TransferResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransferResponse) ProtoMessage() {}
+
+func (x *TransferResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_bank_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransferResponse.ProtoReflect.Descriptor instead.
+func (*TransferResponse) Descriptor() ([]byte, []int) {
+	return file_bank_bank_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *TransferResponse) GetFromAccount() string {
+	if x != nil {
+		return x.FromAccount
+	}
+	return ""
+}
+
+func (x *TransferResponse) GetToAccount() string {
+	if x != nil {
+		return x.ToAccount
+	}
+	return ""
+}
+
+func (x *TransferResponse) GetInitialAmount() int64 {
+	if x != nil {
+		return x.InitialAmount
+	}
+	return 0
+}
+
+func (x *TransferResponse) GetFinalAmount() int64 {
+	if x != nil {
+		return x.FinalAmount
+	}
+	return 0
+}
+
+func (x *TransferResponse) GetFee() int64 {
+	if x != nil {
+		return x.Fee
+	}
+	return 0
+}
+
+func (x *TransferResponse) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *TransferResponse) GetPaymentCode() string {
+	if x != nil {
+		return x.PaymentCode
+	}
+	return ""
+}
+
+func (x *TransferResponse) GetReferenceNumber() string {
+	if x != nil {
+		return x.ReferenceNumber
+	}
+	return ""
+}
+
+func (x *TransferResponse) GetPurpose() string {
+	if x != nil {
+		return x.Purpose
+	}
+	return ""
+}
+
+func (x *TransferResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *TransferResponse) GetTimestamp() string {
+	if x != nil {
+		return x.Timestamp
+	}
+	return ""
+}
+
 type CreateAccountRequest struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Name             string                 `protobuf:"bytes,1,opt,name=Name,proto3" json:"Name,omitempty"`
@@ -2107,7 +2516,7 @@ type CreateAccountRequest struct {
 
 func (x *CreateAccountRequest) Reset() {
 	*x = CreateAccountRequest{}
-	mi := &file_bank_bank_proto_msgTypes[35]
+	mi := &file_bank_bank_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2119,7 +2528,7 @@ func (x *CreateAccountRequest) String() string {
 func (*CreateAccountRequest) ProtoMessage() {}
 
 func (x *CreateAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_bank_proto_msgTypes[35]
+	mi := &file_bank_bank_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2132,7 +2541,7 @@ func (x *CreateAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAccountRequest.ProtoReflect.Descriptor instead.
 func (*CreateAccountRequest) Descriptor() ([]byte, []int) {
-	return file_bank_bank_proto_rawDescGZIP(), []int{35}
+	return file_bank_bank_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *CreateAccountRequest) GetName() string {
@@ -2216,7 +2625,7 @@ type CreateAccountResponse struct {
 
 func (x *CreateAccountResponse) Reset() {
 	*x = CreateAccountResponse{}
-	mi := &file_bank_bank_proto_msgTypes[36]
+	mi := &file_bank_bank_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2228,7 +2637,7 @@ func (x *CreateAccountResponse) String() string {
 func (*CreateAccountResponse) ProtoMessage() {}
 
 func (x *CreateAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_bank_proto_msgTypes[36]
+	mi := &file_bank_bank_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2241,7 +2650,7 @@ func (x *CreateAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAccountResponse.ProtoReflect.Descriptor instead.
 func (*CreateAccountResponse) Descriptor() ([]byte, []int) {
-	return file_bank_bank_proto_rawDescGZIP(), []int{36}
+	return file_bank_bank_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *CreateAccountResponse) GetValid() bool {
@@ -2287,7 +2696,7 @@ type Loan struct {
 
 func (x *Loan) Reset() {
 	*x = Loan{}
-	mi := &file_bank_bank_proto_msgTypes[37]
+	mi := &file_bank_bank_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2299,7 +2708,7 @@ func (x *Loan) String() string {
 func (*Loan) ProtoMessage() {}
 
 func (x *Loan) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_bank_proto_msgTypes[37]
+	mi := &file_bank_bank_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2312,7 +2721,7 @@ func (x *Loan) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Loan.ProtoReflect.Descriptor instead.
 func (*Loan) Descriptor() ([]byte, []int) {
-	return file_bank_bank_proto_rawDescGZIP(), []int{37}
+	return file_bank_bank_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *Loan) GetLoanNumber() string {
@@ -2425,7 +2834,7 @@ type GetLoansRequest struct {
 
 func (x *GetLoansRequest) Reset() {
 	*x = GetLoansRequest{}
-	mi := &file_bank_bank_proto_msgTypes[38]
+	mi := &file_bank_bank_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2437,7 +2846,7 @@ func (x *GetLoansRequest) String() string {
 func (*GetLoansRequest) ProtoMessage() {}
 
 func (x *GetLoansRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_bank_proto_msgTypes[38]
+	mi := &file_bank_bank_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2450,7 +2859,7 @@ func (x *GetLoansRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoansRequest.ProtoReflect.Descriptor instead.
 func (*GetLoansRequest) Descriptor() ([]byte, []int) {
-	return file_bank_bank_proto_rawDescGZIP(), []int{38}
+	return file_bank_bank_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *GetLoansRequest) GetClientEmail() string {
@@ -2490,7 +2899,7 @@ type GetLoansResponse struct {
 
 func (x *GetLoansResponse) Reset() {
 	*x = GetLoansResponse{}
-	mi := &file_bank_bank_proto_msgTypes[39]
+	mi := &file_bank_bank_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2502,7 +2911,7 @@ func (x *GetLoansResponse) String() string {
 func (*GetLoansResponse) ProtoMessage() {}
 
 func (x *GetLoansResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_bank_proto_msgTypes[39]
+	mi := &file_bank_bank_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2515,7 +2924,7 @@ func (x *GetLoansResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoansResponse.ProtoReflect.Descriptor instead.
 func (*GetLoansResponse) Descriptor() ([]byte, []int) {
-	return file_bank_bank_proto_rawDescGZIP(), []int{39}
+	return file_bank_bank_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *GetLoansResponse) GetLoans() []*Loan {
@@ -2535,7 +2944,7 @@ type GetLoanByNumberRequest struct {
 
 func (x *GetLoanByNumberRequest) Reset() {
 	*x = GetLoanByNumberRequest{}
-	mi := &file_bank_bank_proto_msgTypes[40]
+	mi := &file_bank_bank_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2547,7 +2956,7 @@ func (x *GetLoanByNumberRequest) String() string {
 func (*GetLoanByNumberRequest) ProtoMessage() {}
 
 func (x *GetLoanByNumberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_bank_proto_msgTypes[40]
+	mi := &file_bank_bank_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2560,7 +2969,7 @@ func (x *GetLoanByNumberRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoanByNumberRequest.ProtoReflect.Descriptor instead.
 func (*GetLoanByNumberRequest) Descriptor() ([]byte, []int) {
-	return file_bank_bank_proto_rawDescGZIP(), []int{40}
+	return file_bank_bank_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *GetLoanByNumberRequest) GetClientEmail() string {
@@ -2591,7 +3000,7 @@ type CreateLoanRequestRequest struct {
 
 func (x *CreateLoanRequestRequest) Reset() {
 	*x = CreateLoanRequestRequest{}
-	mi := &file_bank_bank_proto_msgTypes[41]
+	mi := &file_bank_bank_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2603,7 +3012,7 @@ func (x *CreateLoanRequestRequest) String() string {
 func (*CreateLoanRequestRequest) ProtoMessage() {}
 
 func (x *CreateLoanRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_bank_proto_msgTypes[41]
+	mi := &file_bank_bank_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2616,7 +3025,7 @@ func (x *CreateLoanRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateLoanRequestRequest.ProtoReflect.Descriptor instead.
 func (*CreateLoanRequestRequest) Descriptor() ([]byte, []int) {
-	return file_bank_bank_proto_rawDescGZIP(), []int{41}
+	return file_bank_bank_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *CreateLoanRequestRequest) GetClientEmail() string {
@@ -2669,7 +3078,7 @@ type CreateLoanRequestResponse struct {
 
 func (x *CreateLoanRequestResponse) Reset() {
 	*x = CreateLoanRequestResponse{}
-	mi := &file_bank_bank_proto_msgTypes[42]
+	mi := &file_bank_bank_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2681,7 +3090,7 @@ func (x *CreateLoanRequestResponse) String() string {
 func (*CreateLoanRequestResponse) ProtoMessage() {}
 
 func (x *CreateLoanRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bank_bank_proto_msgTypes[42]
+	mi := &file_bank_bank_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2694,14 +3103,14 @@ func (x *CreateLoanRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateLoanRequestResponse.ProtoReflect.Descriptor instead.
 func (*CreateLoanRequestResponse) Descriptor() ([]byte, []int) {
-	return file_bank_bank_proto_rawDescGZIP(), []int{42}
+	return file_bank_bank_proto_rawDescGZIP(), []int{46}
 }
 
 var File_bank_bank_proto protoreflect.FileDescriptor
 
 const file_bank_bank_proto_rawDesc = "" +
 	"\n" +
-	"\x0fbank/bank.proto\x12\x04bank\"\x8c\x01\n" +
+	"\x0fbank/bank.proto\x12\x04bank\x1a\x1bgoogle/protobuf/empty.proto\"\x8c\x01\n" +
 	"\x11CreateCardRequest\x12%\n" +
 	"\x0eaccount_number\x18\x01 \x01(\tR\raccountNumber\x12\x1b\n" +
 	"\tcard_type\x18\x02 \x01(\tR\bcardType\x12\x1d\n" +
@@ -2854,7 +3263,49 @@ const file_bank_bank_proto_rawDesc = "" +
 	"\x04type\x18\x03 \x01(\tR\x04type\"O\n" +
 	"\x1eGenerateTransactionPdfResponse\x12\x10\n" +
 	"\x03pdf\x18\x01 \x01(\fR\x03pdf\x12\x1b\n" +
-	"\tfile_name\x18\x02 \x01(\tR\bfileName\"\xca\x02\n" +
+	"\tfile_name\x18\x02 \x01(\tR\bfileName\"\x8b\x02\n" +
+	"\x0ePaymentRequest\x12%\n" +
+	"\x0esender_account\x18\x01 \x01(\tR\rsenderAccount\x12+\n" +
+	"\x11recipient_account\x18\x02 \x01(\tR\x10recipientAccount\x12%\n" +
+	"\x0erecipient_name\x18\x03 \x01(\tR\rrecipientName\x12\x16\n" +
+	"\x06amount\x18\x04 \x01(\x03R\x06amount\x12!\n" +
+	"\fpayment_code\x18\x05 \x01(\tR\vpaymentCode\x12)\n" +
+	"\x10reference_number\x18\x06 \x01(\tR\x0freferenceNumber\x12\x18\n" +
+	"\apurpose\x18\a \x01(\tR\apurpose\"\xe9\x02\n" +
+	"\x0fPaymentResponse\x12!\n" +
+	"\ffrom_account\x18\x01 \x01(\tR\vfromAccount\x12\x1d\n" +
+	"\n" +
+	"to_account\x18\x02 \x01(\tR\ttoAccount\x12%\n" +
+	"\x0einitial_amount\x18\x03 \x01(\x03R\rinitialAmount\x12!\n" +
+	"\ffinal_amount\x18\x04 \x01(\x03R\vfinalAmount\x12\x10\n" +
+	"\x03fee\x18\x05 \x01(\x03R\x03fee\x12\x1a\n" +
+	"\bcurrency\x18\x06 \x01(\tR\bcurrency\x12!\n" +
+	"\fpayment_code\x18\a \x01(\tR\vpaymentCode\x12)\n" +
+	"\x10reference_number\x18\b \x01(\tR\x0freferenceNumber\x12\x18\n" +
+	"\apurpose\x18\t \x01(\tR\apurpose\x12\x16\n" +
+	"\x06status\x18\n" +
+	" \x01(\tR\x06status\x12\x1c\n" +
+	"\ttimestamp\x18\v \x01(\tR\ttimestamp\"\x8d\x01\n" +
+	"\x0fTransferRequest\x12!\n" +
+	"\ffrom_account\x18\x01 \x01(\tR\vfromAccount\x12\x1d\n" +
+	"\n" +
+	"to_account\x18\x02 \x01(\tR\ttoAccount\x12\x16\n" +
+	"\x06amount\x18\x03 \x01(\x03R\x06amount\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\"\xea\x02\n" +
+	"\x10TransferResponse\x12!\n" +
+	"\ffrom_account\x18\x01 \x01(\tR\vfromAccount\x12\x1d\n" +
+	"\n" +
+	"to_account\x18\x02 \x01(\tR\ttoAccount\x12%\n" +
+	"\x0einitial_amount\x18\x03 \x01(\x03R\rinitialAmount\x12!\n" +
+	"\ffinal_amount\x18\x04 \x01(\x03R\vfinalAmount\x12\x10\n" +
+	"\x03fee\x18\x05 \x01(\x03R\x03fee\x12\x1a\n" +
+	"\bcurrency\x18\x06 \x01(\tR\bcurrency\x12!\n" +
+	"\fpayment_code\x18\a \x01(\tR\vpaymentCode\x12)\n" +
+	"\x10reference_number\x18\b \x01(\tR\x0freferenceNumber\x12\x18\n" +
+	"\apurpose\x18\t \x01(\tR\apurpose\x12\x16\n" +
+	"\x06status\x18\n" +
+	" \x01(\tR\x06status\x12\x1c\n" +
+	"\ttimestamp\x18\v \x01(\tR\ttimestamp\"\xca\x02\n" +
 	"\x14CreateAccountRequest\x12\x12\n" +
 	"\x04Name\x18\x01 \x01(\tR\x04Name\x12\x14\n" +
 	"\x05Owner\x18\x02 \x01(\x03R\x05Owner\x12\x1a\n" +
@@ -2912,7 +3363,7 @@ const file_bank_bank_proto_rawDesc = "" +
 	"\x06amount\x18\x04 \x01(\x01R\x06amount\x12)\n" +
 	"\x10repayment_period\x18\x05 \x01(\x05R\x0frepaymentPeriod\x12\x1a\n" +
 	"\bcurrency\x18\x06 \x01(\tR\bcurrency\"\x1b\n" +
-	"\x19CreateLoanRequestResponse2\xa5\f\n" +
+	"\x19CreateLoanRequestResponse2\xbe\r\n" +
 	"\vBankService\x12H\n" +
 	"\rCreateCompany\x12\x1a.bank.CreateCompanyRequest\x1a\x1b.bank.CreateCompanyResponse\x12K\n" +
 	"\x0eGetCompanyById\x12\x1b.bank.GetCompanyByIdRequest\x1a\x1c.bank.GetCompanyByIdResponse\x12E\n" +
@@ -2935,7 +3386,9 @@ const file_bank_bank_proto_rawDesc = "" +
 	"\bGetLoans\x12\x15.bank.GetLoansRequest\x1a\x16.bank.GetLoansResponse\x12;\n" +
 	"\x0fGetLoanByNumber\x12\x1c.bank.GetLoanByNumberRequest\x1a\n" +
 	".bank.Loan\x12T\n" +
-	"\x11CreateLoanRequest\x12\x1e.bank.CreateLoanRequestRequest\x1a\x1f.bank.CreateLoanRequestResponseB1Z/github.com/RAF-SI-2025/Banka-3-Backend/gen/bankb\x06proto3"
+	"\x11CreateLoanRequest\x12\x1e.bank.CreateLoanRequestRequest\x1a\x1f.bank.CreateLoanRequestResponse\x12M\n" +
+	"\x1cTransferMoneyBetweenAccounts\x12\x15.bank.TransferRequest\x1a\x16.bank.TransferResponse\x12H\n" +
+	"\x19PayoutMoneyToOtherAccount\x12\x14.bank.PaymentRequest\x1a\x15.bank.PaymentResponseB1Z/github.com/RAF-SI-2025/Banka-3-Backend/gen/bankb\x06proto3"
 
 var (
 	file_bank_bank_proto_rawDescOnce sync.Once
@@ -2949,7 +3402,7 @@ func file_bank_bank_proto_rawDescGZIP() []byte {
 	return file_bank_bank_proto_rawDescData
 }
 
-var file_bank_bank_proto_msgTypes = make([]protoimpl.MessageInfo, 43)
+var file_bank_bank_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
 var file_bank_bank_proto_goTypes = []any{
 	(*CreateCardRequest)(nil),              // 0: bank.CreateCardRequest
 	(*RequestCardRequest)(nil),             // 1: bank.RequestCardRequest
@@ -2986,14 +3439,18 @@ var file_bank_bank_proto_goTypes = []any{
 	(*GetTransactionByIdResponse)(nil),     // 32: bank.GetTransactionByIdResponse
 	(*GenerateTransactionPdfRequest)(nil),  // 33: bank.GenerateTransactionPdfRequest
 	(*GenerateTransactionPdfResponse)(nil), // 34: bank.GenerateTransactionPdfResponse
-	(*CreateAccountRequest)(nil),           // 35: bank.CreateAccountRequest
-	(*CreateAccountResponse)(nil),          // 36: bank.CreateAccountResponse
-	(*Loan)(nil),                           // 37: bank.Loan
-	(*GetLoansRequest)(nil),                // 38: bank.GetLoansRequest
-	(*GetLoansResponse)(nil),               // 39: bank.GetLoansResponse
-	(*GetLoanByNumberRequest)(nil),         // 40: bank.GetLoanByNumberRequest
-	(*CreateLoanRequestRequest)(nil),       // 41: bank.CreateLoanRequestRequest
-	(*CreateLoanRequestResponse)(nil),      // 42: bank.CreateLoanRequestResponse
+	(*PaymentRequest)(nil),                 // 35: bank.PaymentRequest
+	(*PaymentResponse)(nil),                // 36: bank.PaymentResponse
+	(*TransferRequest)(nil),                // 37: bank.TransferRequest
+	(*TransferResponse)(nil),               // 38: bank.TransferResponse
+	(*CreateAccountRequest)(nil),           // 39: bank.CreateAccountRequest
+	(*CreateAccountResponse)(nil),          // 40: bank.CreateAccountResponse
+	(*Loan)(nil),                           // 41: bank.Loan
+	(*GetLoansRequest)(nil),                // 42: bank.GetLoansRequest
+	(*GetLoansResponse)(nil),               // 43: bank.GetLoansResponse
+	(*GetLoanByNumberRequest)(nil),         // 44: bank.GetLoanByNumberRequest
+	(*CreateLoanRequestRequest)(nil),       // 45: bank.CreateLoanRequestRequest
+	(*CreateLoanRequestResponse)(nil),      // 46: bank.CreateLoanRequestResponse
 }
 var file_bank_bank_proto_depIdxs = []int32{
 	9,  // 0: bank.GetCardsResponse.cards:type_name -> bank.CardResponse
@@ -3006,7 +3463,7 @@ var file_bank_bank_proto_depIdxs = []int32{
 	10, // 7: bank.UpdateCompanyResponse.company:type_name -> bank.Company
 	28, // 8: bank.GetTransactionsResponse.transactions:type_name -> bank.Transaction
 	28, // 9: bank.GetTransactionByIdResponse.transaction:type_name -> bank.Transaction
-	37, // 10: bank.GetLoansResponse.loans:type_name -> bank.Loan
+	41, // 10: bank.GetLoansResponse.loans:type_name -> bank.Loan
 	11, // 11: bank.BankService.CreateCompany:input_type -> bank.CreateCompanyRequest
 	13, // 12: bank.BankService.GetCompanyById:input_type -> bank.GetCompanyByIdRequest
 	15, // 13: bank.BankService.GetCompanies:input_type -> bank.GetCompaniesRequest
@@ -3023,32 +3480,36 @@ var file_bank_bank_proto_depIdxs = []int32{
 	29, // 24: bank.BankService.GetTransactions:input_type -> bank.GetTransactionsRequest
 	31, // 25: bank.BankService.GetTransactionById:input_type -> bank.GetTransactionByIdRequest
 	33, // 26: bank.BankService.GenerateTransactionPdf:input_type -> bank.GenerateTransactionPdfRequest
-	35, // 27: bank.BankService.CreateAccount:input_type -> bank.CreateAccountRequest
-	38, // 28: bank.BankService.GetLoans:input_type -> bank.GetLoansRequest
-	40, // 29: bank.BankService.GetLoanByNumber:input_type -> bank.GetLoanByNumberRequest
-	41, // 30: bank.BankService.CreateLoanRequest:input_type -> bank.CreateLoanRequestRequest
-	12, // 31: bank.BankService.CreateCompany:output_type -> bank.CreateCompanyResponse
-	14, // 32: bank.BankService.GetCompanyById:output_type -> bank.GetCompanyByIdResponse
-	16, // 33: bank.BankService.GetCompanies:output_type -> bank.GetCompaniesResponse
-	27, // 34: bank.BankService.UpdateCompany:output_type -> bank.UpdateCompanyResponse
-	9,  // 35: bank.BankService.CreateCard:output_type -> bank.CardResponse
-	2,  // 36: bank.BankService.RequestCard:output_type -> bank.RequestCardResponse
-	4,  // 37: bank.BankService.ConfirmCard:output_type -> bank.ConfirmCardResponse
-	6,  // 38: bank.BankService.GetCards:output_type -> bank.GetCardsResponse
-	8,  // 39: bank.BankService.BlockCard:output_type -> bank.BlockCardResponse
-	19, // 40: bank.BankService.GetPaymentRecipients:output_type -> bank.GetPaymentRecipientsResponse
-	21, // 41: bank.BankService.CreatePaymentRecipient:output_type -> bank.CreatePaymentRecipientResponse
-	23, // 42: bank.BankService.UpdatePaymentRecipient:output_type -> bank.UpdatePaymentRecipientResponse
-	25, // 43: bank.BankService.DeletePaymentRecipient:output_type -> bank.DeletePaymentRecipientResponse
-	30, // 44: bank.BankService.GetTransactions:output_type -> bank.GetTransactionsResponse
-	32, // 45: bank.BankService.GetTransactionById:output_type -> bank.GetTransactionByIdResponse
-	34, // 46: bank.BankService.GenerateTransactionPdf:output_type -> bank.GenerateTransactionPdfResponse
-	36, // 47: bank.BankService.CreateAccount:output_type -> bank.CreateAccountResponse
-	39, // 48: bank.BankService.GetLoans:output_type -> bank.GetLoansResponse
-	37, // 49: bank.BankService.GetLoanByNumber:output_type -> bank.Loan
-	42, // 50: bank.BankService.CreateLoanRequest:output_type -> bank.CreateLoanRequestResponse
-	31, // [31:51] is the sub-list for method output_type
-	11, // [11:31] is the sub-list for method input_type
+	39, // 27: bank.BankService.CreateAccount:input_type -> bank.CreateAccountRequest
+	42, // 28: bank.BankService.GetLoans:input_type -> bank.GetLoansRequest
+	44, // 29: bank.BankService.GetLoanByNumber:input_type -> bank.GetLoanByNumberRequest
+	45, // 30: bank.BankService.CreateLoanRequest:input_type -> bank.CreateLoanRequestRequest
+	37, // 31: bank.BankService.TransferMoneyBetweenAccounts:input_type -> bank.TransferRequest
+	35, // 32: bank.BankService.PayoutMoneyToOtherAccount:input_type -> bank.PaymentRequest
+	12, // 33: bank.BankService.CreateCompany:output_type -> bank.CreateCompanyResponse
+	14, // 34: bank.BankService.GetCompanyById:output_type -> bank.GetCompanyByIdResponse
+	16, // 35: bank.BankService.GetCompanies:output_type -> bank.GetCompaniesResponse
+	27, // 36: bank.BankService.UpdateCompany:output_type -> bank.UpdateCompanyResponse
+	9,  // 37: bank.BankService.CreateCard:output_type -> bank.CardResponse
+	2,  // 38: bank.BankService.RequestCard:output_type -> bank.RequestCardResponse
+	4,  // 39: bank.BankService.ConfirmCard:output_type -> bank.ConfirmCardResponse
+	6,  // 40: bank.BankService.GetCards:output_type -> bank.GetCardsResponse
+	8,  // 41: bank.BankService.BlockCard:output_type -> bank.BlockCardResponse
+	19, // 42: bank.BankService.GetPaymentRecipients:output_type -> bank.GetPaymentRecipientsResponse
+	21, // 43: bank.BankService.CreatePaymentRecipient:output_type -> bank.CreatePaymentRecipientResponse
+	23, // 44: bank.BankService.UpdatePaymentRecipient:output_type -> bank.UpdatePaymentRecipientResponse
+	25, // 45: bank.BankService.DeletePaymentRecipient:output_type -> bank.DeletePaymentRecipientResponse
+	30, // 46: bank.BankService.GetTransactions:output_type -> bank.GetTransactionsResponse
+	32, // 47: bank.BankService.GetTransactionById:output_type -> bank.GetTransactionByIdResponse
+	34, // 48: bank.BankService.GenerateTransactionPdf:output_type -> bank.GenerateTransactionPdfResponse
+	40, // 49: bank.BankService.CreateAccount:output_type -> bank.CreateAccountResponse
+	43, // 50: bank.BankService.GetLoans:output_type -> bank.GetLoansResponse
+	41, // 51: bank.BankService.GetLoanByNumber:output_type -> bank.Loan
+	46, // 52: bank.BankService.CreateLoanRequest:output_type -> bank.CreateLoanRequestResponse
+	38, // 53: bank.BankService.TransferMoneyBetweenAccounts:output_type -> bank.TransferResponse
+	36, // 54: bank.BankService.PayoutMoneyToOtherAccount:output_type -> bank.PaymentResponse
+	33, // [33:55] is the sub-list for method output_type
+	11, // [11:33] is the sub-list for method input_type
 	11, // [11:11] is the sub-list for extension type_name
 	11, // [11:11] is the sub-list for extension extendee
 	0,  // [0:11] is the sub-list for field type_name
@@ -3065,7 +3526,7 @@ func file_bank_bank_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bank_bank_proto_rawDesc), len(file_bank_bank_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   43,
+			NumMessages:   47,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
