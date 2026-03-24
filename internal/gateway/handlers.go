@@ -49,12 +49,6 @@ func SetupApi(router *gin.Engine, server *Server) {
 		companies.PUT("/:id", server.UpdateCompany)
 	}
 
-	cards := api.Group("/cards")
-	{
-		cards.GET("", server.GetCards)
-		cards.POST("", server.CreateCard)
-		cards.PATCH("/:cardNumber/block", server.BlockCard)
-	}
 }
 
 func (s *Server) Healthz(c *gin.Context) {
@@ -530,87 +524,4 @@ func (s *Server) ConfirmPasswordReset(c *gin.Context) {
 	} else {
 		c.Status(http.StatusUnprocessableEntity)
 	}
-}
-
-func (s *Server) GetCards(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
-	defer cancel()
-
-	resp, err := s.UserClient.GetCards(ctx, &userpb.GetCardsRequest{})
-	if err != nil {
-		writeGRPCError(c, err)
-		return
-	}
-
-	cards := make([]gin.H, 0, len(resp.Cards))
-	for _, card := range resp.Cards {
-		cards = append(cards, gin.H{
-			"card_number":     card.CardNumber,
-			"card_type":       card.CardType,
-			"card_name":       card.CardName,
-			"creation_date":   card.CreationDate,
-			"expiration_date": card.ExpirationDate,
-			"account_number":  card.AccountNumber,
-			"cvv":             card.Cvv,
-			"limit":           card.Limit,
-			"status":          card.Status,
-		})
-	}
-
-	c.JSON(http.StatusOK, cards)
-}
-
-func (s *Server) CreateCard(c *gin.Context) {
-	var req createCardRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		writeBindError(c, err)
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
-	defer cancel()
-
-	resp, err := s.UserClient.CreateCard(ctx, &userpb.CreateCardRequest{
-		AccountNumber: req.AccountNumber,
-		CardType:      req.CardType,
-	})
-	if err != nil {
-		writeGRPCError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{
-		"card_number":     resp.CardNumber,
-		"card_type":       resp.CardType,
-		"card_name":       resp.CardName,
-		"creation_date":   resp.CreationDate,
-		"expiration_date": resp.ExpirationDate,
-		"account_number":  resp.AccountNumber,
-		"cvv":             resp.Cvv,
-		"limit":           resp.Limit,
-		"status":          resp.Status,
-	})
-}
-
-func (s *Server) BlockCard(c *gin.Context) {
-	var uri cardNumberURI
-	if err := c.ShouldBindUri(&uri); err != nil {
-		c.String(http.StatusBadRequest, "card number is required")
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
-	defer cancel()
-
-	_, err := s.UserClient.BlockCard(ctx, &userpb.BlockCardRequest{
-		CardNumber: uri.CardNumber,
-	})
-	if err != nil {
-		writeGRPCError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Card blocked successfully",
-	})
 }
