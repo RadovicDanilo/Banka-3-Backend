@@ -231,7 +231,7 @@ type (
 		Currency_id        int64              `gorm:"column:currency_id;type:bigserial;references currencies(id)"`
 		Due_date           time.Time          `gorm:"column:due_date;type:date;not null"`
 		Paid_date          time.Time          `gorm:"column:paid_date;type:date;not null"`
-		Status             installment_status `gorm:"column:installment_status;type:installment;not null;default 'due'"`
+		Status             installment_status `gorm:"column:status;type:installment_status;not null;default 'due'"`
 	}
 
 	LoanRequest struct {
