@@ -206,3 +206,20 @@ type conversionRequest struct {
 	ToCurrency   string  `json:"to_currency" binding:"required"`
 	Amount       float64 `json:"amount" binding:"required,gt=0"`
 }
+
+type paymentRequest struct {
+	SenderAccount    string `json:"sender_account" binding:"required"`
+	RecipientAccount string `json:"recipient_account" binding:"required"`
+	RecipientName    string `json:"recipient_name" binding:"required"`
+	Amount           int64  `json:"amount" binding:"required"`
+	PaymentCode      string `json:"payment_code" binding:"required"`
+	ReferenceNumber  string `json:"reference_number"`
+	Purpose          string `json:"purpose"`
+}
+
+type transferRequest struct {
+	FromAccount string `json:"from_account" binding:"required"`
+	ToAccount   string `json:"to_account" binding:"required"`
+	Amount      int64  `json:"amount" binding:"required"`
+	Description string `json:"description"`
+}

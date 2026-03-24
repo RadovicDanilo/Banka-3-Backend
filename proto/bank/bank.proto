@@ -3,6 +3,7 @@ syntax = "proto3";
 package bank;
 
 option go_package = "github.com/RAF-SI-2025/Banka-3-Backend/gen/bank";
+import "google/protobuf/empty.proto";
 
 service BankService {
   rpc CreateCompany(CreateCompanyRequest) returns (CreateCompanyResponse);
@@ -35,6 +36,10 @@ service BankService {
   rpc GetLoans(GetLoansRequest) returns (GetLoansResponse);
   rpc GetLoanByNumber(GetLoanByNumberRequest) returns (Loan);
   rpc CreateLoanRequest(CreateLoanRequestRequest) returns (CreateLoanRequestResponse);
+
+  rpc TransferMoneyBetweenAccounts(TransferRequest) returns (TransferResponse);
+  rpc PayoutMoneyToOtherAccount(PaymentRequest) returns (PaymentResponse);
+
 }
 
 message CreateCardRequest {
@@ -244,6 +249,51 @@ message GenerateTransactionPdfRequest {
 message GenerateTransactionPdfResponse {
   bytes pdf = 1;
   string file_name = 2;
+}
+
+message PaymentRequest{
+  string sender_account = 1;
+  string recipient_account = 2;
+  string recipient_name = 3;
+  int64  amount = 4;
+  string payment_code = 5;
+  string reference_number = 6;
+  string purpose = 7;
+}
+
+message PaymentResponse{
+  string from_account = 1;
+  string to_account = 2;
+  int64 initial_amount =3;
+  int64 final_amount = 4;
+  int64 fee = 5;
+  string currency = 6;
+  string payment_code = 7;
+  string reference_number = 8;
+  string purpose = 9;
+  string status = 10;
+  string timestamp = 11;
+}
+
+message TransferRequest{
+  string from_account = 1;
+  string to_account =2;
+  int64 amount = 3;
+  string description = 4;
+}
+
+message TransferResponse{
+  string from_account = 1;
+  string to_account = 2;
+  int64 initial_amount = 3;
+  int64 final_amount = 4;
+  int64 fee = 5;
+  string currency = 6;
+  string payment_code = 7;
+  string reference_number = 8;
+  string purpose = 9;
+  string status = 10;
+  string timestamp = 11;
 }
 
 message Account {
