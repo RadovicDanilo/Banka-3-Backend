@@ -20,9 +20,9 @@ func TestRunMonthlyVariableRateUpdate(t *testing.T) {
 		"interest_rate", "date_signed", "date_end", "monthly_payment",
 		"next_payment_due", "remaining_debt", "type", "loan_status", "interest_rate_type",
 	}).AddRow(
-		int64(1), int64(1), 1000000.0, int64(1), int64(24),
-		float32(8.0), now, now.AddDate(2, 0, 0), 45227.0,
-		now.AddDate(0, 1, 0), 900000.0, "cash", "approved", "variable",
+		int64(1), int64(1), int64(1_000_000_00), int64(1), int64(24),
+		float32(8.0), now, now.AddDate(2, 0, 0), int64(4_522_700),
+		now.AddDate(0, 1, 0), int64(900_000_00), "cash", "approved", "variable",
 	)
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "loans" WHERE interest_rate_type = $1 AND loan_status = $2`)).
 		WithArgs("variable", "approved").
@@ -67,9 +67,9 @@ func TestRunDailyInstallmentCollection_Success(t *testing.T) {
 		"interest_rate", "date_signed", "date_end", "monthly_payment",
 		"next_payment_due", "remaining_debt", "type", "loan_status", "interest_rate_type",
 	}).AddRow(
-		int64(1), int64(1), 10000.0, int64(1), int64(12),
-		float32(8.0), now.AddDate(-1, 0, 0), now.AddDate(0, 11, 0), 869.88,
-		today, 5000.0, "cash", "approved", "fixed",
+		int64(1), int64(1), int64(10_000_00), int64(1), int64(12),
+		float32(8.0), now.AddDate(-1, 0, 0), now.AddDate(0, 11, 0), int64(86_988),
+		today, int64(500_000), "cash", "approved", "fixed",
 	)
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "loans" WHERE next_payment_due <= $1 AND loan_status IN ($2,$3)`)).
 		WithArgs(sqlmock.AnyArg(), "approved", "late").
@@ -115,9 +115,9 @@ func TestRunDailyInstallmentCollection_FullPayoff(t *testing.T) {
 		"interest_rate", "date_signed", "date_end", "monthly_payment",
 		"next_payment_due", "remaining_debt", "type", "loan_status", "interest_rate_type",
 	}).AddRow(
-		int64(2), int64(1), 10000.0, int64(1), int64(12),
-		float32(8.0), now.AddDate(-1, 0, 0), now.AddDate(0, 0, 0), 869.88,
-		today, 869.88, "cash", "approved", "fixed",
+		int64(2), int64(1), int64(10_000_00), int64(1), int64(12),
+		float32(8.0), now.AddDate(-1, 0, 0), now.AddDate(0, 0, 0), int64(86_988),
+		today, int64(86_988), "cash", "approved", "fixed",
 	)
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "loans" WHERE next_payment_due <= $1 AND loan_status IN ($2,$3)`)).
 		WithArgs(sqlmock.AnyArg(), "approved", "late").

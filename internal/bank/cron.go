@@ -65,7 +65,7 @@ func (s *Server) RunMonthlyVariableRateUpdate() {
 			continue
 		}
 
-		amountRSD := loan.Amount * rateToRSD
+		amountRSD := int64(float64(loan.Amount) * rateToRSD)
 		baseRate := BaseAnnualRate(amountRSD)
 		// spec says random for simulation, should probably be tied to EURIBOR or something
 		offset := -1.50 + rand.Float64()*3.0
@@ -87,7 +87,7 @@ func (s *Server) RunMonthlyVariableRateUpdate() {
 			continue
 		}
 
-		log.Printf("[Cron] Updated variable loan %d: rate=%.2f%%, payment=%.2f", loan.Id, newAnnualRate, newPayment)
+		log.Printf("[Cron] Updated variable loan %d: rate=%.2f%%, payment=%d", loan.Id, newAnnualRate, newPayment)
 	}
 }
 
@@ -134,7 +134,7 @@ func (s *Server) RunDailyInstallmentCollection() {
 
 func (s *Server) processLoanPayment(loan *Loan, today time.Time, isRetry bool) {
 	// TODO(#51/#52): actually deduct from account, for now we just pretend it worked
-	log.Printf("[Cron] WOULD DEDUCT %.2f from account %d (loan %d, retry=%v)",
+	log.Printf("[Cron] WOULD DEDUCT %d from account %d (loan %d, retry=%v)",
 		loan.Monthly_payment, loan.Account_id, loan.Id, isRetry)
 
 	paymentSucceeded := true
@@ -142,7 +142,7 @@ func (s *Server) processLoanPayment(loan *Loan, today time.Time, isRetry bool) {
 	if paymentSucceeded {
 		installment := LoanInstallment{
 			Loan_id:            loan.Id,
-			Installment_amount: float32(loan.Monthly_payment),
+			Installment_amount: loan.Monthly_payment,
 			Interest_rate:      loan.Interest_rate,
 			Currency_id:        loan.Currency_id,
 			Due_date:           loan.Next_payment_due,
@@ -171,11 +171,11 @@ func (s *Server) processLoanPayment(loan *Loan, today time.Time, isRetry bool) {
 			log.Printf("[Cron] ERROR updating loan %d after payment: %v", loan.Id, err)
 		}
 
-		log.Printf("[Cron] Loan %d: payment recorded, remaining_debt=%.2f", loan.Id, newDebt)
+		log.Printf("[Cron] Loan %d: payment recorded, remaining_debt=%d", loan.Id, newDebt)
 	} else {
 		installment := LoanInstallment{
 			Loan_id:            loan.Id,
-			Installment_amount: float32(loan.Monthly_payment),
+			Installment_amount: loan.Monthly_payment,
 			Interest_rate:      loan.Interest_rate,
 			Currency_id:        loan.Currency_id,
 			Due_date:           loan.Next_payment_due,
@@ -203,7 +203,7 @@ func (s *Server) processLoanPayment(loan *Loan, today time.Time, isRetry bool) {
 				context.Background(),
 				email,
 				fmt.Sprintf("%d", loan.Id),
-				fmt.Sprintf("%.2f", loan.Monthly_payment),
+				fmt.Sprintf("%d", loan.Monthly_payment),
 				currencyLabel,
 				loan.Next_payment_due.Format("2006-01-02"),
 			)

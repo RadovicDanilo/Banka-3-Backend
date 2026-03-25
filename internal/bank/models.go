@@ -209,15 +209,15 @@ type (
 	Loan struct {
 		Id                 int64              `gorm:"column:id;type:bigserial;not null;primaryKey"`
 		Account_id         int64              `gorm:"column:account_id;type:bigint;references accounts(id)"`
-		Amount             float64            `gorm:"column:amount;type:decimal(12,2);not null"`
+		Amount             int64              `gorm:"column:amount;type:bigint;not null"`
 		Currency_id        int64              `gorm:"column:currency_id;type:bigserial;references currencies(id)"`
 		Installments       int64              `gorm:"column:installments;type:bigint;not null"`
 		Interest_rate      float32            `gorm:"column:interest_rate;type:decimal(5,2);not null"`
 		Date_signed        time.Time          `gorm:"column:date_signed;type:date;not null;"`
 		Date_end           time.Time          `gorm:"column:date_end;type:date;not null;"`
-		Monthly_payment    float64            `gorm:"column:monthly_payment;type:decimal(20,2);not null"`
+		Monthly_payment    int64              `gorm:"column:monthly_payment;type:bigint;not null"`
 		Next_payment_due   time.Time          `gorm:"column:next_payment_due;type:date;not null;"`
-		Remaining_debt     float64            `gorm:"column:remaining_debt;type:decimal(20,2);not null"`
+		Remaining_debt     int64              `gorm:"column:remaining_debt;type:bigint;not null"`
 		Type               loan_type          `gorm:"column:type;type:loan_type;not null"`
 		Loan_status        loan_status        `gorm:"column:loan_status;type:loan_status;not null;default 'approved'"`
 		Interest_rate_type interest_rate_type `gorm:"column:interest_rate_type;type:interest_rate_type;not null"`
@@ -226,7 +226,7 @@ type (
 	LoanInstallment struct {
 		Id                 int64              `gorm:"column:id;type:bigserial;not null;primaryKey"`
 		Loan_id            int64              `gorm:"column:loan_id;type:bigint;references loans(id)"`
-		Installment_amount float32            `gorm:"column:installment_amount;type:decimal(20,2);not null"`
+		Installment_amount int64              `gorm:"column:installment_amount;type:bigint;not null"`
 		Interest_rate      float32            `gorm:"column:interest_rate;type:decimal(5,2);not null"`
 		Currency_id        int64              `gorm:"column:currency_id;type:bigserial;references currencies(id)"`
 		Due_date           time.Time          `gorm:"column:due_date;type:date;not null"`
@@ -238,13 +238,13 @@ type (
 		Id                 int64               `gorm:"column:id;type:bigserial;not null;primaryKey"`
 		Type               loan_type           `gorm:"column:type;type:loan_type;not null"`
 		Currency_id        int64               `gorm:"column:currency_id;type:bigint;references currencies(id)"`
-		Amount             float64             `gorm:"column:amount;type:decimal(20,2);not null"`
+		Amount             int64               `gorm:"column:amount;type:bigint;not null"`
 		Repayment_period   int64               `gorm:"column:repayment_period;type:bigint;not null"`
 		Account_id         int64               `gorm:"column:account_id;type:bigint;references accounts(id)"`
 		Status             loan_request_status `gorm:"column:status;type:loan_request_status;not null;default 'pending'"`
 		Submission_date    time.Time           `gorm:"column:submission_date;not null;autoCreateTime"`
 		Purpose            string              `gorm:"column:purpose;type:varchar(255)"`
-		Salary             float64             `gorm:"column:salary;type:decimal(20,2)"`
+		Salary             int64               `gorm:"column:salary;type:bigint"`
 		Employment_status  employment_status   `gorm:"column:employment_status;type:employment_status"`
 		Employment_period  int64               `gorm:"column:employment_period;type:bigint"`
 		Phone_number       string              `gorm:"column:phone_number;type:varchar(32)"`

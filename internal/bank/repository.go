@@ -577,15 +577,15 @@ type loanView struct {
 	LoanNumber            string  `gorm:"column:loan_number"`
 	LoanType              string  `gorm:"column:loan_type"`
 	AccountNumber         string  `gorm:"column:account_number"`
-	LoanAmount            float64 `gorm:"column:loan_amount"`
+	LoanAmount            int64   `gorm:"column:loan_amount"`
 	RepaymentPeriod       int32   `gorm:"column:repayment_period"`
 	NominalRate           float64 `gorm:"column:nominal_rate"`
 	EffectiveRate         float64 `gorm:"column:effective_rate"`
 	AgreementDate         string  `gorm:"column:agreement_date"`
 	MaturityDate          string  `gorm:"column:maturity_date"`
-	NextInstallmentAmount float64 `gorm:"column:next_installment_amount"`
+	NextInstallmentAmount int64   `gorm:"column:next_installment_amount"`
 	NextInstallmentDate   string  `gorm:"column:next_installment_date"`
-	RemainingDebt         float64 `gorm:"column:remaining_debt"`
+	RemainingDebt         int64   `gorm:"column:remaining_debt"`
 	Currency              string  `gorm:"column:currency"`
 	Status                string  `gorm:"column:status"`
 }
@@ -705,20 +705,20 @@ func (s *Server) createLoanRequest(req *LoanRequest) error {
 }
 
 type loanRequestView struct {
-	Id               int64   `gorm:"column:id"`
-	LoanType         string  `gorm:"column:loan_type"`
-	Amount           float64 `gorm:"column:amount"`
-	Currency         string  `gorm:"column:currency"`
-	Purpose          string  `gorm:"column:purpose"`
-	Salary           float64 `gorm:"column:salary"`
-	EmploymentStatus string  `gorm:"column:employment_status"`
-	EmploymentPeriod int64   `gorm:"column:employment_period"`
-	PhoneNumber      string  `gorm:"column:phone_number"`
-	RepaymentPeriod  int32   `gorm:"column:repayment_period"`
-	AccountNumber    string  `gorm:"column:account_number"`
-	Status           string  `gorm:"column:status"`
-	InterestRateType string  `gorm:"column:interest_rate_type"`
-	SubmissionDate   string  `gorm:"column:submission_date"`
+	Id               int64  `gorm:"column:id"`
+	LoanType         string `gorm:"column:loan_type"`
+	Amount           int64  `gorm:"column:amount"`
+	Currency         string `gorm:"column:currency"`
+	Purpose          string `gorm:"column:purpose"`
+	Salary           int64  `gorm:"column:salary"`
+	EmploymentStatus string `gorm:"column:employment_status"`
+	EmploymentPeriod int64  `gorm:"column:employment_period"`
+	PhoneNumber      string `gorm:"column:phone_number"`
+	RepaymentPeriod  int32  `gorm:"column:repayment_period"`
+	AccountNumber    string `gorm:"column:account_number"`
+	Status           string `gorm:"column:status"`
+	InterestRateType string `gorm:"column:interest_rate_type"`
+	SubmissionDate   string `gorm:"column:submission_date"`
 }
 
 func (s *Server) getLoanRequests(loanType, accountNumber string) ([]loanRequestView, error) {

@@ -1419,7 +1419,7 @@ func (s *Server) ApproveLoanRequest(_ context.Context, req *bankpb.ApproveLoanRe
 
 	// Calculate interest rate
 	rateToRSD, _ := s.getExchangeRateToRSD(currency.Label)
-	amountRSD := loanReq.Amount * rateToRSD
+	amountRSD := int64(float64(loanReq.Amount) * rateToRSD)
 	baseRate := BaseAnnualRate(amountRSD)
 	margin := MarginForLoanType(loanReq.Type)
 	annualRate := baseRate + margin
@@ -1446,7 +1446,7 @@ func (s *Server) ApproveLoanRequest(_ context.Context, req *bankpb.ApproveLoanRe
 	}
 
 	installment := &LoanInstallment{
-		Installment_amount: float32(monthlyPayment),
+		Installment_amount: monthlyPayment,
 		Interest_rate:      float32(annualRate),
 		Currency_id:        loanReq.Currency_id,
 		Due_date:           nextPaymentDue,

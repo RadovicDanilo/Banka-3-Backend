@@ -91,11 +91,11 @@ type createEmployeeAccountRequest struct {
 type createLoanRequestRequest struct {
 	AccountNumber    string  `json:"account_number" binding:"required"`
 	LoanType         string  `json:"loan_type" binding:"required"`
-	Amount           float64 `json:"amount" binding:"required"`
-	RepaymentPeriod  int32   `json:"repayment_period" binding:"required"`
-	Currency         string  `json:"currency" binding:"required"`
-	Purpose          string  `json:"purpose"`
-	Salary           float64 `json:"salary"`
+	Amount           int64  `json:"amount" binding:"required"`
+	RepaymentPeriod  int32  `json:"repayment_period" binding:"required"`
+	Currency         string `json:"currency" binding:"required"`
+	Purpose          string `json:"purpose"`
+	Salary           int64  `json:"salary"`
 	EmploymentStatus string  `json:"employment_status"`
 	EmploymentPeriod int64   `json:"employment_period"`
 	PhoneNumber      string  `json:"phone_number"`
