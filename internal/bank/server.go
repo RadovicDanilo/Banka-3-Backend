@@ -1417,11 +1417,8 @@ func (s *Server) GetTransfersHistoryForUserEmail(
 	req *bankpb.TransferHistoryRequest) (*bankpb.TransferHistoryResponse, error) {
 	res, err := s.GetTransferHistory(req.Email, req.Page, req.PageSize)
 	if err != nil {
-		err := status.Error(codes.Internal, "failed to get transfer history")
-		if err != nil {
-			return nil, err
-		}
-		return &bankpb.TransferHistoryResponse{History: nil}, err
+		return nil, status.Error(codes.Internal, "failed to get transfer history")
+		//return &bankpb.TransferHistoryResponse{History: nil}, err
 	}
 	return res, nil
 }

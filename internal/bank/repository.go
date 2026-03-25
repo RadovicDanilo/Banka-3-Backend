@@ -971,11 +971,12 @@ func (s *Server) CreateTransfer(fromAccount, toAccount string, amount int64) (*T
 	`, fromAccount, toAccount, amount, amount, currency.Id)
 
 	transfer, err := scanTransfer(row)
-
+	if err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-
 	return transfer, nil
 }
 

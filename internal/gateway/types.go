@@ -204,10 +204,11 @@ type transferRequest struct {
 	Description string `json:"description"`
 }
 
-type confirmTransferRequest struct { // ovo je za POST Confirm transfer - verifikacioni kod
+//will use this later
+/*type confirmTransferRequest struct { // ovo je za POST Confirm transfer - verifikacioni kod
 	TransferID int64  `json:"transfer_id" binding:"required"`
 	Code       string `json:"code" binding:"required"`
-}
+}*/
 
 type getTransfersHistoryQuery struct {
 	Email    string `form:"email" binding:"required,email"`
