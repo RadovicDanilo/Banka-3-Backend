@@ -246,7 +246,13 @@ CREATE TABLE IF NOT EXISTS loan_request (
     repayment_period    BIGINT               NOT NULL,
     account_id          BIGINT               REFERENCES accounts(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     status              loan_request_status  NOT NULL DEFAULT 'pending',
-    submission_date     TIMESTAMP            NOT NULL DEFAULT NOW()
+    submission_date     TIMESTAMP            NOT NULL DEFAULT NOW(),
+    purpose             VARCHAR(255),
+    salary              DECIMAL(20, 2),
+    employment_status   employment_status,
+    employment_period   BIGINT,
+    phone_number        VARCHAR(32),
+    interest_rate_type  interest_rate_type   NOT NULL DEFAULT 'fixed'
 );
 
 CREATE TABLE IF NOT EXISTS verification_codes (
