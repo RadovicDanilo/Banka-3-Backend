@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/gen/bank"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -44,6 +45,32 @@ func scanCompany(scanner interface {
 		company.Activity_code_id = activityCodeID.Int64
 	}
 	return &company, nil
+}
+
+func scanTransfer(scanner interface {
+	Scan(dest ...any) error
+}) (*Transfer, error) {
+	var transfer Transfer
+	var exchangeRate sql.NullFloat64
+	err := scanner.Scan(
+		&transfer.Transaction_id,
+		&transfer.From_account,
+		&transfer.To_account,
+		&transfer.Start_amount,
+		&transfer.End_amount,
+		&transfer.Start_currency_id,
+		&exchangeRate,
+		&transfer.Commission,
+		&transfer.Status,
+		&transfer.Timestamp)
+	if err != nil {
+		log.Println("greska kod skeniranja transfera: ", err)
+		return nil, err
+	}
+	if exchangeRate.Valid {
+		transfer.Exchange_rate = exchangeRate.Float64
+	}
+	return &transfer, nil
 }
 
 func isUniqueViolation(err error) bool {
@@ -704,18 +731,18 @@ func (s *Server) createLoanRequest(req *LoanRequest) error {
 	return s.db_gorm.Create(req).Error
 }
 
-func (s *Server) CreateTransfer(clientEmail, fromAccount, toAccount string, amount int64) (*Transfer, error) {
+func (s *Server) CreateTransfer(fromAccount, toAccount string, amount int64) (*Transfer, error) {
 
 	if fromAccount == toAccount {
 		return nil, errors.New("cannot transfer to same account")
 	}
 
-	fromAcc, err := s.getOwnedAccountByNumber(clientEmail, fromAccount)
+	fromAcc, err := s.GetAccountByNumberRecord(fromAccount)
 	if err != nil {
 		return nil, err
 	}
 
-	toAcc, err := s.getOwnedAccountByNumber(clientEmail, toAccount)
+	toAcc, err := s.GetAccountByNumberRecord(toAccount)
 	if err != nil {
 		return nil, err
 	}
@@ -728,13 +755,16 @@ func (s *Server) CreateTransfer(clientEmail, fromAccount, toAccount string, amou
 	if err != nil {
 		return nil, err
 	}
-
 	tx, err := s.database.Begin()
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
-
+	if fromAcc.Balance < amount {
+		return nil, errors.New("insufficient funds")
+	}
+	defer func() {
+		tx.Rollback()
+	}()
 	row := tx.QueryRow(`
 		INSERT INTO transfers (
 			from_account,
@@ -750,25 +780,10 @@ func (s *Server) CreateTransfer(clientEmail, fromAccount, toAccount string, amou
 		RETURNING transaction_id, from_account, to_account,
 		          start_amount, end_amount,
 		          start_currency_id, exchange_rate,
-		          commission, timestamp, status
+		          commission, status, timestamp
 	`, fromAccount, toAccount, amount, amount, currency.Id)
 
-	transfer := &Transfer{}
-	err = row.Scan(
-		&transfer.Transaction_id,
-		&transfer.From_account,
-		&transfer.To_account,
-		&transfer.Start_amount,
-		&transfer.End_amount,
-		&transfer.Start_currency_id,
-		&transfer.Exchange_rate,
-		&transfer.Commission,
-		&transfer.Timestamp,
-		&transfer.Status,
-	)
-	if err != nil {
-		return nil, err
-	}
+	transfer, err := scanTransfer(row)
 
 	if err := tx.Commit(); err != nil {
 		return nil, err
@@ -850,7 +865,7 @@ func (s *Server) ConfirmTransfer(transferID int64, verificationCode string) erro
 	return tx.Commit()
 }
 
-func (s *Server) GetTransferHistory(clientEmail string, page, pageSize int32) ([]*Transfer, error) {
+func (s *Server) GetTransferHistory(clientEmail string, page, pageSize int32) (*bankpb.TransferHistoryResponse, error) {
 
 	offset := (page - 1) * pageSize
 
@@ -858,7 +873,7 @@ func (s *Server) GetTransferHistory(clientEmail string, page, pageSize int32) ([
 		SELECT t.transaction_id, t.from_account, t.to_account,
 		       t.start_amount, t.end_amount,
 		       t.start_currency_id, t.exchange_rate,
-		       t.commission, t.timestamp, t.status
+		       t.commission, t.status, t.timestamp
 		FROM transfers t
 		JOIN accounts a ON t.from_account = a.number OR t.to_account = a.number
 		JOIN clients c ON a.owner = c.id
@@ -872,27 +887,34 @@ func (s *Server) GetTransferHistory(clientEmail string, page, pageSize int32) ([
 	}
 	defer rows.Close()
 
-	var transfers []*Transfer
+	var history []*bankpb.TransferResponse
 
 	for rows.Next() {
-		t := &Transfer{}
-		err := rows.Scan(
-			&t.Transaction_id,
-			&t.From_account,
-			&t.To_account,
-			&t.Start_amount,
-			&t.End_amount,
-			&t.Start_currency_id,
-			&t.Exchange_rate,
-			&t.Commission,
-			&t.Timestamp,
-			&t.Status,
-		)
+		t, err := scanTransfer(rows)
 		if err != nil {
 			return nil, err
 		}
-		transfers = append(transfers, t)
+
+		history = append(history, &bankpb.TransferResponse{
+			FromAccount:     t.From_account,
+			ToAccount:       t.To_account,
+			InitialAmount:   t.Start_amount,
+			FinalAmount:     t.End_amount,
+			Fee:             t.Commission,
+			Currency:        "",
+			PaymentCode:     "",
+			ReferenceNumber: "",
+			Purpose:         "",
+			Status:          t.Status,
+			Timestamp:       t.Timestamp.String(),
+		})
 	}
 
-	return transfers, nil
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &bankpb.TransferHistoryResponse{
+		History: history,
+	}, nil
 }

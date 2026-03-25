@@ -42,6 +42,7 @@ func SetupApi(router *gin.Engine, server *Server) {
 		transactions.GET("/:id/pdf", server.GenerateTransactionPDF)
 		transactions.POST("/payments", server.PayoutMoneyToOtherAccount)
 		transactions.POST("/transfers", server.TransferMoneyBetweenAccounts)
+		transactions.GET("/transfers/history", server.GetTransactionsHistoryForUserEmail)
 	}
 
 	passwordReset := api.Group("/password-reset")
@@ -1227,4 +1228,24 @@ func (s *Server) ConvertMoney(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, resp)
+}
+func (s *Server) GetTransactionsHistoryForUserEmail(c *gin.Context) {
+	var params getTransfersHistoryQuery
+	if err := c.ShouldBindQuery(&params); err != nil {
+		writeBindError(c, err)
+		return
+	}
+	res, err := s.BankClient.GetTransfersHistoryForUserEmail(
+		c,
+		&bankpb.TransferHistoryRequest{
+			Email:    params.Email,
+			Page:     params.Page,
+			PageSize: params.PageSize,
+		},
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, res)
 }

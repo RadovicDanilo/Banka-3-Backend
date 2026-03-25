@@ -1322,26 +1322,25 @@ func (s *Server) TransferMoneyBetweenAccounts(
 		return nil, status.Error(codes.InvalidArgument, "amount must be greater than zero")
 	}
 
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "metadata missing")
-	}
-
-	emails := md.Get("user-email")
-	if len(emails) == 0 {
-		return nil, status.Error(codes.Unauthenticated, "email missing")
-	}
-	email := emails[0]
-
-	transfer, err := s.CreateTransfer(email, req.FromAccount, req.ToAccount, int64(req.Amount))
+	transfer, err := s.CreateTransfer( req.FromAccount, req.ToAccount, int64(req.Amount))
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "same account"):
-			return nil, status.Error(codes.InvalidArgument, err.Error())
+			{
+				return nil, status.Error(codes.InvalidArgument, err.Error())
+			}
 		case strings.Contains(err.Error(), "currency mismatch"):
-			return nil, status.Error(codes.InvalidArgument, err.Error())
+			{
+				return nil, status.Error(codes.InvalidArgument, err.Error())
+			}
+		case strings.Contains(err.Error(), "insufficient funds"):
+			{
+				return nil, status.Error(codes.InvalidArgument, err.Error())
+			}
 		default:
-			return nil, status.Error(codes.Internal, "failed to create transfer")
+			{
+				return nil, status.Error(codes.Internal, "failed to create transfer")
+			}
 		}
 	}
 
@@ -1349,13 +1348,17 @@ func (s *Server) TransferMoneyBetweenAccounts(
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "insufficient funds"):
-			return nil, status.Error(codes.FailedPrecondition, "insufficient funds")
+			{
+				return nil, status.Error(codes.FailedPrecondition, "insufficient funds")
+			}
 		default:
-			return nil, status.Error(codes.Internal, "transfer confirmation failed")
+			{
+				return nil, status.Error(codes.Internal, "transfer confirmation failed")
+			}
+
 		}
 	}
-
-	return &bankpb.TransferResponse{
+	res, err := &bankpb.TransferResponse{
 		FromAccount:     transfer.From_account,
 		ToAccount:       transfer.To_account,
 		InitialAmount:   transfer.Start_amount,
@@ -1368,4 +1371,19 @@ func (s *Server) TransferMoneyBetweenAccounts(
 		Status:          "realized",
 		Timestamp:       fmt.Sprintf("%d", transfer.Timestamp.Unix()),
 	}, nil
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to transfer money")
+	}
+	return res, nil
+}
+
+func (s *Server) GetTransfersHistoryForUserEmail(
+	ctx context.Context,
+	req *bankpb.TransferHistoryRequest) (*bankpb.TransferHistoryResponse, error) {
+	res, err := s.GetTransferHistory(req.Email, req.Page, req.PageSize)
+	if err != nil {
+		status.Error(codes.Internal, "failed to get transfer history")
+		return &bankpb.TransferHistoryResponse{History: nil}, err
+	}
+	return res, nil
 }

@@ -209,7 +209,8 @@ type confirmTransferRequest struct { // ovo je za POST Confirm transfer - verifi
 	Code       string `json:"code" binding:"required"`
 }
 
-type getTransfersHistoryQuery struct { //ovo je za istoriju transfera jer se radi paginacijom
-	Page     int32 `form:"page"`
-	PageSize int32 `form:"page_size"`
+type getTransfersHistoryQuery struct {
+	Email    string `form:"email" binding:"required,email"`
+	Page     int32  `form:"page" binding:"required,min=1"`
+	PageSize int32  `form:"page_size" binding:"required,min=1"`
 }

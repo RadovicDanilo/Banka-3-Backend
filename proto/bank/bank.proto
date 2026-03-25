@@ -34,7 +34,17 @@ service BankService {
 
   rpc TransferMoneyBetweenAccounts(TransferRequest) returns (TransferResponse);
   rpc PayoutMoneyToOtherAccount(PaymentRequest) returns (PaymentResponse);
+  rpc GetTransfersHistoryForUserEmail(TransferHistoryRequest) returns (TransferHistoryResponse);
 
+}
+
+message TransferHistoryResponse{
+  repeated TransferResponse history = 1;
+}
+message TransferHistoryRequest{
+  string email =1;
+  int32  page =3;
+  int32  page_size =2;
 }
 
 message CreateCardRequest {
