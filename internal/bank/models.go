@@ -212,6 +212,7 @@ type (
 		Amount             int64              `gorm:"column:amount;type:bigint;not null"`
 		Currency_id        int64              `gorm:"column:currency_id;type:bigserial;references currencies(id)"`
 		Installments       int64              `gorm:"column:installments;type:bigint;not null"`
+		Nominal_rate       float32            `gorm:"column:nominal_rate;type:decimal(5,2);not null"`
 		Interest_rate      float32            `gorm:"column:interest_rate;type:decimal(5,2);not null"`
 		Date_signed        time.Time          `gorm:"column:date_signed;type:date;not null;"`
 		Date_end           time.Time          `gorm:"column:date_end;type:date;not null;"`

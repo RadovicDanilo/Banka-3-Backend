@@ -17,11 +17,11 @@ func TestRunMonthlyVariableRateUpdate(t *testing.T) {
 	// getApprovedVariableLoans
 	loanRows := sqlmock.NewRows([]string{
 		"id", "account_id", "amount", "currency_id", "installments",
-		"interest_rate", "date_signed", "date_end", "monthly_payment",
+		"nominal_rate", "interest_rate", "date_signed", "date_end", "monthly_payment",
 		"next_payment_due", "remaining_debt", "type", "loan_status", "interest_rate_type",
 	}).AddRow(
 		int64(1), int64(1), int64(1_000_000_00), int64(1), int64(24),
-		float32(8.0), now, now.AddDate(2, 0, 0), int64(4_522_700),
+		float32(8.0), float32(8.0), now, now.AddDate(2, 0, 0), int64(4_522_700),
 		now.AddDate(0, 1, 0), int64(900_000_00), "cash", "approved", "variable",
 	)
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "loans" WHERE interest_rate_type = $1 AND loan_status = $2`)).
@@ -64,11 +64,11 @@ func TestRunDailyInstallmentCollection_Success(t *testing.T) {
 	// getLoansDueForCollection
 	loanRows := sqlmock.NewRows([]string{
 		"id", "account_id", "amount", "currency_id", "installments",
-		"interest_rate", "date_signed", "date_end", "monthly_payment",
+		"nominal_rate", "interest_rate", "date_signed", "date_end", "monthly_payment",
 		"next_payment_due", "remaining_debt", "type", "loan_status", "interest_rate_type",
 	}).AddRow(
 		int64(1), int64(1), int64(10_000_00), int64(1), int64(12),
-		float32(8.0), now.AddDate(-1, 0, 0), now.AddDate(0, 11, 0), int64(86_988),
+		float32(8.0), float32(8.0), now.AddDate(-1, 0, 0), now.AddDate(0, 11, 0), int64(86_988),
 		today, int64(500_000), "cash", "approved", "fixed",
 	)
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "loans" WHERE next_payment_due <= $1 AND loan_status IN ($2,$3)`)).
@@ -112,11 +112,11 @@ func TestRunDailyInstallmentCollection_FullPayoff(t *testing.T) {
 	// getLoansDueForCollection - remaining_debt equals monthly_payment (last installment)
 	loanRows := sqlmock.NewRows([]string{
 		"id", "account_id", "amount", "currency_id", "installments",
-		"interest_rate", "date_signed", "date_end", "monthly_payment",
+		"nominal_rate", "interest_rate", "date_signed", "date_end", "monthly_payment",
 		"next_payment_due", "remaining_debt", "type", "loan_status", "interest_rate_type",
 	}).AddRow(
 		int64(2), int64(1), int64(10_000_00), int64(1), int64(12),
-		float32(8.0), now.AddDate(-1, 0, 0), now.AddDate(0, 0, 0), int64(86_988),
+		float32(8.0), float32(8.0), now.AddDate(-1, 0, 0), now.AddDate(0, 0, 0), int64(86_988),
 		today, int64(86_988), "cash", "approved", "fixed",
 	)
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "loans" WHERE next_payment_due <= $1 AND loan_status IN ($2,$3)`)).

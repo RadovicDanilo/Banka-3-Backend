@@ -210,6 +210,7 @@ CREATE TABLE IF NOT EXISTS loans (
     amount              BIGINT              NOT NULL,
     currency_id         BIGSERIAL           REFERENCES currencies(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     installments        BIGINT              NOT NULL,
+    nominal_rate        DECIMAL (5, 2)      NOT NULL,
     interest_rate       DECIMAL (5, 2)      NOT NULL,
     date_signed         DATE                NOT NULL,
     date_end            DATE                NOT NULL,

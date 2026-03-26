@@ -1434,6 +1434,7 @@ func (s *Server) ApproveLoanRequest(_ context.Context, req *bankpb.ApproveLoanRe
 		Amount:             loanReq.Amount,
 		Currency_id:        loanReq.Currency_id,
 		Installments:       loanReq.Repayment_period,
+		Nominal_rate:       float32(annualRate),
 		Interest_rate:      float32(annualRate),
 		Date_signed:        now,
 		Date_end:           dateEnd,
