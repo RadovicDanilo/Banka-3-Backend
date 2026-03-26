@@ -640,15 +640,15 @@ type loanView struct {
 	LoanNumber            string  `gorm:"column:loan_number"`
 	LoanType              string  `gorm:"column:loan_type"`
 	AccountNumber         string  `gorm:"column:account_number"`
-	LoanAmount            float64 `gorm:"column:loan_amount"`
+	LoanAmount            int64   `gorm:"column:loan_amount"`
 	RepaymentPeriod       int32   `gorm:"column:repayment_period"`
 	NominalRate           float64 `gorm:"column:nominal_rate"`
 	EffectiveRate         float64 `gorm:"column:effective_rate"`
 	AgreementDate         string  `gorm:"column:agreement_date"`
 	MaturityDate          string  `gorm:"column:maturity_date"`
-	NextInstallmentAmount float64 `gorm:"column:next_installment_amount"`
+	NextInstallmentAmount int64   `gorm:"column:next_installment_amount"`
 	NextInstallmentDate   string  `gorm:"column:next_installment_date"`
-	RemainingDebt         float64 `gorm:"column:remaining_debt"`
+	RemainingDebt         int64   `gorm:"column:remaining_debt"`
 	Currency              string  `gorm:"column:currency"`
 	Status                string  `gorm:"column:status"`
 }
@@ -697,8 +697,8 @@ func (s *Server) getLoansForClient(clientEmail string, loanType string, accountN
 			accounts.number AS account_number,
 			loans.amount AS loan_amount,
 			loans.installments AS repayment_period,
-			loans.interest_rate AS nominal_rate,
-			0 AS effective_rate,
+			loans.nominal_rate AS nominal_rate,
+			(POWER(1 + loans.interest_rate / 100.0 / 12.0, 12) - 1) * 100 AS effective_rate,
 			TO_CHAR(loans.date_signed, 'YYYY-MM-DD') AS agreement_date,
 			TO_CHAR(loans.date_end, 'YYYY-MM-DD') AS maturity_date,
 			loans.monthly_payment AS next_installment_amount,
@@ -721,7 +721,7 @@ func (s *Server) getLoansForClient(clientEmail string, loanType string, accountN
 	}
 
 	err := query.
-		Order("loans.id DESC").
+		Order("loans.amount DESC").
 		Scan(&loans).Error
 	if err != nil {
 		return nil, err
@@ -745,8 +745,8 @@ func (s *Server) getLoanByIDForClient(clientEmail string, loanID int64) (*loanVi
 			accounts.number AS account_number,
 			loans.amount AS loan_amount,
 			loans.installments AS repayment_period,
-			loans.interest_rate AS nominal_rate,
-			0 AS effective_rate,
+			loans.nominal_rate AS nominal_rate,
+			(POWER(1 + loans.interest_rate / 100.0 / 12.0, 12) - 1) * 100 AS effective_rate,
 			TO_CHAR(loans.date_signed, 'YYYY-MM-DD') AS agreement_date,
 			TO_CHAR(loans.date_end, 'YYYY-MM-DD') AS maturity_date,
 			loans.monthly_payment AS next_installment_amount,
@@ -768,20 +768,20 @@ func (s *Server) createLoanRequest(req *LoanRequest) error {
 }
 
 type loanRequestView struct {
-	Id               int64   `gorm:"column:id"`
-	LoanType         string  `gorm:"column:loan_type"`
-	Amount           float64 `gorm:"column:amount"`
-	Currency         string  `gorm:"column:currency"`
-	Purpose          string  `gorm:"column:purpose"`
-	Salary           float64 `gorm:"column:salary"`
-	EmploymentStatus string  `gorm:"column:employment_status"`
-	EmploymentPeriod int64   `gorm:"column:employment_period"`
-	PhoneNumber      string  `gorm:"column:phone_number"`
-	RepaymentPeriod  int32   `gorm:"column:repayment_period"`
-	AccountNumber    string  `gorm:"column:account_number"`
-	Status           string  `gorm:"column:status"`
-	InterestRateType string  `gorm:"column:interest_rate_type"`
-	SubmissionDate   string  `gorm:"column:submission_date"`
+	Id               int64  `gorm:"column:id"`
+	LoanType         string `gorm:"column:loan_type"`
+	Amount           int64  `gorm:"column:amount"`
+	Currency         string `gorm:"column:currency"`
+	Purpose          string `gorm:"column:purpose"`
+	Salary           int64  `gorm:"column:salary"`
+	EmploymentStatus string `gorm:"column:employment_status"`
+	EmploymentPeriod int64  `gorm:"column:employment_period"`
+	PhoneNumber      string `gorm:"column:phone_number"`
+	RepaymentPeriod  int32  `gorm:"column:repayment_period"`
+	AccountNumber    string `gorm:"column:account_number"`
+	Status           string `gorm:"column:status"`
+	InterestRateType string `gorm:"column:interest_rate_type"`
+	SubmissionDate   string `gorm:"column:submission_date"`
 }
 
 func (s *Server) getLoanRequests(loanType, accountNumber string) ([]loanRequestView, error) {
@@ -839,6 +839,60 @@ func (s *Server) updateLoanRequestStatus(id int64, newStatus loan_request_status
 	return s.db_gorm.Model(&LoanRequest{}).Where("id = ?", id).Update("status", newStatus).Error
 }
 
+func (s *Server) getExchangeRateToRSD(currencyLabel string) (float64, error) {
+	if currencyLabel == "RSD" {
+		return 1.0, nil
+	}
+	var rate ExchangeRate
+	if err := s.db_gorm.Where("currency_code = ?", currencyLabel).First(&rate).Error; err != nil {
+		return 0, err
+	}
+	return rate.Rate_to_rsd, nil
+}
+
+func (s *Server) getApprovedVariableLoans() ([]Loan, error) {
+	var loans []Loan
+	err := s.db_gorm.
+		Where("interest_rate_type = ? AND loan_status = ?", Variable, Approved).
+		Find(&loans).Error
+	return loans, err
+}
+
+func (s *Server) getLoansDueForCollection(today time.Time) ([]Loan, error) {
+	var loans []Loan
+	err := s.db_gorm.
+		Where("next_payment_due <= ? AND loan_status IN ?", today, []loan_status{Approved, Late}).
+		Find(&loans).Error
+	return loans, err
+}
+
+func (s *Server) countPaidInstallments(loanID int64) int {
+	var count int64
+	s.db_gorm.Model(&LoanInstallment{}).
+		Where("loan_id = ? AND status = ?", loanID, Installment_Paid).
+		Count(&count)
+	return int(count)
+}
+
+func (s *Server) getCurrencyLabelByID(id int64) (string, error) {
+	var currency Currency
+	if err := s.db_gorm.First(&currency, id).Error; err != nil {
+		return "", err
+	}
+	return currency.Label, nil
+}
+
+func (s *Server) getClientEmailByAccountID(accountID int64) (string, error) {
+	var email string
+	err := s.db_gorm.
+		Model(&Account{}).
+		Joins("JOIN clients ON clients.id = accounts.owner").
+		Where("accounts.id = ?", accountID).
+		Select("clients.email").
+		Scan(&email).Error
+	return email, err
+}
+
 func (s *Server) getAllLoans(loanType, accountNumber, loanStatus string) ([]loanView, error) {
 	var loans []loanView
 
@@ -852,8 +906,8 @@ func (s *Server) getAllLoans(loanType, accountNumber, loanStatus string) ([]loan
 			accounts.number AS account_number,
 			loans.amount AS loan_amount,
 			loans.installments AS repayment_period,
-			loans.interest_rate AS nominal_rate,
-			0 AS effective_rate,
+			loans.nominal_rate AS nominal_rate,
+			(POWER(1 + loans.interest_rate / 100.0 / 12.0, 12) - 1) * 100 AS effective_rate,
 			TO_CHAR(loans.date_signed, 'YYYY-MM-DD') AS agreement_date,
 			TO_CHAR(loans.date_end, 'YYYY-MM-DD') AS maturity_date,
 			loans.monthly_payment AS next_installment_amount,

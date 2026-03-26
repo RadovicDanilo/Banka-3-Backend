@@ -27,7 +27,7 @@ func TestGetLoanRequests_Success(t *testing.T) {
 		"repayment_period", "account_number", "status", "interest_rate_type",
 		"submission_date",
 	}).AddRow(
-		int64(1), "cash", 10000.0, "RSD", "home repair", 50000.0,
+		int64(1), "cash", int64(10_000_00), "RSD", "home repair", int64(50_000_00),
 		"full_time", int64(24), "0611234567",
 		int32(12), "12345678901234567890", "pending", "fixed",
 		"2026-03-01T10:00:00",
@@ -114,9 +114,9 @@ func TestApproveLoanRequest_Success(t *testing.T) {
 		"purpose", "salary", "employment_status", "employment_period",
 		"phone_number", "interest_rate_type",
 	}).AddRow(
-		int64(1), "cash", int64(1), 10000.0, int64(12),
+		int64(1), "cash", int64(1), int64(10_000_00), int64(12),
 		int64(1), "pending", now,
-		"repair", 50000.0, "full_time", int64(24),
+		"repair", int64(50_000_00), "full_time", int64(24),
 		"0611234567", "fixed",
 	)
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "loan_request" WHERE "loan_request"."id" = $1`)).
@@ -206,9 +206,9 @@ func TestApproveLoanRequest_AlreadyProcessed(t *testing.T) {
 		"purpose", "salary", "employment_status", "employment_period",
 		"phone_number", "interest_rate_type",
 	}).AddRow(
-		int64(1), "cash", int64(1), 10000.0, int64(12),
+		int64(1), "cash", int64(1), int64(10_000_00), int64(12),
 		int64(1), "approved", now,
-		"", 0.0, "", int64(0), "", "fixed",
+		"", int64(0), "", int64(0), "", "fixed",
 	)
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "loan_request" WHERE "loan_request"."id" = $1`)).
 		WithArgs(int64(1), 1).
@@ -255,9 +255,9 @@ func TestRejectLoanRequest_Success(t *testing.T) {
 		"purpose", "salary", "employment_status", "employment_period",
 		"phone_number", "interest_rate_type",
 	}).AddRow(
-		int64(1), "cash", int64(1), 10000.0, int64(12),
+		int64(1), "cash", int64(1), int64(10_000_00), int64(12),
 		int64(1), "pending", now,
-		"", 0.0, "", int64(0), "", "fixed",
+		"", int64(0), "", int64(0), "", "fixed",
 	)
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "loan_request" WHERE "loan_request"."id" = $1`)).
 		WithArgs(int64(1), 1).
@@ -318,9 +318,9 @@ func TestRejectLoanRequest_AlreadyProcessed(t *testing.T) {
 		"purpose", "salary", "employment_status", "employment_period",
 		"phone_number", "interest_rate_type",
 	}).AddRow(
-		int64(1), "cash", int64(1), 10000.0, int64(12),
+		int64(1), "cash", int64(1), int64(10_000_00), int64(12),
 		int64(1), "rejected", now,
-		"", 0.0, "", int64(0), "", "fixed",
+		"", int64(0), "", int64(0), "", "fixed",
 	)
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "loan_request" WHERE "loan_request"."id" = $1`)).
 		WithArgs(int64(1), 1).
@@ -353,10 +353,10 @@ func TestGetAllLoans_Success(t *testing.T) {
 		"agreement_date", "maturity_date", "next_installment_amount",
 		"next_installment_date", "remaining_debt", "currency", "status",
 	}).AddRow(
-		"1", "cash", "12345678901234567890", 10000.0,
+		"1", "cash", "12345678901234567890", int64(10_000_00),
 		int32(12), 5.0, 0.0,
-		"2026-03-01", "2027-03-01", 833.33,
-		"2026-04-01", 10000.0, "RSD", "approved",
+		"2026-03-01", "2027-03-01", int64(83_333),
+		"2026-04-01", int64(10_000_00), "RSD", "approved",
 	)
 
 	mock.ExpectQuery(`SELECT`).WillReturnRows(rows)
