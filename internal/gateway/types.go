@@ -129,6 +129,13 @@ type createCompanyRequest struct {
 	OwnerID        int64  `json:"owner_id" binding:"required"`
 }
 
+type updateCompanyRequest struct {
+	Name           string `json:"name" binding:"required"`
+	ActivityCodeID int64  `json:"activity_code_id"`
+	Address        string `json:"address" binding:"required"`
+	OwnerID        int64  `json:"owner_id" binding:"required"`
+}
+
 type createAccountRequest struct {
 	Name             string `json:"name" binding:"required"`
 	Owner            int64  `json:"owner" binding:"required"`
@@ -142,12 +149,25 @@ type createAccountRequest struct {
 	ValidUntil       int64  `json:"valid_until"`
 }
 
-type updateCompanyRequest struct {
-	Name           string `json:"name" binding:"required"`
-	ActivityCodeID int64  `json:"activity_code_id"`
-	Address        string `json:"address" binding:"required"`
-	OwnerID        int64  `json:"owner_id" binding:"required"`
+type getAccountsQuery struct {
+	FirstName     string `form:"first_name"`
+	LastName      string `form:"last_name"`
+	AccountNumber string `form:"account_number"`
 }
+
+type accountNumberURI struct {
+	AccountNumber string `uri:"accountNumber" binding:"required"`
+}
+
+type updateAccountNameRequest struct {
+	Name string `json:"name" binding:"required"`
+}
+
+type updateAccountLimitsRequest struct {
+	DailyLimit   *int64 `json:"daily_limit"`
+	MonthlyLimit *int64 `json:"monthly_limit"`
+}
+
 type createPaymentRecipientRequest struct {
 	Name          string `json:"name" binding:"required"`
 	AccountNumber string `json:"account_number" binding:"required"`

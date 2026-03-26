@@ -76,6 +76,15 @@ func SetupApi(router *gin.Engine, server *Server) {
 		companies.PUT("/:id", server.UpdateCompany)
 	}
 
+	accounts := api.Group("/accounts", AuthenticatedMiddleware(server.UserClient))
+	{
+		accounts.POST("", server.CreateAccount)
+		accounts.GET("", server.GetAccounts)
+		accounts.GET("/:accountNumber", server.GetAccountByNumber)
+		accounts.PATCH("/:accountNumber/name", server.UpdateAccountName)
+		accounts.PATCH("/:accountNumber/limit", TOTPMiddleware(server.TOTPClient), server.UpdateAccountLimits)
+	}
+
 	loans := api.Group("/loans", AuthenticatedMiddleware(server.UserClient))
 	{
 		loans.GET("", server.GetLoans)
@@ -88,11 +97,6 @@ func SetupApi(router *gin.Engine, server *Server) {
 		loanRequests.GET("", server.GetLoanRequests)
 		loanRequests.PATCH("/:id/approve", server.ApproveLoanRequest)
 		loanRequests.PATCH("/:id/reject", server.RejectLoanRequest)
-	}
-
-	accounts := api.Group("/accounts")
-	{
-		accounts.POST("", server.CreateAccount)
 	}
 
 	cards := api.Group("/cards")
@@ -698,6 +702,128 @@ func (s *Server) TransferMoneyBetweenAccounts(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNotImplemented)
+}
+
+func (s *Server) GetAccounts(c *gin.Context) {
+	var query getAccountsQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		writeBindError(c, err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(
+		"user-email", c.GetString("email"),
+	))
+
+	resp, err := s.BankClient.ListAccounts(ctx, &bankpb.ListAccountsRequest{
+		FirstName:     query.FirstName,
+		LastName:      query.LastName,
+		AccountNumber: query.AccountNumber,
+	})
+	if err != nil {
+		writeGRPCError(c, err)
+		return
+	}
+
+	accounts := resp.Accounts
+	if accounts == nil {
+		accounts = []*bankpb.Account{}
+	}
+
+	c.JSON(http.StatusOK, accounts)
+}
+
+func (s *Server) GetAccountByNumber(c *gin.Context) {
+	var uri accountNumberURI
+	if err := c.ShouldBindUri(&uri); err != nil {
+		writeBindError(c, err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(
+		"user-email", c.GetString("email"),
+	))
+
+	resp, err := s.BankClient.GetAccountDetails(ctx, &bankpb.GetAccountDetailsRequest{
+		AccountNumber: uri.AccountNumber,
+	})
+	if err != nil {
+		writeGRPCError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func (s *Server) UpdateAccountName(c *gin.Context) {
+	var uri accountNumberURI
+	if err := c.ShouldBindUri(&uri); err != nil {
+		writeBindError(c, err)
+		return
+	}
+
+	var req updateAccountNameRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		writeBindError(c, err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(
+		"user-email", c.GetString("email"),
+	))
+
+	_, err := s.BankClient.UpdateAccountName(ctx, &bankpb.UpdateAccountNameRequest{
+		AccountNumber: uri.AccountNumber,
+		Name:          req.Name,
+	})
+	if err != nil {
+		writeGRPCError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Name updated"})
+}
+
+func (s *Server) UpdateAccountLimits(c *gin.Context) {
+	var uri accountNumberURI
+	if err := c.ShouldBindUri(&uri); err != nil {
+		writeBindError(c, err)
+		return
+	}
+
+	var req updateAccountLimitsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		writeBindError(c, err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(
+		"user-email", c.GetString("email"),
+	))
+
+	_, err := s.BankClient.UpdateAccountLimits(ctx, &bankpb.UpdateAccountLimitsRequest{
+		AccountNumber: uri.AccountNumber,
+		DailyLimit:    req.DailyLimit,
+		MonthlyLimit:  req.MonthlyLimit,
+	})
+	if err != nil {
+		writeGRPCError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Limits updated"})
 }
 
 func loanListResponse(resp *bankpb.GetLoansResponse) []gin.H {

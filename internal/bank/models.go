@@ -181,12 +181,13 @@ type (
 		To_account       string    `gorm:"column:to_account;type:varchar(20);references accounts(number)"`
 		Start_amount     int64     `gorm:"column:start_amount;type:bigint;not null"`
 		End_amount       int64     `gorm:"column:end_amount;type:bigint;not null"`
-		Commission       int64     `gorm:"column:comission;type:bigint;not null"`
+		Commission       int64     `gorm:"column:commission;type:bigint;not null"`
+		Status           string    `gorm:"column:status;type:varchar(20);not null;default:realized"`
 		Recipient_id     int64     `gorm:"column:recipient_id;type:bigint;references clients(id)"`
-		Transaction_code int       `gorm:"column:transaction_code;type:int;not null"`
+		Transaction_code int       `gorm:"column:transcaction_code;type:int;not null"`
 		Call_number      string    `gorm:"column:call_number;type:varchar(31);not null"`
 		Reason           string    `gorm:"column:reason;type:varchar(255);not null"`
-		Timestamp        time.Time `gorm:"column:timestamp;not null;autoCreateTime"`
+		Timestamp        time.Time `gorm:"column:timestamp;not null;autoCreateTime;default:now()"`
 	}
 
 	Transfer struct {

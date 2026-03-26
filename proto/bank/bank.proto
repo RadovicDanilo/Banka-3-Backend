@@ -27,8 +27,13 @@ service BankService {
   rpc GenerateTransactionPdf(GenerateTransactionPdfRequest) returns (GenerateTransactionPdfResponse);
 
   rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
-
-  rpc GetLoans(GetLoansRequest) returns (GetLoansResponse); // move to bank.proto later
+  rpc UpdateAccountName(UpdateAccountNameRequest) returns (UpdateAccountNameResponse);
+  rpc UpdateAccountLimits(UpdateAccountLimitsRequest) returns (UpdateAccountLimitsResponse);
+  rpc ListAccounts(ListAccountsRequest) returns (ListAccountsResponse);
+  rpc GetAccountDetails(GetAccountDetailsRequest) returns (GetAccountDetailsResponse);
+  rpc ListClientTransactions(ListClientTranasctionsRequest) returns (ListClientTransactionsResponse);
+  
+  rpc GetLoans(GetLoansRequest) returns (GetLoansResponse);
   rpc GetLoanByNumber(GetLoanByNumberRequest) returns (Loan);
   rpc CreateLoanRequest(CreateLoanRequestRequest) returns (CreateLoanRequestResponse);
 
@@ -296,6 +301,24 @@ message TransferResponse{
   string timestamp = 11;
 }
 
+message Account {
+  string account_number = 1;
+  string account_name = 2;
+  int64 owner_id = 3;
+  double balance = 4;
+  double available_balance = 5;
+  int64 employee_id = 6;
+  int64 creation_date = 7;
+  int64 expiration_date = 8;
+  string currency = 9;
+  string status = 10;
+  string account_type = 11;
+  double daily_limit = 12;
+  double monthly_limit = 13;
+  double daily_spending = 14;
+  double monthly_spending = 15;
+}
+
 message CreateAccountRequest {
   string Name = 1;
   int64 Owner = 2;
@@ -313,6 +336,64 @@ message CreateAccountResponse {
   bool Valid = 1;
   string AccountNumber = 2;
   string Error = 3;
+}
+
+message UpdateAccountNameRequest {
+  string account_number = 1;
+  string name = 2;
+}
+
+message UpdateAccountNameResponse {}
+
+message UpdateAccountLimitsRequest {
+  string account_number = 1;
+  optional int64 daily_limit = 2;
+  optional int64 monthly_limit = 3;
+}
+
+message UpdateAccountLimitsResponse {}
+
+message ListAccountsRequest {
+  string firstName = 1;
+  string lastName = 2;
+  string account_number = 3;
+}
+
+message ListAccountsResponse {
+  repeated Account accounts = 1;
+}
+
+message GetAccountDetailsRequest {
+  string accountNumber = 1;
+}
+
+message GetAccountDetailsResponse {
+  Account account = 1;
+}
+
+message ClientTransaction {
+  string from_account = 1;
+  string to_account = 2;
+  double initial_amount = 3;
+  double final_amount = 4;
+  double fee = 5;
+  string currency = 6;
+  string payment_code = 7;
+  string reference_number = 8;
+  string purpose = 9;
+  string status = 10;
+  int64 timestamp = 11;
+}
+
+message ListClientTranasctionsRequest {
+  string account_number = 1;
+  string date = 2;
+  int64 amount = 3;
+  string status = 4;
+}
+
+message ListClientTransactionsResponse {
+  repeated ClientTransaction transactions = 1;
 }
 
 message Loan {
