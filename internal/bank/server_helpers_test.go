@@ -209,7 +209,7 @@ func TestModelTableNames(t *testing.T) {
 	if (LoanRequest{}).TableName() != "loan_request" {
 		t.Fatalf("unexpected table name")
 	}
-	if (VerificationCode{}).TableName() != "loan_request" {
+	if (VerificationCode{}).TableName() != "verification_codes" {
 		t.Fatalf("unexpected table name")
 	}
 	if (CardRequest{}).TableName() != "card_requests" {

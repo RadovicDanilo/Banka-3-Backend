@@ -1,15 +1,11 @@
 package bank
 
 import (
-	"context"
 	"regexp"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/gen/bank"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func cardRows() *sqlmock.Rows {
@@ -61,19 +57,6 @@ func TestGetCardsRecordsAndCardLookups(t *testing.T) {
 		t.Fatalf("unexpected card id: %d", cardByID.Id)
 	}
 
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet sql expectations: %v", err)
-	}
-}
-
-func TestGetCardsIsUnimplemented(t *testing.T) {
-	server, mock, db := newTestServer(t)
-	defer func() { _ = db.Close() }()
-
-	_, err := server.GetCards(context.Background(), &bankpb.GetCardsRequest{})
-	if status.Code(err) != codes.Unimplemented {
-		t.Fatalf("expected Unimplemented, got %v", status.Code(err))
-	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("unmet sql expectations: %v", err)
 	}
