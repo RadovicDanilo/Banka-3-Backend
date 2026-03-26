@@ -844,21 +844,21 @@ func (s *Server) TransferMoneyBetweenAccounts(c *gin.Context) {
 
 func accountResponse(a *bankpb.Account) gin.H {
 	return gin.H{
-		"account_number":  a.AccountNumber,
-		"account_name":    a.AccountName,
-		"owner_id":        a.OwnerId,
-		"balance":         a.Balance,
+		"account_number":    a.AccountNumber,
+		"account_name":      a.AccountName,
+		"owner_id":          a.OwnerId,
+		"balance":           a.Balance,
 		"available_balance": a.AvailableBalance,
-		"employee_id":     a.EmployeeId,
-		"creation_date":   time.Unix(a.CreationDate, 0).Format(time.RFC3339),
-		"expiration_date": time.Unix(a.ExpirationDate, 0).Format(time.RFC3339),
-		"currency":        a.Currency,
-		"status":          a.Status,
-		"account_type":    a.AccountType,
-		"daily_limit":     a.DailyLimit,
-		"monthly_limit":   a.MonthlyLimit,
-		"daily_spending":  a.DailySpending,
-		"monthly_spending": a.MonthlySpending,
+		"employee_id":       a.EmployeeId,
+		"creation_date":     time.Unix(a.CreationDate, 0).Format(time.RFC3339),
+		"expiration_date":   time.Unix(a.ExpirationDate, 0).Format(time.RFC3339),
+		"currency":          a.Currency,
+		"status":            a.Status,
+		"account_type":      a.AccountType,
+		"daily_limit":       a.DailyLimit,
+		"monthly_limit":     a.MonthlyLimit,
+		"daily_spending":    a.DailySpending,
+		"monthly_spending":  a.MonthlySpending,
 	}
 }
 
