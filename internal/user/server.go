@@ -94,7 +94,10 @@ func (emp Employee) toProtobuf() *userpb.GetEmployeeResponse {
 func (s *Server) GetEmployeeByEmail(_ context.Context, req *userpb.GetEmployeeByEmailRequest) (*userpb.GetEmployeeResponse, error) {
 	resp, err := s.getEmployeeByEmail(req.Email)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "employee not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to get employee")
 	}
 	return resp.toProtobuf(), nil
 }

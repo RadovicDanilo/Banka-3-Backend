@@ -783,9 +783,11 @@ func (s *Server) getLoansForClient(clientEmail string, loanType string, accountN
 		Order("loans.amount DESC").
 		Scan(&loans).Error
 	if err != nil {
+		log.Printf("[getLoansForClient] ERROR executing query for client %s: %v", clientEmail, err)
 		return nil, err
 	}
 
+	log.Printf("[getLoansForClient] SUCCESS: Retrieved %d loans for client %s", len(loans), clientEmail)
 	return loans, nil
 }
 
@@ -1433,8 +1435,10 @@ func (s *Server) getAllLoans(loanType, accountNumber, loanStatus string) ([]loan
 		Order("accounts.number").
 		Scan(&loans).Error
 	if err != nil {
+		log.Printf("[getAllLoans] ERROR executing query: %v", err)
 		return nil, err
 	}
 
+	log.Printf("[getAllLoans] SUCCESS: Retrieved %d loans", len(loans))
 	return loans, nil
 }

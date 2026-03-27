@@ -1286,7 +1286,8 @@ func (s *Server) GetLoans(_ context.Context, req *bankpb.GetLoansRequest) (*bank
 		loanStatus,
 	)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to retrieve loans")
+		log.Printf("[GetLoans] ERROR fetching loans for client %s: %v", clientEmail, err)
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to retrieve loans: %v", err))
 	}
 
 	responseLoans := make([]*bankpb.Loan, 0, len(loans))
@@ -1686,7 +1687,8 @@ func (s *Server) GetAllLoans(_ context.Context, req *bankpb.GetAllLoansRequest) 
 		loanStatus,
 	)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to retrieve loans")
+		log.Printf("[GetAllLoans] ERROR fetching all loans: %v", err)
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to retrieve loans: %v", err))
 	}
 
 	responseLoans := make([]*bankpb.Loan, 0, len(loans))
