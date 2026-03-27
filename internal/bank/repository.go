@@ -1118,13 +1118,21 @@ func (s *Server) CreateTransfer(fromAccount, toAccount string, amount int64) (*T
 		ctx := context.Background()
 
 		// Source -> RSD
-		resp1, err := s.callConvertMoney(ctx, fromAcc.Currency, "RSD", float64(amount))
+		resp1, err := s.ExchangeService.ConvertMoney(ctx, &exchange.ConversionRequest{
+			FromCurrency: fromAcc.Currency,
+			ToCurrency:   "RSD",
+			Amount:       float64(amount),
+		})
 		if err != nil {
 			return nil, fmt.Errorf("exchange error (source to RSD): %v", err)
 		}
 
 		// RSD -> Target
-		resp2, err := s.callConvertMoney(ctx, "RSD", toAcc.Currency, resp1.ConvertedAmount)
+		resp2, err := s.ExchangeService.ConvertMoney(ctx, &exchange.ConversionRequest{
+			FromCurrency: "RSD",
+			ToCurrency:   toAcc.Currency,
+			Amount:       resp1.ConvertedAmount,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("exchange error (RSD to destination): %v", err)
 		}
