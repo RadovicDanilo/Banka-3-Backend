@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 	"time"
 
@@ -22,14 +21,14 @@ type User struct {
 	salt           []byte
 }
 
-type(
-	
+type (
+
 	// I am indeed aware (unlike most)
 	// That these are in fact the same type
 	// But We should disambiguate what purpose
 	// these are used for
 	user_restrictions = map[string]string
-	user_updates = map[string]string
+	user_updates      = map[string]string
 )
 
 var ErrInvalidPasswordActionToken = errors.New("invalid or expired password token")
@@ -249,90 +248,16 @@ func (s *Server) GetClientByID(id int64) (*Client, error) {
 	return client, nil
 }
 
-
-func (s *Server) GetAllClients(firstName string, lastName string, email string) ([]Client, error) {
-	query := `SELECT id, first_name, last_name, date_of_birth, gender, email, phone_number, address FROM clients`
-
-	var conditions []string
-	var args []interface{}
-
-	if firstName != "" {
-		conditions = append(conditions, "first_name = $"+strconv.Itoa(len(args)+1))
-		args = append(args, firstName)
-	}
-	if lastName != "" {
-		conditions = append(conditions, "last_name = $"+strconv.Itoa(len(args)+1))
-		args = append(args, lastName)
-	}
-	if email != "" {
-		conditions = append(conditions, "email = $"+strconv.Itoa(len(args)+1))
-		args = append(args, email)
-	}
-
-	if len(conditions) > 0 {
-		query += " WHERE " + strings.Join(conditions, " AND ")
-	}
-	query += " ORDER BY last_name ASC, first_name ASC"
-
-	rows, err := s.database.Query(query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("listing clients: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
-
-	var clients []Client
-	for rows.Next() {
-		client, err := scanClient(rows)
-		if err != nil {
-			return nil, fmt.Errorf("scanning client: %w", err)
-		}
-		clients = append(clients, *client)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterating clients: %w", err)
-	}
-
-	return clients, nil
-}
-
-func (s *Server) GetAllEmployees(email *string, name *string, lastName *string, position *string) ([]Employee, error) {
-	var employees []Employee
-	query := s.db_gorm.Model(&Employee{}).Preload("Permissions")
-
-	if email != nil && *email != "" {
-		query = query.Where("email = ?", *email)
-	}
-
-	if name != nil && *name != "" {
-		query = query.Where("first_name ILIKE ?", "%"+*name+"%")
-	}
-
-	if lastName != nil && *lastName != "" {
-		query = query.Where("last_name ILIKE ?", "%"+*lastName+"%")
-	}
-
-	if position != nil && *position != "" {
-		query = query.Where("position = ?", *position)
-	}
-
-	query = query.Where("active = true")
-
-	err := query.Find(&employees).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return employees, nil
-}
-
 func GetAllUsersFromModel[T Client | Employee](user T, s *Server, constraints user_restrictions) ([]T, error) {
 	add_constraints := func(query *gorm.DB, restrictions user_restrictions) *gorm.DB {
 		for _, key := range restrictions {
-			switch key {
-			case "email", "position":
-				query = query.Where(key+"= ?", restrictions[key])
-			default:
-				query = query.Where(key+"ILIKE ?", "%"+restrictions[key]+"%")
+			if restrictions[key] != "" {
+				switch key {
+				case "email", "position":
+					query = query.Where(key+"= ?", restrictions[key])
+				default:
+					query = query.Where(key+"ILIKE ?", "%"+restrictions[key]+"%")
+				}
 			}
 		}
 		return query
@@ -376,40 +301,16 @@ func create_user_from_model[T Client | Employee](user T, s *Server) error {
 	return nil
 }
 
-func (s *Server) getEmployeeByAttribute(attribute_name string, attribute_value any) (*Employee, error) {
-	var employee Employee
-	err := s.db_gorm.Preload("Permissions").Where(attribute_name +  "= ?", attribute_value).First(&employee).Error
+func getUserByAttribute[T Client | Employee](user T, s *Server, attribute_name string, attribute_value any) (*T, error) {
+	var ret T
+	err := s.db_gorm.Preload("Permissions").Where(attribute_name+"= ?", attribute_value).First(&ret).Error
 	if err != nil {
 		log.Println("Error from getEmployeeByAttribute: ", err)
 		return nil, err
 	}
 
-	log.Println(employee)
-	return &employee, nil
-}
-
-func (s *Server) getEmployeeByEmail(email string) (*Employee, error) {
-	var employee Employee
-	err := s.db_gorm.Preload("Permissions").Where("email = ?", email).First(&employee).Error
-	if err != nil {
-		return nil, err
-	}
-	for _, perm := range employee.Permissions {
-		println(perm.Name)
-	}
-	return &employee, nil
-}
-
-func (s *Server) getEmployeeById(id int64) (*Employee, error) {
-	var employee Employee
-	err := s.db_gorm.Preload("Permissions").Where("id = ?", id).First(&employee).Error
-	if err != nil {
-		return nil, err
-	}
-	for _, perm := range employee.Permissions {
-		println(perm.Name)
-	}
-	return &employee, nil
+	log.Println(ret)
+	return &ret, nil
 }
 
 func (s *Server) deleteEmployee(id int64) error {
@@ -464,7 +365,6 @@ func (s *Server) UpdateClientRecord(client *Client) error {
 
 	return nil
 }
-
 
 // Try to fix this once you understand gorm
 func (s *Server) UpdateEmployee_(emp *Employee) (*Employee, error) {
