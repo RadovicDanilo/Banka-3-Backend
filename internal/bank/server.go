@@ -35,7 +35,7 @@ type Server struct {
 func NewServer(database *sql.DB, gorm_db *gorm.DB) (*Server, error) {
 	exchangeAddr := os.Getenv("EXCHANGE_GRPC_ADDR")
 	if exchangeAddr == "" {
-		exchangeAddr = "exhcange:50051"
+		exchangeAddr = "exchange:50051"
 	}
 	exchangeConn, err := grpc.NewClient(exchangeAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
