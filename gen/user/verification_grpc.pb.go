@@ -19,10 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TOTPService_VerifyCode_FullMethodName    = "/user.TOTPService/VerifyCode"
-	TOTPService_EnrollBegin_FullMethodName   = "/user.TOTPService/EnrollBegin"
-	TOTPService_EnrollConfirm_FullMethodName = "/user.TOTPService/EnrollConfirm"
-	TOTPService_TOTPStatus_FullMethodName    = "/user.TOTPService/TOTPStatus"
+	TOTPService_VerifyCode_FullMethodName     = "/user.TOTPService/VerifyCode"
+	TOTPService_EnrollBegin_FullMethodName    = "/user.TOTPService/EnrollBegin"
+	TOTPService_EnrollConfirm_FullMethodName  = "/user.TOTPService/EnrollConfirm"
+	TOTPService_DisableBegin_FullMethodName   = "/user.TOTPService/DisableBegin"
+	TOTPService_DisableConfirm_FullMethodName = "/user.TOTPService/DisableConfirm"
+	TOTPService_Status_FullMethodName         = "/user.TOTPService/Status"
 )
 
 // TOTPServiceClient is the client API for TOTPService service.
@@ -32,7 +34,9 @@ type TOTPServiceClient interface {
 	VerifyCode(ctx context.Context, in *VerifyCodeRequest, opts ...grpc.CallOption) (*VerifyCodeResponse, error)
 	EnrollBegin(ctx context.Context, in *EnrollBeginRequest, opts ...grpc.CallOption) (*EnrollBeginResponse, error)
 	EnrollConfirm(ctx context.Context, in *EnrollConfirmRequest, opts ...grpc.CallOption) (*EnrollConfirmResponse, error)
-	TOTPStatus(ctx context.Context, in *TOTPStatusRequest, opts ...grpc.CallOption) (*TOTPStatusResponse, error)
+	DisableBegin(ctx context.Context, in *DisableBeginRequest, opts ...grpc.CallOption) (*DisableBeginResponse, error)
+	DisableConfirm(ctx context.Context, in *DisableConfirmRequest, opts ...grpc.CallOption) (*DisableConfirmResponse, error)
+	Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 }
 
 type tOTPServiceClient struct {
@@ -73,10 +77,30 @@ func (c *tOTPServiceClient) EnrollConfirm(ctx context.Context, in *EnrollConfirm
 	return out, nil
 }
 
-func (c *tOTPServiceClient) TOTPStatus(ctx context.Context, in *TOTPStatusRequest, opts ...grpc.CallOption) (*TOTPStatusResponse, error) {
+func (c *tOTPServiceClient) DisableBegin(ctx context.Context, in *DisableBeginRequest, opts ...grpc.CallOption) (*DisableBeginResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(TOTPStatusResponse)
-	err := c.cc.Invoke(ctx, TOTPService_TOTPStatus_FullMethodName, in, out, cOpts...)
+	out := new(DisableBeginResponse)
+	err := c.cc.Invoke(ctx, TOTPService_DisableBegin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *tOTPServiceClient) DisableConfirm(ctx context.Context, in *DisableConfirmRequest, opts ...grpc.CallOption) (*DisableConfirmResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DisableConfirmResponse)
+	err := c.cc.Invoke(ctx, TOTPService_DisableConfirm_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *tOTPServiceClient) Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, TOTPService_Status_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +114,9 @@ type TOTPServiceServer interface {
 	VerifyCode(context.Context, *VerifyCodeRequest) (*VerifyCodeResponse, error)
 	EnrollBegin(context.Context, *EnrollBeginRequest) (*EnrollBeginResponse, error)
 	EnrollConfirm(context.Context, *EnrollConfirmRequest) (*EnrollConfirmResponse, error)
-	TOTPStatus(context.Context, *TOTPStatusRequest) (*TOTPStatusResponse, error)
+	DisableBegin(context.Context, *DisableBeginRequest) (*DisableBeginResponse, error)
+	DisableConfirm(context.Context, *DisableConfirmRequest) (*DisableConfirmResponse, error)
+	Status(context.Context, *StatusRequest) (*StatusResponse, error)
 	mustEmbedUnimplementedTOTPServiceServer()
 }
 
@@ -110,8 +136,14 @@ func (UnimplementedTOTPServiceServer) EnrollBegin(context.Context, *EnrollBeginR
 func (UnimplementedTOTPServiceServer) EnrollConfirm(context.Context, *EnrollConfirmRequest) (*EnrollConfirmResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method EnrollConfirm not implemented")
 }
-func (UnimplementedTOTPServiceServer) TOTPStatus(context.Context, *TOTPStatusRequest) (*TOTPStatusResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method TOTPStatus not implemented")
+func (UnimplementedTOTPServiceServer) DisableBegin(context.Context, *DisableBeginRequest) (*DisableBeginResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DisableBegin not implemented")
+}
+func (UnimplementedTOTPServiceServer) DisableConfirm(context.Context, *DisableConfirmRequest) (*DisableConfirmResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DisableConfirm not implemented")
+}
+func (UnimplementedTOTPServiceServer) Status(context.Context, *StatusRequest) (*StatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Status not implemented")
 }
 func (UnimplementedTOTPServiceServer) mustEmbedUnimplementedTOTPServiceServer() {}
 func (UnimplementedTOTPServiceServer) testEmbeddedByValue()                     {}
@@ -188,20 +220,56 @@ func _TOTPService_EnrollConfirm_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TOTPService_TOTPStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TOTPStatusRequest)
+func _TOTPService_DisableBegin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DisableBeginRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TOTPServiceServer).TOTPStatus(ctx, in)
+		return srv.(TOTPServiceServer).DisableBegin(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: TOTPService_TOTPStatus_FullMethodName,
+		FullMethod: TOTPService_DisableBegin_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TOTPServiceServer).TOTPStatus(ctx, req.(*TOTPStatusRequest))
+		return srv.(TOTPServiceServer).DisableBegin(ctx, req.(*DisableBeginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TOTPService_DisableConfirm_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DisableConfirmRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TOTPServiceServer).DisableConfirm(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TOTPService_DisableConfirm_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TOTPServiceServer).DisableConfirm(ctx, req.(*DisableConfirmRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TOTPService_Status_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TOTPServiceServer).Status(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TOTPService_Status_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TOTPServiceServer).Status(ctx, req.(*StatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -226,8 +294,16 @@ var TOTPService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _TOTPService_EnrollConfirm_Handler,
 		},
 		{
-			MethodName: "TOTPStatus",
-			Handler:    _TOTPService_TOTPStatus_Handler,
+			MethodName: "DisableBegin",
+			Handler:    _TOTPService_DisableBegin_Handler,
+		},
+		{
+			MethodName: "DisableConfirm",
+			Handler:    _TOTPService_DisableConfirm_Handler,
+		},
+		{
+			MethodName: "Status",
+			Handler:    _TOTPService_Status_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

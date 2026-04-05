@@ -38,7 +38,7 @@ func (s *Server) TOTPSetupConfirm(c *gin.Context) {
 		return
 	}
 	if resp.Success {
-		c.Status(200)
+		c.JSON(http.StatusOK, resp.BackupCodes)
 	} else {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"message": "wrong code",
@@ -46,16 +46,43 @@ func (s *Server) TOTPSetupConfirm(c *gin.Context) {
 	}
 }
 
-func (s *Server) TOTPStatus(c *gin.Context) {
+func (s *Server) TOTPDisableBegin(c *gin.Context) {
 	email := c.GetString("email")
-	resp, err := s.TOTPClient.TOTPStatus(context.Background(), &userpb.TOTPStatusRequest{
+	resp, err := s.TOTPClient.DisableBegin(context.Background(), &userpb.DisableBeginRequest{
 		Email: email,
 	})
 	if err != nil {
 		writeGRPCError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"active": resp.Active,
+
+	if resp.Success {
+		c.Status(http.StatusAccepted)
+	} else {
+		c.Status(http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) TOTPDisableConfirm(c *gin.Context) {
+	var req totpDisableConfirmRequest
+	if err := c.BindJSON(&req); err != nil {
+		writeBindError(c, err)
+		return
+	}
+	email := c.GetString("email")
+	resp, err := s.TOTPClient.DisableConfirm(context.Background(), &userpb.DisableConfirmRequest{
+		Email: email,
+		Token: req.Token,
 	})
+	if err != nil {
+		writeGRPCError(c, err)
+		return
+	}
+	if resp.Success {
+		c.Status(http.StatusOK)
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "bad token",
+		})
+	}
 }

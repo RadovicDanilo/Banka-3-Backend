@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -118,7 +119,7 @@ func (s *Server) InsertRefreshToken(token string) error {
 	return nil
 }
 
-func (s *Server) UpsertPasswordActionToken(email, actionType string, hashedToken []byte, validUntil time.Time) error {
+func upsertPasswordActionToken(db *sql.DB, email, actionType string, hashedToken []byte, validUntil time.Time) error {
 	query := `
 	INSERT INTO password_action_tokens (email, action_type, hashed_token, valid_until, used)
 	VALUES ($1, $2, $3, $4, FALSE)
@@ -130,14 +131,18 @@ func (s *Server) UpsertPasswordActionToken(email, actionType string, hashedToken
 		used_at = NULL
 	`
 
-	_, err := s.database.Exec(query, email, actionType, hashedToken, validUntil)
+	_, err := db.Exec(query, email, actionType, hashedToken, validUntil)
 	if err != nil {
 		return fmt.Errorf("upserting password action token: %w", err)
 	}
 	return nil
 }
 
-func (s *Server) ConsumePasswordActionToken(tx *sql.Tx, hashedToken []byte) (string, string, error) {
+func (s *Server) UpsertPasswordActionToken(email, actionType string, hashedToken []byte, validUntil time.Time) error {
+	return upsertPasswordActionToken(s.database, email, actionType, hashedToken, validUntil)
+}
+
+func consumePasswordActionToken(tx *sql.Tx, hashedToken []byte) (string, string, error) {
 	var email string
 	var actionType string
 	err := tx.QueryRow(`
@@ -211,13 +216,24 @@ func (s *Server) RevokeRefreshTokensByEmail(tx *sql.Tx, email string) error {
 
 func GetAllUsersFromModel[T Client | Employee](user T, s *Server, constraints user_restrictions) ([]T, error) {
 	add_constraints := func(query *gorm.DB, restrictions user_restrictions) *gorm.DB {
-		for key, value := range restrictions {
-			if restrictions[key] != "" {
+		keys := make([]string, 0, len(restrictions))
+		for k := range restrictions {
+			keys = append(keys, k)
+		}
+
+		sort.Strings(keys)
+		for _, key := range keys {
+			value := restrictions[key]
+			if value == "" {
+				continue
+			}
+
+			if key != "" {
 				switch key {
 				case "email", "position":
 					query = query.Where(key+" = ?", value)
 				default:
-					query = query.Where(key+" ILIKE ?", "%"+value+"%")
+					query = query.Where(key+" ILIKE ?", value)
 				}
 			}
 		}
@@ -258,13 +274,13 @@ func create_user_from_model[T Client | Employee](user T, s *Server) error {
 	return nil
 }
 
-func getUserByAttribute[T Client | Employee](user T, s *Server, attribute_name string, attribute_value any) (*T, error) {
+func getUserByAttribute[T Client | Employee](user T, gorm *gorm.DB, attribute_name string, attribute_value any) (*T, error) {
 	var ret T
 	var err error
 	if reflect.TypeOf(any(user)) == reflect.TypeFor[Employee]() {
-		err = s.db_gorm.Preload("Permissions").Where(attribute_name+" = ?", attribute_value).First(&ret).Error
+		err = gorm.Preload("Permissions").Where(attribute_name+" = ?", attribute_value).First(&ret).Error
 	} else {
-		err = s.db_gorm.Model(&user).Where(attribute_name+" = ?", attribute_value).First(&ret).Error
+		err = gorm.Model(&user).Where(attribute_name+" = ?", attribute_value).First(&ret).Error
 	}
 	if err != nil {
 		log.Println("Error from getEmployeeByAttribute: ", err)
@@ -304,7 +320,7 @@ func updateUserRecord[T Client | Employee](user T, s *Server) (*T, error) {
 		return perms.Id
 	}
 
-	var result *gorm.DB
+	var result = s.db_gorm
 	switch any(user).(type) {
 	case Client:
 		if userExists(user, s) {
@@ -334,9 +350,30 @@ func updateUserRecord[T Client | Employee](user T, s *Server) (*T, error) {
 }
 
 var ErrUserNotFound = errors.New("user not found")
+var ErrTOTPAlreadyActive = errors.New("totp already active")
 
-func (s *Server) SetTempTOTPSecret(id uint64, secret string) error {
-	_, err := s.database.Exec(`
+func (s *TOTPServer) getUserIdByEmail(email string) (*uint64, error) {
+	query := `
+		SELECT id FROM employees WHERE email = $1
+		UNION ALL
+		SELECT id FROM clients WHERE email = $1
+		LIMIT 1
+	`
+
+	var id uint64
+
+	err := s.db.QueryRow(query, email).Scan(&id)
+	if err == sql.ErrNoRows {
+		return nil, ErrUserNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &id, nil
+}
+
+func (s *TOTPServer) SetTempTOTPSecret(tx *sql.Tx, id uint64, secret string) error {
+	_, err := tx.Exec(`
 		INSERT INTO verification_codes (client_id, temp_secret, temp_created_at)
 		VALUES ($1, $2, NOW())
 		ON CONFLICT (client_id)
@@ -347,7 +384,7 @@ func (s *Server) SetTempTOTPSecret(id uint64, secret string) error {
 	return err
 }
 
-func (s *Server) GetTempSecret(tx *sql.Tx, id uint64) (*string, error) {
+func (s *TOTPServer) GetTempSecret(tx *sql.Tx, id uint64) (*string, error) {
 	var temp_secret string
 	row := tx.QueryRow(`
 		SELECT temp_secret
@@ -365,9 +402,9 @@ func (s *Server) GetTempSecret(tx *sql.Tx, id uint64) (*string, error) {
 	return &temp_secret, nil
 }
 
-func (s *Server) GetSecret(id uint64) (*string, error) {
+func (s *TOTPServer) GetSecret(id uint64) (*string, error) {
 	var secret string
-	row := s.database.QueryRow(`
+	row := s.db.QueryRow(`
 		SELECT secret
 		FROM verification_codes
 		WHERE client_id = $1 AND enabled = TRUE
@@ -379,7 +416,7 @@ func (s *Server) GetSecret(id uint64) (*string, error) {
 	return &secret, nil
 }
 
-func (s *Server) EnableTOTP(tx *sql.Tx, id uint64, tempSecret string) error {
+func (s *TOTPServer) EnableTOTP(tx *sql.Tx, id uint64, tempSecret string) error {
 	_, err := tx.Exec(`
 		UPDATE verification_codes
 		SET enabled = TRUE,
@@ -394,16 +431,90 @@ func (s *Server) EnableTOTP(tx *sql.Tx, id uint64, tempSecret string) error {
 	return nil
 }
 
-func (s *Server) totpStatus(id uint64) (*bool, error) {
+func (s *TOTPServer) DisableTOTP(tx *sql.Tx, id uint64) error {
+	_, err := tx.Exec(`
+		UPDATE verification_codes
+		SET enabled = FALSE
+		WHERE client_id = $1
+	`, id)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *TOTPServer) deleteOldCodes(tx *sql.Tx, id uint64) error {
+	_, err := tx.Exec(`
+		DELETE FROM backup_codes
+		WHERE client_id = $1
+	`, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *TOTPServer) InsertGeneratedCodes(tx *sql.Tx, id uint64, codes []string) error {
+	err := s.deleteOldCodes(tx, id)
+	if err != nil {
+		return err
+	}
+
+	query := "INSERT INTO backup_codes (client_id, token) VALUES"
+	values := []any{}
+	paramIdx := 1
+	for _, code := range codes {
+		query += fmt.Sprintf("($%d, $%d),", paramIdx, paramIdx+1)
+		paramIdx += 2
+		values = append(values, id, code)
+	}
+	query = query[:len(query)-1]
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec(values...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *TOTPServer) status(tx *sql.Tx, id uint64) (*bool, error) {
 	var active bool
-	row := s.database.QueryRow(`
+	query := `
 		SELECT enabled
 		FROM verification_codes
 		WHERE client_id = $1
-	`, id)
+		FOR UPDATE
+	`
+	row := tx.QueryRow(query, id)
 	err := row.Scan(&active)
 	if err != nil {
-		return nil, ErrUserNotFound
+		dummy := false
+		if errors.Is(err, sql.ErrNoRows) {
+			return &dummy, nil
+		}
+		return nil, err
 	}
 	return &active, nil
+}
+
+func (s *TOTPServer) tryBurnBackupCode(id uint64, code string) (*bool, error) {
+	query := `
+		UPDATE backup_codes
+		SET used = TRUE
+		WHERE client_id = $1 AND token = $2
+	`
+	res, err := s.db.Exec(query, id, code)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+	ret := rows == 1
+	return &ret, nil
 }

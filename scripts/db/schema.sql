@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS password_action_tokens (
     created_at   TIMESTAMP    NOT NULL DEFAULT NOW(),
     used_at      TIMESTAMP,
     PRIMARY KEY (email, action_type),
-    CHECK (action_type IN ('reset', 'initial_set'))
+    CHECK (action_type IN ('reset', 'initial_set', 'totp_disable'))
 );
 
 CREATE TABLE IF NOT EXISTS currencies (
@@ -262,6 +262,12 @@ CREATE TABLE IF NOT EXISTS verification_codes (
     secret          VARCHAR(32),
     temp_secret     VARCHAR(32),
     temp_created_at TIMESTAMP   NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS backup_codes (
+    client_id BIGINT REFERENCES clients(id) ON DELETE CASCADE,
+    token     VARCHAR(6) NOT NULL,
+    used      BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS exchange_rates (

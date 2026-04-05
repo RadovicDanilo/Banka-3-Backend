@@ -8,7 +8,9 @@ service TOTPService {
   rpc VerifyCode(VerifyCodeRequest) returns (VerifyCodeResponse);
   rpc EnrollBegin(EnrollBeginRequest) returns (EnrollBeginResponse);
   rpc EnrollConfirm(EnrollConfirmRequest) returns (EnrollConfirmResponse);
-  rpc TOTPStatus(TOTPStatusRequest) returns (TOTPStatusResponse);
+  rpc DisableBegin(DisableBeginRequest) returns (DisableBeginResponse);
+  rpc DisableConfirm(DisableConfirmRequest) returns (DisableConfirmResponse);
+  rpc Status(StatusRequest) returns (StatusResponse);
 }
 
 message VerifyCodeRequest {
@@ -35,6 +37,32 @@ message EnrollConfirmRequest {
 
 message EnrollConfirmResponse {
   bool success = 1;
+  repeated string backup_codes = 2;
+}
+
+message DisableBeginRequest {
+  string email = 1;
+}
+
+message DisableBeginResponse {
+  bool success = 1;
+}
+
+message DisableConfirmRequest {
+  string email = 1;
+  string token = 2;
+}
+
+message DisableConfirmResponse {
+  bool success = 1;
+}
+
+message StatusRequest {
+  string email = 1;
+}
+
+message StatusResponse {
+  bool active = 1;
 }
 
 message TOTPStatusRequest {

@@ -260,16 +260,6 @@ type (
 		Updated_at    time.Time `gorm:"column:updated_at;not null;autoUpdateTime"`
 		Valid_until   time.Time `gorm:"column:valid_until;not null"`
 	}
-
-	VerificationCode struct {
-		Id             int64     `gorm:"column:id;type:bigserial;not null;primaryKey"`
-		Client_id      int64     `gorm:"column:client_id;type:bigint;references clients(id)"`
-		Transaction_id int64     `gorm:"column:transaction_id;type:bigint;references payments(transaction_id)"`
-		Valid_until    time.Time `gorm:"column:created_at;not null"`
-		Tries          int       `gorm:"column:tries;type:int;not null;default 0"`
-		Valid          bool      `gorm:"column:valid;type:boolean;not null;default true"`
-		Used           bool      `gorm:"column:used;type:boolean;not null;default false"`
-	}
 )
 
 func (Currency) TableName() string {
@@ -314,10 +304,6 @@ func (LoanInstallment) TableName() string {
 
 func (LoanRequest) TableName() string {
 	return "loan_request"
-}
-
-func (VerificationCode) TableName() string {
-	return "verification_codes"
 }
 
 func (ExchangeRate) TableName() string {

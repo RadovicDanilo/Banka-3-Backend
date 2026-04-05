@@ -229,3 +229,25 @@ func (s *Server) SendCardCreatedEmail(_ context.Context, req *notification.CardC
 
 	return &notification.SuccessResponse{Successful: true}, nil
 }
+
+func (s *Server) SendTOTPDisableEmail(_ context.Context, req *notification.SendTOTPDisableEmailRequest) (*notification.SuccessResponse, error) {
+	to := strings.Split(req.Email, ",")
+	templ, err := template.ParseFiles("templates/disable_totp.html")
+	if err != nil {
+		log.Printf("error in reading template :%v", err)
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	var rendered bytes.Buffer
+	if err := templ.Execute(&rendered, req); err != nil {
+		log.Printf("error in filling template :%v", err)
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	err = s.sender.Send(to, "Disable TOTP request", rendered.String())
+	if err != nil {
+		log.Printf("error in sending email :%v", err)
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+	return &notification.SuccessResponse{Successful: true}, nil
+}

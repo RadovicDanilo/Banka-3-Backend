@@ -49,6 +49,21 @@ type (
 		EmployeeId   uint64 `gorm:"column:employee_id;not null"`
 		PermissionId uint64 `gorm:"column:permission_id;not null"`
 	}
+	VerificationCode struct {
+		Id             int64     `gorm:"column:id;type:bigserial;not null;primaryKey"`
+		Client_id      int64     `gorm:"column:client_id;type:bigint;references clients(id)"`
+		Transaction_id int64     `gorm:"column:transaction_id;type:bigint;references payments(transaction_id)"`
+		Valid_until    time.Time `gorm:"column:created_at;not null"`
+		Tries          int       `gorm:"column:tries;type:int;not null;default 0"`
+		Valid          bool      `gorm:"column:valid;type:boolean;not null;default true"`
+		Used           bool      `gorm:"column:used;type:boolean;not null;default false"`
+	}
+
+	BackupCodes struct {
+		ClientId int64  `gorm:"column:client_id;type:bigserial;not null;primaryKey"`
+		Token    string `gorm:"column:token;type:varchar(6);not null"`
+		Used     bool   `gorm:"column:used;type:boolean;not null; default false"`
+	}
 )
 
 func (Client) TableName() string {
@@ -65,4 +80,12 @@ func (Permission) TableName() string {
 
 func (EmployeePermissions) TableName() string {
 	return "employee_permissions"
+}
+
+func (VerificationCode) TableName() string {
+	return "verification_codes"
+}
+
+func (BackupCodes) TableName() string {
+	return "backup_codes"
 }

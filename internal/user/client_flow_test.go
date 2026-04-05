@@ -15,13 +15,13 @@ import (
 )
 
 func TestGetClientsWithoutFiltersReturnsExpectedRows(t *testing.T) {
-	server, mock, db := newTestServer(t)
+	server, mock, db := newGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	date1 := time.Date(1990, 5, 20, 0, 0, 0, 0, time.UTC)
 	date2 := time.Date(1992, 6, 21, 0, 0, 0, 0, time.UTC)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, first_name, last_name, date_of_birth, gender, email, phone_number, address FROM clients ORDER BY last_name ASC, first_name ASC`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "clients`)).
 		WillReturnRows(sqlmockClientRows().
 			AddRow(uint64(1), "Petar", "Petrovic", date1, "M", "petar@primer.raf", "+381645555555", "Njegoseva 25").
 			AddRow(uint64(2), "Jana", "Janic", date2, "F", "jana@primer.raf", "+381645555556", "Bulevar 1"))
@@ -43,13 +43,13 @@ func TestGetClientsWithoutFiltersReturnsExpectedRows(t *testing.T) {
 }
 
 func TestGetClientsWithFiltersBuildsExpectedSQL(t *testing.T) {
-	server, mock, db := newTestServer(t)
+	server, mock, db := newGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	date := time.Date(1990, 5, 20, 0, 0, 0, 0, time.UTC)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, first_name, last_name, date_of_birth, gender, email, phone_number, address FROM clients WHERE first_name = $1 AND last_name = $2 AND email = $3 ORDER BY last_name ASC, first_name ASC`)).
-		WithArgs("Petar", "Petrovic", "petar@primer.raf").
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "clients" WHERE email = $1 AND first_name ILIKE $2 AND last_name ILIKE $3`)).
+		WithArgs("petar@primer.raf", "Petar", "Petrovic").
 		WillReturnRows(sqlmockClientRows().
 			AddRow(uint64(1), "Petar", "Petrovic", date, "M", "petar@primer.raf", "+381645555555", "Njegoseva 25"))
 
@@ -76,8 +76,8 @@ func TestUpdateClientSuccess(t *testing.T) {
 
 	date := time.Date(1990, 5, 20, 0, 0, 0, 0, time.UTC)
 
-	mock.ExpectQuery("SELECT id, first_name, last_name, date_of_birth, gender, email, phone_number, address").
-		WithArgs(int64(1)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "clients" WHERE "clients"."id" = $1 ORDER BY "clients"."id" LIMIT $2`)).
+		WithArgs(int64(1), int64(1)).
 		WillReturnRows(sqlmockClientRows().
 			AddRow(uint64(1), "Petar", "Petrovic", date, "M", "petar@primer.raf", "+381645555555", "Njegoseva 25"))
 	mock.ExpectBegin()
@@ -106,8 +106,8 @@ func TestUpdateClientNotFound(t *testing.T) {
 	server, mock, db := newGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
-	mock.ExpectQuery("SELECT id, first_name, last_name, date_of_birth, gender, email, phone_number, address").
-		WithArgs(int64(404)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "clients" WHERE "clients"."id" = $1 ORDER BY "clients"."id" LIMIT $2`)).
+		WithArgs(int64(404), int64(1)).
 		WillReturnError(sql.ErrNoRows)
 
 	_, err := server.UpdateClient(context.Background(), &userpb.UpdateClientRequest{
@@ -132,8 +132,8 @@ func TestUpdateClientDuplicateEmailReturnsAlreadyExists(t *testing.T) {
 
 	date := time.Date(1990, 5, 20, 0, 0, 0, 0, time.UTC)
 
-	mock.ExpectQuery("SELECT id, first_name, last_name, date_of_birth, gender, email, phone_number, address").
-		WithArgs(int64(1)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "clients" WHERE "clients"."id" = $1 ORDER BY "clients"."id" LIMIT $2`)).
+		WithArgs(int64(1), int64(1)).
 		WillReturnRows(sqlmockClientRows().
 			AddRow(uint64(1), "Petar", "Petrovic", date, "M", "petar@primer.raf", "+381645555555", "Njegoseva 25"))
 	mock.ExpectBegin()

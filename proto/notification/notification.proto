@@ -12,6 +12,13 @@ service NotificationService {
   rpc SendCardConfirmationEmail(CardConfirmationMailRequest) returns (SuccessResponse);
   rpc SendCardCreatedEmail(CardCreatedMailRequest) returns (SuccessResponse);
   rpc SendLoanPaymentFailedEmail(LoanPaymentFailedMailRequest) returns (SuccessResponse);
+
+  rpc SendTOTPDisableEmail(SendTOTPDisableEmailRequest) returns (SuccessResponse);
+}
+
+message SendTOTPDisableEmailRequest {
+  string email = 1;
+  string link = 2;
 }
 
 message ConfirmationMailRequest {
@@ -22,7 +29,7 @@ message ConfirmationMailRequest {
 
 message ActivationMailRequest {
   string to_addr = 1; // comma separated addresses of receivers
-  string link = 2;    // link to page
+  string link = 2; // link to page
 }
 
 message PasswordLinkMailRequest {
@@ -47,4 +54,6 @@ message LoanPaymentFailedMailRequest {
   string due_date = 5;
 }
 
-message SuccessResponse {bool successful = 1;}
+message SuccessResponse {
+  bool successful = 1;
+}
