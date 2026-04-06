@@ -3,8 +3,13 @@ VALUES
     ('admin'),
     ('trade_stocks'),
     ('view_stocks'),
-    ('manage_contracts'),
-    ('manage_insurance')
+    ('manage_loans'),
+    ('manage_insurance'),
+    ('manage_employees'),
+    ('manage_clients'),
+    ('manage_accounts'),
+    ('manage_companies'),
+    ('manage_cards')
 ON CONFLICT (name) DO NOTHING;
 
 -- default admin (password: "Admin123!")
@@ -27,6 +32,52 @@ INSERT INTO employee_permissions (employee_id, permission_id)
 SELECT e.id, p.id
 FROM employees e, permissions p
 WHERE e.email = 'admin@banka.raf' AND p.name = 'admin'
+ON CONFLICT DO NOTHING;
+
+-- full-employee employee (password: "Test1234!") — has all permissions for testing
+INSERT INTO employees (
+    first_name, last_name, date_of_birth, gender, email,
+    phone_number, address, username, password, salt_password,
+    position, department, active
+)
+VALUES (
+    'Full', 'Access', '1990-01-01', 'M', 'full_emp@banka.raf',
+    '+381649990001', 'Test Adresa 1', 'fullemp',
+    '\xa514f71947f5447cdfc2845f40d020cea4146ba28e84cb1a82662a6286f8228d'::BYTEA,
+    '\x11223344556677889900aabbccddeeff'::BYTEA,
+    'Manager', 'Operations', true
+)
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO employee_permissions (employee_id, permission_id)
+SELECT e.id, p.id
+FROM employees e, permissions p
+WHERE e.email = 'full_emp@banka.raf' AND p.name IN (
+    'manage_employees', 'manage_clients', 'manage_accounts',
+    'manage_companies', 'manage_loans', 'manage_cards',
+    'trade_stocks', 'view_stocks'
+)
+ON CONFLICT DO NOTHING;
+
+-- limited-employee employee (password: "Test1234!") — only view_stocks for testing
+INSERT INTO employees (
+    first_name, last_name, date_of_birth, gender, email,
+    phone_number, address, username, password, salt_password,
+    position, department, active
+)
+VALUES (
+    'Limited', 'Access', '1990-01-01', 'F', 'limited_emp@banka.raf',
+    '+381649990002', 'Test Adresa 2', 'limitedemp',
+    '\xa514f71947f5447cdfc2845f40d020cea4146ba28e84cb1a82662a6286f8228d'::BYTEA,
+    '\x11223344556677889900aabbccddeeff'::BYTEA,
+    'Viewer', 'Support', true
+)
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO employee_permissions (employee_id, permission_id)
+SELECT e.id, p.id
+FROM employees e, permissions p
+WHERE e.email = 'limited_emp@banka.raf' AND p.name = 'view_stocks'
 ON CONFLICT DO NOTHING;
 
 -- test client (password: "Test1234!")
