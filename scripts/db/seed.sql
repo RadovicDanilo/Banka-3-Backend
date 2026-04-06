@@ -3,8 +3,13 @@ VALUES
     ('admin'),
     ('trade_stocks'),
     ('view_stocks'),
-    ('manage_contracts'),
-    ('manage_insurance')
+    ('manage_loans'),
+    ('manage_insurance'),
+    ('manage_employees'),
+    ('manage_clients'),
+    ('manage_accounts'),
+    ('manage_companies'),
+    ('manage_cards')
 ON CONFLICT (name) DO NOTHING;
 
 -- default admin (password: "Admin123!")

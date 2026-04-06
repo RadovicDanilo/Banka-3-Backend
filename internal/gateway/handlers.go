@@ -67,14 +67,14 @@ func SetupApi(router *gin.Engine, server *Server) {
 		passwordReset.POST("/confirm", server.ConfirmPasswordReset)
 	}
 
-	clients := api.Group("/clients", auth, secured("role:employee"))
+	clients := api.Group("/clients", auth, secured("manage_clients"))
 	{
 		clients.POST("", server.CreateClientAccount)
 		clients.GET("", server.GetClients)
 		clients.PUT("/:id", server.UpdateClient)
 	}
 
-	employees := api.Group("/employees", auth, secured("role:employee"))
+	employees := api.Group("/employees", auth, secured("manage_employees"))
 	{
 		employees.POST("", server.CreateEmployeeAccount)
 		employees.GET("/:employeeId", server.GetEmployeeByID)
@@ -83,7 +83,7 @@ func SetupApi(router *gin.Engine, server *Server) {
 		employees.PATCH("/:employeeId", server.UpdateEmployee)
 	}
 
-	companies := api.Group("/companies", auth, secured("role:employee"))
+	companies := api.Group("/companies", auth, secured("manage_companies"))
 	{
 		companies.POST("", server.CreateCompany)
 		companies.GET("", server.GetCompanies)
@@ -93,11 +93,11 @@ func SetupApi(router *gin.Engine, server *Server) {
 
 	accounts := api.Group("/accounts", auth)
 	{
-		accounts.POST("", secured("role:employee"), server.CreateAccount)
+		accounts.POST("", secured("manage_accounts"), server.CreateAccount)
 		accounts.GET("", secured("role:client|employee"), server.GetAccounts)
 		accounts.GET("/:accountNumber", secured("role:client|employee"), server.GetAccountByNumber)
 		accounts.PATCH("/:accountNumber/name", secured("role:client|employee"), server.UpdateAccountName)
-		accounts.PATCH("/:accountNumber/limit", secured("role:employee"), totp, server.UpdateAccountLimits)
+		accounts.PATCH("/:accountNumber/limit", secured("manage_accounts"), totp, server.UpdateAccountLimits)
 	}
 
 	loans := api.Group("/loans", auth, secured("role:client|employee"))
@@ -110,8 +110,8 @@ func SetupApi(router *gin.Engine, server *Server) {
 	{
 		loanRequests.POST("", secured("role:client"), server.CreateLoanRequest)
 		loanRequests.GET("", secured("role:employee"), server.GetLoanRequests)
-		loanRequests.PATCH("/:id/approve", secured("role:employee", "manage_contracts"), server.ApproveLoanRequest)
-		loanRequests.PATCH("/:id/reject", secured("role:employee", "manage_contracts"), server.RejectLoanRequest)
+		loanRequests.PATCH("/:id/approve", secured("manage_loans"), server.ApproveLoanRequest)
+		loanRequests.PATCH("/:id/reject", secured("manage_loans"), server.RejectLoanRequest)
 	}
 
 	cards := api.Group("/cards")
