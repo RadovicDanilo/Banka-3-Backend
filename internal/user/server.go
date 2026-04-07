@@ -176,6 +176,17 @@ func (s *Server) GetEmployees(_ context.Context, req *userpb.GetEmployeesRequest
 }
 
 func (s *Server) UpdateEmployee(ctx context.Context, req *userpb.UpdateEmployeeRequest) (*userpb.GetEmployeeResponse, error) {
+	if !req.Active {
+		existing, err := getUserByAttribute(Employee{}, s.db_gorm, "id", req.Id)
+		if err == nil && existing != nil {
+			for _, p := range existing.Permissions {
+				if p.Name == "admin" {
+					return nil, status.Error(codes.PermissionDenied, "cannot deactivate an admin")
+				}
+			}
+		}
+	}
+
 	var permissions []Permission
 	for _, perm := range req.Permissions {
 		// yes these are invalid. i don't care
@@ -549,7 +560,7 @@ func (s *Server) SetPasswordWithToken(ctx context.Context, req *userpb.SetPasswo
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	email, _, err := consumePasswordActionToken(tx, hashValue(token))
+	email, actionType, err := consumePasswordActionToken(tx, hashValue(token))
 	if err != nil {
 		if errors.Is(err, ErrInvalidPasswordActionToken) {
 			return nil, status.Error(codes.InvalidArgument, "invalid or expired token")
@@ -566,6 +577,12 @@ func (s *Server) SetPasswordWithToken(ctx context.Context, req *userpb.SetPasswo
 
 	if err := s.UpdatePasswordByEmail(tx, email, hashedPassword); err != nil {
 		return nil, status.Error(codes.Internal, "password update failed")
+	}
+
+	if actionType == passwordActionInitialSet {
+		if _, err := tx.Exec(`UPDATE employees SET active = true, updated_at = NOW() WHERE email = $1`, email); err != nil {
+			return nil, status.Error(codes.Internal, "employee activation failed")
+		}
 	}
 
 	if err := s.RevokeRefreshTokensByEmail(tx, email); err != nil {
