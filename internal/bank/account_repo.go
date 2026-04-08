@@ -186,7 +186,7 @@ func (s *Server) CreateAccountRecord(account Account) (*Account, error) {
 	if account.Valid_until.IsZero() {
 		account.Valid_until = time.Now().AddDate(5, 0, 0)
 	}
-	account.Active = false
+	account.Active = true
 	account.Daily_expenditure = 0
 	account.Monthly_expenditure = 0
 
