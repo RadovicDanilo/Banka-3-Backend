@@ -121,12 +121,6 @@ type (
 		Monthly_limit       int64        `gorm:"column:monthly_limit;type:bigint"`
 		Daily_expenditure   int64        `gorm:"column:daily_expenditure;type:bigint"`
 		Monthly_expenditure int64        `gorm:"column:monthly_expenditure;type:bigint"`
-		// Buisness fields
-		CompanyName        string `gorm:"column:company_name;type:varchar(255)"`
-		RegistrationNumber string `gorm:"column:registration_number;type:varchar(50)"`
-		PIB                string `gorm:"column:pib;type:varchar(50)"`
-		ActivityCode       string `gorm:"column:activity_code;type:varchar(20)"`
-		Address            string `gorm:"column:address;type:varchar(255)"`
 	}
 
 	ActivityCode struct {

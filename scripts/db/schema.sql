@@ -104,11 +104,6 @@ CREATE TABLE IF NOT EXISTS accounts (
     monthly_limit       BIGINT,
     daily_expenditure   BIGINT,
     monthly_expenditure BIGINT,
-    company_name        VARCHAR(255),
-    registration_number VARCHAR(50),
-    pib                 VARCHAR(50),
-    activity_code       VARCHAR(20),
-    address             VARCHAR(255),
     UNIQUE(number)
 );
 
