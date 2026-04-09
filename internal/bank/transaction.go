@@ -56,7 +56,7 @@ func (s *Server) GetTransactions(ctx context.Context, req *bankpb.GetTransaction
 			PaymentCode:     r.PaymentCode,
 			ReferenceNumber: r.ReferenceNumber,
 			Purpose:         r.Purpose,
-			Status:          displayTransactionStatus(r.Status),
+			Status:          r.Status,
 			Timestamp:       r.Timestamp.Format(time.RFC3339), // Proto traži string
 			RecipientId:     r.RecipientID,
 			StartCurrencyId: r.StartCurrencyID,
@@ -110,7 +110,7 @@ func (s *Server) GetTransactionById(ctx context.Context, req *bankpb.GetTransact
 			PaymentCode:     row.PaymentCode,
 			ReferenceNumber: row.ReferenceNumber,
 			Purpose:         row.Purpose,
-			Status:          displayTransactionStatus(row.Status),
+			Status:          row.Status,
 			Timestamp:       row.Timestamp.Format(time.RFC3339),
 			RecipientId:     row.RecipientID,
 			StartCurrencyId: row.StartCurrencyID,
@@ -161,20 +161,6 @@ func (s *Server) GenerateTransactionPdf(ctx context.Context, req *bankpb.Generat
 		Pdf:      buf.Bytes(),
 		FileName: fmt.Sprintf("transakcija_%d.pdf", t.Id),
 	}, nil
-}
-
-// Pomoćna funkcija za Swagger format statusa
-func displayTransactionStatus(status string) string {
-	switch status {
-	case "realized":
-		return "Realizovano"
-	case "rejected":
-		return "Odbijeno"
-	case "pending":
-		return "U obradi"
-	default:
-		return status
-	}
 }
 
 //=================================================================

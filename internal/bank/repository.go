@@ -817,13 +817,13 @@ func (s *Server) CreatePayment(tx *sql.Tx, from_account string, to_account strin
 	row := tx.QueryRow(`
 		INSERT INTO payments (
 			from_account, to_account, start_amount, end_amount,
-			commission,status, recipient_id, transcaction_code,
+			commission,status, recipient_id, transaction_code,
 			call_number, reason, timestamp
 		)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CURRENT_TIMESTAMP)
 		RETURNING transaction_id, from_account, to_account,
 		          start_amount, end_amount, commission,status,
-		          recipient_id, transcaction_code,
+		          recipient_id, transaction_code,
 		          call_number, reason, timestamp
 	`,
 		from_account,

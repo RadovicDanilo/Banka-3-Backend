@@ -39,7 +39,7 @@ func (s *Server) GetFilteredTransactionsRepo(accNumbers []string, req *bankpb.Ge
 	paymentSub := s.db_gorm.Table("payments p").
 		Select(`p.transaction_id AS id, 'payment' AS type, p.from_account, p.to_account, 
                 p.start_amount AS initial_amount, p.end_amount AS final_amount, p.commission AS fee, 
-                c.code AS currency, COALESCE(p.transcaction_code::text, '') AS payment_code, 
+                c.code AS currency, COALESCE(p.transaction_code::text, '') AS payment_code, 
                 COALESCE(p.call_number, '') AS reference_number, COALESCE(p.reason, '') AS purpose, 
                 p.status, p.timestamp, p.recipient_id, 0 AS start_currency_id, 0 AS exchange_rate`).
 		Joins("JOIN accounts a ON a.number = p.from_account").
