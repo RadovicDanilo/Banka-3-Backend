@@ -182,6 +182,9 @@ CREATE TABLE IF NOT EXISTS payments (
     timestamp           TIMESTAMP       NOT NULL DEFAULT NOW()
 );
 
+
+CREATE TYPE transfer_status AS ENUM ('pending', 'realized', 'rejected');
+
 CREATE TABLE IF NOT EXISTS transfers (
     transaction_id      BIGSERIAL       PRIMARY KEY,
     from_account        VARCHAR(20)     REFERENCES accounts(number),
@@ -191,7 +194,7 @@ CREATE TABLE IF NOT EXISTS transfers (
     start_currency_id   BIGINT          REFERENCES currencies(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     exchange_rate       DECIMAL(20,2),
     commission          BIGINT          NOT NULL,
-    status              VARCHAR(20)     NOT NULL DEFAULT 'pending' CHECK  (status IN ('pending', 'completed', 'rejected')),
+    status              transfer_status  NOT NULL DEFAULT 'pending',
     timestamp           TIMESTAMP       NOT NULL DEFAULT NOW()
 );
 
