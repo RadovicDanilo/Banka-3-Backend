@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS companies (
 );
 
 CREATE TYPE card_type AS ENUM ('debit', 'credit');
-CREATE TYPE card_status AS ENUM ('active', 'blocked', 'deactivated');
+CREATE TYPE card_status AS ENUM ('active', 'blocked');
 CREATE TYPE card_brand AS ENUM ('visa', 'mastercard', 'amex', 'dinacard');
 
 CREATE TABLE IF NOT EXISTS cards (

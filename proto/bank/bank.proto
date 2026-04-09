@@ -87,8 +87,7 @@ message GetCardsResponse {
 }
 
 message BlockCardRequest {
-  int64 card_id = 1;
-  string card_number = 2;
+  string card_number = 1;
 }
 
 message BlockCardResponse {

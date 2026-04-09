@@ -9,7 +9,7 @@ type (
 	owner_type          string
 	account_type        string
 	card_type           string
-	card_status         string
+	Card_status         string
 	loan_type           string
 	loan_status         string
 	loan_request_status string
@@ -42,9 +42,8 @@ const (
 	Credit card_type = "credit"
 
 	// card_status enum
-	Active      card_status = "active"
-	Blocked     card_status = "blocked"
-	Deactivated card_status = "deactivated"
+	Active  Card_status = "active"
+	Blocked Card_status = "blocked"
 
 	// loan_type enum
 	Cash        loan_type = "cash"
@@ -156,7 +155,7 @@ type (
 		Account_number string      `gorm:"column:account_number;type:varchar(20);references accounts(number)"`
 		Cvv            string      `gorm:"column:cvv;type:varchar(7);not null"`
 		Card_limit     int64       `gorm:"column:card_limit;type:bigint"`
-		Status         card_status `gorm:"column:status;type:card_status;not null;default 'active'"`
+		Status         Card_status `gorm:"column:status;type:card_status;not null;default 'active'"`
 	}
 
 	CardRequest struct {

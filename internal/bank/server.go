@@ -420,22 +420,73 @@ func (s *Server) GetCards(ctx context.Context, _ *bankpb.GetCardsRequest) (*bank
 	}, nil
 }
 
-func (s *Server) BlockCard(_ context.Context, req *bankpb.BlockCardRequest) (*bankpb.BlockCardResponse, error) {
-	var cardID int64
+func (s *Server) BlockCard(ctx context.Context, req *bankpb.BlockCardRequest) (*bankpb.BlockCardResponse, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "metadata missing")
+	}
 
-	if req.CardNumber != "" {
-		card, err := s.GetCardByNumberRecord(req.CardNumber)
-		if err != nil {
-			return &bankpb.BlockCardResponse{Success: false}, status.Error(codes.NotFound, "card not found")
-		}
-		cardID = card.Id
-	} else {
+	emails := md.Get("user-email")
+	if len(emails) == 0 || strings.TrimSpace(emails[0]) == "" {
+		return nil, status.Error(codes.Unauthenticated, "email missing in metadata")
+	}
+	userEmail := emails[0]
+
+	isEmployee, err := s.IsEmployeeByEmail(userEmail)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to resolve caller")
+	}
+
+	if req.CardNumber == "" {
 		return nil, status.Error(codes.InvalidArgument, "card_number is required")
 	}
 
-	err := s.BlockCardRecord(cardID)
+	card, err := s.GetCardByNumberRecord(req.CardNumber)
 	if err != nil {
 		return &bankpb.BlockCardResponse{Success: false}, status.Error(codes.NotFound, "card not found")
+	}
+
+	currentStatus, err := s.GetCardStatus(card.Id)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to read card status")
+	}
+
+	isCurrentlyBlocked := currentStatus == Blocked
+
+	// only employees can unblock
+	if isCurrentlyBlocked && !isEmployee {
+		return nil, status.Error(codes.PermissionDenied, "only employees can unblock cards")
+	}
+
+	var newStatus Card_status
+	if isCurrentlyBlocked {
+		newStatus = Active
+	} else {
+		newStatus = Blocked
+	}
+
+	err = s.UpdateCardStatus(card.Id, newStatus)
+	if err != nil {
+		return &bankpb.BlockCardResponse{Success: false}, status.Error(codes.Internal, "failed to update card status")
+	}
+
+	// Send email logic:
+
+	// card ID -> account ID
+	accountID, err := s.GetAccountIDByCardID(card.Id)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to resolve account")
+	}
+
+	// account ID -> owner email
+	clientEmail, err := s.getClientEmailByAccountID(accountID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to resolve client email")
+	}
+
+	err = s.sendCardBlockedEmail(ctx, clientEmail, newStatus == Blocked)
+	if err != nil {
+		return nil, err
 	}
 
 	return &bankpb.BlockCardResponse{Success: true}, nil

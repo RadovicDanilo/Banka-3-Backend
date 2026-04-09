@@ -255,6 +255,28 @@ func (s *Server) SendCardCreatedEmail(_ context.Context, req *notification.CardC
 	return &notification.SuccessResponse{Successful: true}, nil
 }
 
+func (s *Server) SendCardBlockedEmail(_ context.Context, req *notification.CardBlockedReqest) (*notification.SuccessResponse, error) {
+	to := strings.Split(req.ToAddr, ",")
+
+	templ, err := template.ParseFiles("templates/card_blocked.html")
+	if err != nil {
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	var rendered bytes.Buffer
+	if err := templ.Execute(&rendered, req); err != nil {
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	subject := "Status Vaše kartice je ažuriran"
+	err = s.sender.Send(to, subject, rendered.String())
+	if err != nil {
+		return &notification.SuccessResponse{Successful: false}, nil
+	}
+
+	return &notification.SuccessResponse{Successful: true}, nil
+}
+
 func (s *Server) SendTOTPDisableEmail(_ context.Context, req *notification.SendTOTPDisableEmailRequest) (*notification.SuccessResponse, error) {
 	to := strings.Split(req.Email, ",")
 	templ, err := template.ParseFiles("templates/disable_totp.html")

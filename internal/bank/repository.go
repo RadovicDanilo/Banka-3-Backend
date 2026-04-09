@@ -363,15 +363,52 @@ func (s *Server) GetCardsRecords() ([]*Card, error) {
 	return cards, nil
 }
 
-func (s *Server) BlockCardRecord(cardID int64) error {
-	res, err := s.database.Exec(`UPDATE cards SET status = $1 WHERE id = $2`, Blocked, cardID)
+func (s *Server) GetAccountIDByCardID(cardID int64) (int64, error) {
+	var accountID int64
+
+	err := s.db_gorm.
+		Model(&Card{}).
+		Select("accounts.id").
+		Joins("JOIN accounts ON accounts.number = cards.account_number").
+		Where("cards.id = ?", cardID).
+		Scan(&accountID).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	if accountID == 0 {
+		return 0, errors.New("account not found")
+	}
+
+	return accountID, nil
+}
+
+func (s *Server) GetCardStatus(cardID int64) (Card_status, error) {
+	var status string
+
+	err := s.database.QueryRow(`SELECT status FROM cards WHERE id = $1`, cardID).Scan(&status)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", errors.New("card not found")
+		}
+		return "", err
+	}
+
+	return Card_status(status), nil
+}
+
+func (s *Server) UpdateCardStatus(cardID int64, status Card_status) error {
+	res, err := s.database.Exec(`UPDATE cards SET status = $1 WHERE id = $2`, status, cardID)
 	if err != nil {
 		return err
 	}
+
 	rows, _ := res.RowsAffected()
 	if rows == 0 {
 		return errors.New("card not found")
 	}
+
 	return nil
 }
 
@@ -420,8 +457,8 @@ func (s *Server) CountActiveCardsByAccountNumber(accountNumber string) (int, err
 	var count int
 	err := s.database.QueryRow(`
 		SELECT COUNT(*) FROM cards
-		WHERE account_number = $1 AND status != $2
-	`, accountNumber, Deactivated).Scan(&count)
+		WHERE account_number = $1
+	`, accountNumber).Scan(&count)
 	return count, err
 }
 
@@ -1271,6 +1308,8 @@ func (s *Server) getCurrencyLabelByID(id int64) (string, error) {
 	return currency.Label, nil
 }
 
+// TODO: Mozda bi bilo bolje da se poziva user servis za ovo?
+// Svakako ostavljam ovde za sada.
 func (s *Server) getClientEmailByAccountID(accountID int64) (string, error) {
 	var email string
 	err := s.db_gorm.
