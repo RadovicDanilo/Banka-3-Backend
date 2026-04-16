@@ -146,6 +146,7 @@ func TestApproveLoanRequest_Success(t *testing.T) {
 		WillReturnRows(currencyRows)
 
 	// --- TRANSACTION STARTS ---
+	// Transaction: create loan, create installment, update loan request, deposit into account
 	mock.ExpectBegin()
 
 	// 4. Lookup Bank Internal Account
@@ -196,6 +197,8 @@ func TestApproveLoanRequest_Success(t *testing.T) {
 	mock.ExpectExec(`UPDATE "loan_request"`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
+	mock.ExpectExec(`UPDATE "accounts"`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
 	resp, err := server.ApproveLoanRequest(context.Background(), &bankpb.ApproveLoanRequestRequest{Id: 1})
