@@ -8,7 +8,9 @@ import (
 	"os"
 
 	"github.com/RAF-SI-2025/Banka-3-Backend/gen/bank"
+	tradingpb "github.com/RAF-SI-2025/Banka-3-Backend/gen/trading"
 	internalBank "github.com/RAF-SI-2025/Banka-3-Backend/internal/bank"
+	internalTrading "github.com/RAF-SI-2025/Banka-3-Backend/internal/trading"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -58,8 +60,11 @@ func main() {
 	stopScheduler := bankService.StartScheduler()
 	defer stopScheduler()
 
+	tradingService := internalTrading.NewServer(gorm_db)
+
 	srv := grpc.NewServer()
 	bank.RegisterBankServiceServer(srv, bankService)
+	tradingpb.RegisterTradingServiceServer(srv, tradingService)
 	reflection.Register(srv)
 
 	log.Printf("bank service listening on :%s", port)
