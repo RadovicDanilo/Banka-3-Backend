@@ -45,7 +45,7 @@ func NewServer() (*Server, error) {
 
 	tradingAddr := os.Getenv("TRADING_GRPC_ADDR")
 	if tradingAddr == "" {
-		tradingAddr = "trading:50051"
+		tradingAddr = "bank:50051"
 	}
 
 	userConn, err := grpc.NewClient(userAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
