@@ -69,6 +69,58 @@ func (s *Server) CreateEmployeeAccount(c *gin.Context) {
 		"username":    resp.Username,
 		"department":  resp.Department,
 		"permissions": perms,
+		"limit":       resp.Limit,
+		"used_limit":  resp.UsedLimit,
+	})
+}
+
+func (s *Server) UpdateEmployeeTradingLimit(c *gin.Context) {
+	var uri updateEmployeeURI
+	if err := c.ShouldBindUri(&uri); err != nil {
+		c.String(http.StatusBadRequest, "employee id is required and must be a valid integer")
+		return
+	}
+
+	var body updateEmployeeTradingLimitRequest
+	if err := c.BindJSON(&body); err != nil {
+		writeBindError(c, err)
+		return
+	}
+	if body.Limit == nil && body.UsedLimit == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "limit or used_limit must be provided"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	resp, err := s.UserClient.UpdateEmployeeTradingLimit(ctx, &userpb.UpdateEmployeeTradingLimitRequest{
+		Id:          uri.EmployeeID,
+		Limit:       body.Limit,
+		UsedLimit:   body.UsedLimit,
+		CallerEmail: c.GetString("email"),
+	})
+	if err != nil {
+		writeGRPCError(c, err)
+		return
+	}
+
+	perms := resp.Permissions
+	if perms == nil {
+		perms = []string{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":          resp.Id,
+		"first_name":  resp.FirstName,
+		"last_name":   resp.LastName,
+		"email":       resp.Email,
+		"position":    resp.Position,
+		"department":  resp.Department,
+		"active":      resp.Active,
+		"permissions": perms,
+		"limit":       resp.Limit,
+		"used_limit":  resp.UsedLimit,
 	})
 }
 
@@ -109,6 +161,8 @@ func (s *Server) GetEmployeeByID(c *gin.Context) {
 		"department":  resp.Department,
 		"active":      resp.Active,
 		"permissions": perms,
+		"limit":       resp.Limit,
+		"used_limit":  resp.UsedLimit,
 	})
 }
 
@@ -196,6 +250,7 @@ func (s *Server) UpdateEmployee(c *gin.Context) {
 		Department:  req.Department,
 		Active:      req.Active,
 		Permissions: req.Permissions,
+		CallerEmail: c.GetString("email"),
 	})
 	if err != nil {
 		writeGRPCError(c, err)
@@ -221,5 +276,7 @@ func (s *Server) UpdateEmployee(c *gin.Context) {
 		"department":  resp.Department,
 		"active":      resp.Active,
 		"permissions": perms,
+		"limit":       resp.Limit,
+		"used_limit":  resp.UsedLimit,
 	})
 }

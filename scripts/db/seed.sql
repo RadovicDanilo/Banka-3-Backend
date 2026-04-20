@@ -9,7 +9,9 @@ VALUES
     ('manage_clients'),
     ('manage_accounts'),
     ('manage_companies'),
-    ('manage_cards')
+    ('manage_cards'),
+    ('agent'),
+    ('supervisor')
 ON CONFLICT (name) DO NOTHING;
 
 -- default admin (password: "Admin123!")
@@ -78,6 +80,48 @@ INSERT INTO employee_permissions (employee_id, permission_id)
 SELECT e.id, p.id
 FROM employees e, permissions p
 WHERE e.email = 'limited_emp@banka.raf' AND p.name = 'view_stocks'
+ON CONFLICT DO NOTHING;
+
+-- trading agent (password: "Test1234!") — has `agent` perm with a 100,000 RSD daily limit
+INSERT INTO employees (
+    first_name, last_name, date_of_birth, gender, email,
+    phone_number, address, username, password, salt_password,
+    position, department, active, "limit", used_limit
+)
+VALUES (
+    'Agent', 'Trgovac', '1990-01-01', 'M', 'agent@banka.raf',
+    '+381649990003', 'Test Adresa 3', 'agent',
+    '\xa514f71947f5447cdfc2845f40d020cea4146ba28e84cb1a82662a6286f8228d'::BYTEA,
+    '\x11223344556677889900aabbccddeeff'::BYTEA,
+    'Trader', 'Brokersko', true, 10000000, 0
+)
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO employee_permissions (employee_id, permission_id)
+SELECT e.id, p.id
+FROM employees e, permissions p
+WHERE e.email = 'agent@banka.raf' AND p.name IN ('agent', 'trade_stocks', 'view_stocks')
+ON CONFLICT DO NOTHING;
+
+-- trading supervisor (password: "Test1234!") — has `supervisor` perm, no trading limit
+INSERT INTO employees (
+    first_name, last_name, date_of_birth, gender, email,
+    phone_number, address, username, password, salt_password,
+    position, department, active
+)
+VALUES (
+    'Supervizor', 'Trgovac', '1990-01-01', 'F', 'supervisor@banka.raf',
+    '+381649990004', 'Test Adresa 4', 'supervisor',
+    '\xa514f71947f5447cdfc2845f40d020cea4146ba28e84cb1a82662a6286f8228d'::BYTEA,
+    '\x11223344556677889900aabbccddeeff'::BYTEA,
+    'Head Trader', 'Brokersko', true
+)
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO employee_permissions (employee_id, permission_id)
+SELECT e.id, p.id
+FROM employees e, permissions p
+WHERE e.email = 'supervisor@banka.raf' AND p.name IN ('supervisor', 'trade_stocks', 'view_stocks')
 ON CONFLICT DO NOTHING;
 
 -- test client (password: "Test1234!")

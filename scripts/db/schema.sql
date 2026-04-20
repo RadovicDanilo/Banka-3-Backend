@@ -18,6 +18,10 @@ CREATE TABLE IF NOT EXISTS employees (
     position      VARCHAR(100) NOT NULL,
     department    VARCHAR(100) NOT NULL,
     active        BOOLEAN      NOT NULL DEFAULT true,
+    -- Daily trading limit (in RSD minor units) for employees with the `agent` permission.
+    -- Supervisors and admins ignore the limit.
+    "limit"       BIGINT       NOT NULL DEFAULT 0 CHECK ("limit" >= 0),
+    used_limit    BIGINT       NOT NULL DEFAULT 0 CHECK (used_limit >= 0),
     created_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMP    NOT NULL DEFAULT NOW()
 );

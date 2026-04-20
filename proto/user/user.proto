@@ -9,6 +9,7 @@ service UserService {
   rpc GetEmployeeByEmail(GetUserByEmailRequest) returns (GetEmployeeResponse);
   rpc GetEmployees(GetEmployeesRequest) returns (GetEmployeesResponse);
   rpc UpdateEmployee(UpdateEmployeeRequest) returns (GetEmployeeResponse);
+  rpc UpdateEmployeeTradingLimit(UpdateEmployeeTradingLimitRequest) returns (GetEmployeeResponse);
   rpc DeleteEmployee(DeleteEmployeeRequest) returns (DeleteEmployeeResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
@@ -228,6 +229,8 @@ message GetEmployeeResponse {
   string department = 11;
   bool active = 12;
   repeated string permissions = 13;
+  int64 limit = 14;
+  int64 used_limit = 15;
 }
 
 message GetClientResponse {
@@ -252,4 +255,18 @@ message UpdateEmployeeRequest {
   string department = 8;
   bool active = 9;
   repeated string permissions = 10;
+  // email of the caller issuing the update, forwarded by the gateway.
+  // Required so the user service can enforce that only admins may grant
+  // or revoke the `agent` / `supervisor` permissions.
+  string caller_email = 11;
+}
+
+message UpdateEmployeeTradingLimitRequest {
+  int64 id = 1;
+  // new daily limit (in RSD minor units); null/omitted means don't touch.
+  optional int64 limit = 2;
+  // new used_limit value; null/omitted means don't touch. Pass 0 to reset.
+  optional int64 used_limit = 3;
+  // email of the caller; required so the user service can verify the caller is admin/supervisor.
+  string caller_email = 4;
 }

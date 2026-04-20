@@ -52,6 +52,11 @@ type updateEmployeeRequest struct {
 	Permissions []string `json:"permissions"`
 }
 
+type updateEmployeeTradingLimitRequest struct {
+	Limit     *int64 `json:"limit"`
+	UsedLimit *int64 `json:"used_limit"`
+}
+
 type createClientAccountRequest struct {
 	FirstName   string `json:"first_name" binding:"required"`
 	LastName    string `json:"last_name" binding:"required"`

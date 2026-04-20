@@ -19,26 +19,27 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_GetEmployeeById_FullMethodName           = "/user.UserService/GetEmployeeById"
-	UserService_GetEmployeeByEmail_FullMethodName        = "/user.UserService/GetEmployeeByEmail"
-	UserService_GetEmployees_FullMethodName              = "/user.UserService/GetEmployees"
-	UserService_UpdateEmployee_FullMethodName            = "/user.UserService/UpdateEmployee"
-	UserService_DeleteEmployee_FullMethodName            = "/user.UserService/DeleteEmployee"
-	UserService_Login_FullMethodName                     = "/user.UserService/Login"
-	UserService_Logout_FullMethodName                    = "/user.UserService/Logout"
-	UserService_Refresh_FullMethodName                   = "/user.UserService/Refresh"
-	UserService_ValidateAccessToken_FullMethodName       = "/user.UserService/ValidateAccessToken"
-	UserService_ValidateRefreshToken_FullMethodName      = "/user.UserService/ValidateRefreshToken"
-	UserService_RequestPasswordReset_FullMethodName      = "/user.UserService/RequestPasswordReset"
-	UserService_RequestInitialPasswordSet_FullMethodName = "/user.UserService/RequestInitialPasswordSet"
-	UserService_SetPasswordWithToken_FullMethodName      = "/user.UserService/SetPasswordWithToken"
-	UserService_CreateClientAccount_FullMethodName       = "/user.UserService/CreateClientAccount"
-	UserService_GetClients_FullMethodName                = "/user.UserService/GetClients"
-	UserService_UpdateClient_FullMethodName              = "/user.UserService/UpdateClient"
-	UserService_CreateEmployeeAccount_FullMethodName     = "/user.UserService/CreateEmployeeAccount"
-	UserService_GetUserPermissions_FullMethodName        = "/user.UserService/GetUserPermissions"
-	UserService_GetClientById_FullMethodName             = "/user.UserService/GetClientById"
-	UserService_GetClientByEmail_FullMethodName          = "/user.UserService/GetClientByEmail"
+	UserService_GetEmployeeById_FullMethodName            = "/user.UserService/GetEmployeeById"
+	UserService_GetEmployeeByEmail_FullMethodName         = "/user.UserService/GetEmployeeByEmail"
+	UserService_GetEmployees_FullMethodName               = "/user.UserService/GetEmployees"
+	UserService_UpdateEmployee_FullMethodName             = "/user.UserService/UpdateEmployee"
+	UserService_UpdateEmployeeTradingLimit_FullMethodName = "/user.UserService/UpdateEmployeeTradingLimit"
+	UserService_DeleteEmployee_FullMethodName             = "/user.UserService/DeleteEmployee"
+	UserService_Login_FullMethodName                      = "/user.UserService/Login"
+	UserService_Logout_FullMethodName                     = "/user.UserService/Logout"
+	UserService_Refresh_FullMethodName                    = "/user.UserService/Refresh"
+	UserService_ValidateAccessToken_FullMethodName        = "/user.UserService/ValidateAccessToken"
+	UserService_ValidateRefreshToken_FullMethodName       = "/user.UserService/ValidateRefreshToken"
+	UserService_RequestPasswordReset_FullMethodName       = "/user.UserService/RequestPasswordReset"
+	UserService_RequestInitialPasswordSet_FullMethodName  = "/user.UserService/RequestInitialPasswordSet"
+	UserService_SetPasswordWithToken_FullMethodName       = "/user.UserService/SetPasswordWithToken"
+	UserService_CreateClientAccount_FullMethodName        = "/user.UserService/CreateClientAccount"
+	UserService_GetClients_FullMethodName                 = "/user.UserService/GetClients"
+	UserService_UpdateClient_FullMethodName               = "/user.UserService/UpdateClient"
+	UserService_CreateEmployeeAccount_FullMethodName      = "/user.UserService/CreateEmployeeAccount"
+	UserService_GetUserPermissions_FullMethodName         = "/user.UserService/GetUserPermissions"
+	UserService_GetClientById_FullMethodName              = "/user.UserService/GetClientById"
+	UserService_GetClientByEmail_FullMethodName           = "/user.UserService/GetClientByEmail"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -49,6 +50,7 @@ type UserServiceClient interface {
 	GetEmployeeByEmail(ctx context.Context, in *GetUserByEmailRequest, opts ...grpc.CallOption) (*GetEmployeeResponse, error)
 	GetEmployees(ctx context.Context, in *GetEmployeesRequest, opts ...grpc.CallOption) (*GetEmployeesResponse, error)
 	UpdateEmployee(ctx context.Context, in *UpdateEmployeeRequest, opts ...grpc.CallOption) (*GetEmployeeResponse, error)
+	UpdateEmployeeTradingLimit(ctx context.Context, in *UpdateEmployeeTradingLimitRequest, opts ...grpc.CallOption) (*GetEmployeeResponse, error)
 	DeleteEmployee(ctx context.Context, in *DeleteEmployeeRequest, opts ...grpc.CallOption) (*DeleteEmployeeResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
@@ -109,6 +111,16 @@ func (c *userServiceClient) UpdateEmployee(ctx context.Context, in *UpdateEmploy
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetEmployeeResponse)
 	err := c.cc.Invoke(ctx, UserService_UpdateEmployee_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) UpdateEmployeeTradingLimit(ctx context.Context, in *UpdateEmployeeTradingLimitRequest, opts ...grpc.CallOption) (*GetEmployeeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetEmployeeResponse)
+	err := c.cc.Invoke(ctx, UserService_UpdateEmployeeTradingLimit_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -283,6 +295,7 @@ type UserServiceServer interface {
 	GetEmployeeByEmail(context.Context, *GetUserByEmailRequest) (*GetEmployeeResponse, error)
 	GetEmployees(context.Context, *GetEmployeesRequest) (*GetEmployeesResponse, error)
 	UpdateEmployee(context.Context, *UpdateEmployeeRequest) (*GetEmployeeResponse, error)
+	UpdateEmployeeTradingLimit(context.Context, *UpdateEmployeeTradingLimitRequest) (*GetEmployeeResponse, error)
 	DeleteEmployee(context.Context, *DeleteEmployeeRequest) (*DeleteEmployeeResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
@@ -320,6 +333,9 @@ func (UnimplementedUserServiceServer) GetEmployees(context.Context, *GetEmployee
 }
 func (UnimplementedUserServiceServer) UpdateEmployee(context.Context, *UpdateEmployeeRequest) (*GetEmployeeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateEmployee not implemented")
+}
+func (UnimplementedUserServiceServer) UpdateEmployeeTradingLimit(context.Context, *UpdateEmployeeTradingLimitRequest) (*GetEmployeeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateEmployeeTradingLimit not implemented")
 }
 func (UnimplementedUserServiceServer) DeleteEmployee(context.Context, *DeleteEmployeeRequest) (*DeleteEmployeeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteEmployee not implemented")
@@ -458,6 +474,24 @@ func _UserService_UpdateEmployee_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).UpdateEmployee(ctx, req.(*UpdateEmployeeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_UpdateEmployeeTradingLimit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateEmployeeTradingLimitRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).UpdateEmployeeTradingLimit(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_UpdateEmployeeTradingLimit_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).UpdateEmployeeTradingLimit(ctx, req.(*UpdateEmployeeTradingLimitRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -772,6 +806,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateEmployee",
 			Handler:    _UserService_UpdateEmployee_Handler,
+		},
+		{
+			MethodName: "UpdateEmployeeTradingLimit",
+			Handler:    _UserService_UpdateEmployeeTradingLimit_Handler,
 		},
 		{
 			MethodName: "DeleteEmployee",
