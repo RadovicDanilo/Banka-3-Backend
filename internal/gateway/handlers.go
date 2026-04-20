@@ -84,6 +84,10 @@ func SetupApi(router *gin.Engine, server *Server) {
 		employees.PATCH("/:employeeId", server.UpdateEmployee)
 	}
 
+	// Supervisors (and admins via bypass) adjust an agent's daily trading limit
+	// and/or reset their used_limit. Gated by `supervisor`; admin bypass still applies.
+	api.PATCH("/employees/:employeeId/trading-limit", auth, secured("supervisor"), server.UpdateEmployeeTradingLimit)
+
 	companies := api.Group("/companies", auth, secured("manage_companies"))
 	{
 		companies.POST("", server.CreateCompany)

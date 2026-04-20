@@ -113,6 +113,8 @@ func (emp Employee) toProtobuf() *userpb.GetEmployeeResponse {
 		Department:  emp.Department,
 		Active:      emp.Active,
 		Permissions: permissions,
+		Limit:       emp.Limit,
+		UsedLimit:   emp.Used_limit,
 	}
 }
 
@@ -208,13 +210,24 @@ func (s *Server) GetEmployees(_ context.Context, req *userpb.GetEmployeesRequest
 }
 
 func (s *Server) UpdateEmployee(ctx context.Context, req *userpb.UpdateEmployeeRequest) (*userpb.GetEmployeeResponse, error) {
+	existing, existingErr := getUserByAttribute(Employee{}, s.db_gorm, "id", req.Id)
 	if !req.Active {
-		existing, err := getUserByAttribute(Employee{}, s.db_gorm, "id", req.Id)
-		if err == nil && existing != nil {
+		if existingErr == nil && existing != nil {
 			for _, p := range existing.Permissions {
 				if p.Name == "admin" {
 					return nil, status.Error(codes.PermissionDenied, "cannot deactivate an admin")
 				}
+			}
+		}
+	}
+
+	// Only admins may grant or revoke the `agent` / `supervisor` permissions.
+	if req.Permissions != nil && existingErr == nil && existing != nil {
+		oldSet := permissionSet(existing.Permissions)
+		newSet := namesToSet(req.Permissions)
+		if togglesTradingRole(oldSet, newSet) {
+			if !callerIsAdmin(ctx, s, req.CallerEmail) {
+				return nil, status.Error(codes.PermissionDenied, "only admins may grant or revoke agent/supervisor permissions")
 			}
 		}
 	}
@@ -262,6 +275,116 @@ func (s *Server) UpdateEmployee(ctx context.Context, req *userpb.UpdateEmployeeR
 
 	return updated.toProtobuf(), nil
 
+}
+
+// UpdateEmployeeTradingLimit sets an agent's daily trading limit and/or used_limit.
+// Only admins and supervisors may call this. The caller is identified by CallerEmail
+// (forwarded from the gateway).
+func (s *Server) UpdateEmployeeTradingLimit(ctx context.Context, req *userpb.UpdateEmployeeTradingLimitRequest) (*userpb.GetEmployeeResponse, error) {
+	if req.Id <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "id must be greater than zero")
+	}
+	if req.Limit == nil && req.UsedLimit == nil {
+		return nil, status.Error(codes.InvalidArgument, "limit or used_limit must be provided")
+	}
+	if req.Limit != nil && *req.Limit < 0 {
+		return nil, status.Error(codes.InvalidArgument, "limit must be non-negative")
+	}
+	if req.UsedLimit != nil && *req.UsedLimit < 0 {
+		return nil, status.Error(codes.InvalidArgument, "used_limit must be non-negative")
+	}
+
+	if !callerCanManageLimits(ctx, s, req.CallerEmail) {
+		return nil, status.Error(codes.PermissionDenied, "only admins and supervisors may change an agent's limit")
+	}
+
+	target, err := getUserByAttribute(Employee{}, s.db_gorm, "id", req.Id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "employee not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to load employee")
+	}
+
+	updates := map[string]any{"updated_at": time.Now()}
+	if req.Limit != nil {
+		updates["limit"] = *req.Limit
+	}
+	if req.UsedLimit != nil {
+		updates["used_limit"] = *req.UsedLimit
+	}
+
+	if err := s.db_gorm.Model(&Employee{}).Where("id = ?", target.Id).Updates(updates).Error; err != nil {
+		return nil, status.Error(codes.Internal, "failed to update trading limit")
+	}
+
+	reloaded, err := getUserByAttribute(Employee{}, s.db_gorm, "id", req.Id)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to reload employee")
+	}
+	return reloaded.toProtobuf(), nil
+}
+
+// permissionSet converts a list of Permission rows to a string set for easy membership tests.
+func permissionSet(perms []Permission) map[string]struct{} {
+	out := make(map[string]struct{}, len(perms))
+	for _, p := range perms {
+		out[p.Name] = struct{}{}
+	}
+	return out
+}
+
+func namesToSet(names []string) map[string]struct{} {
+	out := make(map[string]struct{}, len(names))
+	for _, n := range names {
+		out[n] = struct{}{}
+	}
+	return out
+}
+
+// togglesTradingRole reports whether the `agent` or `supervisor` membership differs
+// between the old and new permission sets.
+func togglesTradingRole(oldSet, newSet map[string]struct{}) bool {
+	for _, perm := range []string{"agent", "supervisor"} {
+		_, inOld := oldSet[perm]
+		_, inNew := newSet[perm]
+		if inOld != inNew {
+			return true
+		}
+	}
+	return false
+}
+
+func callerIsAdmin(_ context.Context, s *Server, callerEmail string) bool {
+	if strings.TrimSpace(callerEmail) == "" {
+		return false
+	}
+	caller, err := getUserByAttribute(Employee{}, s.db_gorm, "email", callerEmail)
+	if err != nil || caller == nil {
+		return false
+	}
+	for _, p := range caller.Permissions {
+		if p.Name == "admin" {
+			return true
+		}
+	}
+	return false
+}
+
+func callerCanManageLimits(_ context.Context, s *Server, callerEmail string) bool {
+	if strings.TrimSpace(callerEmail) == "" {
+		return false
+	}
+	caller, err := getUserByAttribute(Employee{}, s.db_gorm, "email", callerEmail)
+	if err != nil || caller == nil {
+		return false
+	}
+	for _, p := range caller.Permissions {
+		if p.Name == "admin" || p.Name == "supervisor" {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Server) GetClients(_ context.Context, req *userpb.GetClientsRequest) (*userpb.GetClientsResponse, error) {
