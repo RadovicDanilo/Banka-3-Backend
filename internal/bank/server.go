@@ -1647,6 +1647,30 @@ func (s *Server) ApproveLoanRequest(_ context.Context, req *bankpb.ApproveLoanRe
 	}
 
 	err = s.db_gorm.Transaction(func(tx *gorm.DB) error {
+		// 1. Get the Bank's internal account for this loan's currency
+		internalAcc, err := s.GetInternalAccountByCurrency(tx, currency.Label)
+		if err != nil {
+			return status.Errorf(codes.Internal, "failed to find bank internal account for %s", currency.Label)
+		}
+
+		sqlTx, ok := tx.Statement.ConnPool.(*sql.Tx)
+		if !ok {
+			return status.Error(codes.Internal, "failed to get underlying transaction")
+		}
+
+		// take from bank
+		_, err = s.DecreaseAccountBalance(sqlTx, internalAcc.Number, loanReq.Amount)
+		if err != nil {
+			// Note: DecreaseAccountBalance already checks for insufficient funds/limits
+			return err
+		}
+
+		// give to client
+		_, err = s.IncreaseAccountBalance(sqlTx, account.Number, loanReq.Amount)
+		if err != nil {
+			return err
+		}
+
 		if err := tx.Create(loan).Error; err != nil {
 			return err
 		}
@@ -1657,15 +1681,10 @@ func (s *Server) ApproveLoanRequest(_ context.Context, req *bankpb.ApproveLoanRe
 		if err := tx.Model(&LoanRequest{}).Where("id = ?", req.Id).Update("status", LoanRequestApproved).Error; err != nil {
 			return err
 		}
-		// Deposit the loan amount into the client's account
-		if err := tx.Model(&Account{}).Where("id = ?", loanReq.Account_id).
-			Update("balance", gorm.Expr("balance + ?", loanReq.Amount)).Error; err != nil {
-			return err
-		}
 		return nil
 	})
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to approve loan request")
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	// Send approval notification (best-effort)
