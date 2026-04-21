@@ -196,9 +196,6 @@ func TestApproveLoanRequest_Success(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(1)))
 	mock.ExpectExec(`UPDATE "loan_request"`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-
-	mock.ExpectExec(`UPDATE "accounts"`).
-		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
 	resp, err := server.ApproveLoanRequest(context.Background(), &bankpb.ApproveLoanRequestRequest{Id: 1})

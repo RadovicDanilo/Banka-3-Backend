@@ -1681,11 +1681,6 @@ func (s *Server) ApproveLoanRequest(_ context.Context, req *bankpb.ApproveLoanRe
 		if err := tx.Model(&LoanRequest{}).Where("id = ?", req.Id).Update("status", LoanRequestApproved).Error; err != nil {
 			return err
 		}
-		// Deposit the loan amount into the client's account
-		if err := tx.Model(&Account{}).Where("id = ?", loanReq.Account_id).
-			Update("balance", gorm.Expr("balance + ?", loanReq.Amount)).Error; err != nil {
-			return err
-		}
 		return nil
 	})
 	if err != nil {
