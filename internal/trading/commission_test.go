@@ -23,40 +23,40 @@ func TestPlanCommissionCharge(t *testing.T) {
 		wantMenjacnica int64
 	}{
 		{
-			name:         "same currency — no conversion, no menjacnica",
-			debitCur:     "USD", instrCur: "USD",
+			name:     "same currency — no conversion, no menjacnica",
+			debitCur: "USD", instrCur: "USD",
 			feeInstrument: 700, rateAccRSD: rateUSD, rateInstrRSD: rateUSD,
-			isClient: true,
+			isClient:  true,
 			wantDebit: 700, wantFeeInstr: 700, wantMenjacnica: 0,
 		},
 		{
-			name:         "RSD debit for USD instrument, client pays 1%",
-			debitCur:     "RSD", instrCur: "USD",
+			name:     "RSD debit for USD instrument, client pays 1%",
+			debitCur: "RSD", instrCur: "USD",
 			feeInstrument: 700, rateAccRSD: rateRSD, rateInstrRSD: rateUSD,
 			isClient: true,
 			// 700 USD-minor * 100 / 1 = 70000 RSD-minor; 1% = 700.
 			wantDebit: 70700, wantFeeInstr: 700, wantMenjacnica: 700,
 		},
 		{
-			name:         "RSD debit for USD instrument, employee skips menjacnica",
-			debitCur:     "RSD", instrCur: "USD",
+			name:     "RSD debit for USD instrument, employee skips menjacnica",
+			debitCur: "RSD", instrCur: "USD",
 			feeInstrument: 700, rateAccRSD: rateRSD, rateInstrRSD: rateUSD,
-			isClient: false,
+			isClient:  false,
 			wantDebit: 70000, wantFeeInstr: 700, wantMenjacnica: 0,
 		},
 		{
-			name:         "EUR debit for USD instrument, client",
-			debitCur:     "EUR", instrCur: "USD",
+			name:     "EUR debit for USD instrument, client",
+			debitCur: "EUR", instrCur: "USD",
 			feeInstrument: 1200, rateAccRSD: rateEUR, rateInstrRSD: rateUSD,
 			isClient: true,
 			// 1200 * 100 / 117.69 = 1019.63 → ceil 1020; 1% of 1020 = 10.2 → ceil 11.
 			wantDebit: 1031, wantFeeInstr: 1200, wantMenjacnica: 11,
 		},
 		{
-			name:         "zero commission — no-op",
-			debitCur:     "EUR", instrCur: "USD",
+			name:     "zero commission — no-op",
+			debitCur: "EUR", instrCur: "USD",
 			feeInstrument: 0, rateAccRSD: rateEUR, rateInstrRSD: rateUSD,
-			isClient: true,
+			isClient:  true,
 			wantDebit: 0, wantFeeInstr: 0, wantMenjacnica: 0,
 		},
 	}
