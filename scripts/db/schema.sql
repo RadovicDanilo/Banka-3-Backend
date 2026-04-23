@@ -409,6 +409,10 @@ CREATE TABLE IF NOT EXISTS orders (
     listing_id          BIGINT          REFERENCES listings(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     option_id           BIGINT          REFERENCES options(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     forex_pair_id       BIGINT          REFERENCES forex_pairs(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    -- Debit target for the placer side of each fill. Kept on the row so the
+    -- execution engine can settle fills without re-reading the original
+    -- request; also lets decline/cancel refund commission if we ever wire it.
+    account_number      VARCHAR(20)     NOT NULL REFERENCES accounts(number) ON UPDATE CASCADE ON DELETE RESTRICT,
     order_type          order_type      NOT NULL,
     direction           order_direction NOT NULL,
     status              order_status    NOT NULL DEFAULT 'pending',
@@ -426,6 +430,20 @@ CREATE TABLE IF NOT EXISTS orders (
     created_at          TIMESTAMP       NOT NULL DEFAULT NOW(),
     CHECK ((listing_id IS NOT NULL)::int + (option_id IS NOT NULL)::int + (forex_pair_id IS NOT NULL)::int = 1)
 );
+
+-- Per-chunk fills written by the execution engine (#205). price_per_unit is
+-- in the instrument's currency; fx_rate is NULL for same-currency fills and
+-- otherwise stores the rateInstrRSD/rateAccRSD snapshot used to convert the
+-- chunk cost into the placer's account currency at settle time.
+CREATE TABLE IF NOT EXISTS order_fills (
+    id                  BIGSERIAL        PRIMARY KEY,
+    order_id            BIGINT           NOT NULL REFERENCES orders(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    portions            BIGINT           NOT NULL,
+    price_per_unit      BIGINT           NOT NULL,
+    fx_rate             DOUBLE PRECISION,
+    created_at          TIMESTAMP        NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_order_fills_order ON order_fills(order_id);
 
 -- Notify Redis when employee permissions change
 CREATE OR REPLACE FUNCTION notify_permission_change() RETURNS trigger AS $$

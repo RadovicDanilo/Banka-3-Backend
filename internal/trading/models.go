@@ -149,6 +149,7 @@ type Order struct {
 	ListingID         *int64         `gorm:"column:listing_id"`
 	OptionID          *int64         `gorm:"column:option_id"`
 	ForexPairID       *int64         `gorm:"column:forex_pair_id"`
+	AccountNumber     string         `gorm:"column:account_number;type:varchar(20);not null"`
 	OrderType         OrderType      `gorm:"column:order_type;type:order_type;not null"`
 	Direction         OrderDirection `gorm:"column:direction;type:order_direction;not null"`
 	Status            OrderStatus    `gorm:"column:status;type:order_status;not null;default:'pending'"`
@@ -167,3 +168,18 @@ type Order struct {
 }
 
 func (Order) TableName() string { return "orders" }
+
+// OrderFill is one chunk executed against an order by the market executor
+// (#205). price_per_unit is in the instrument's currency; FxRate is set only
+// for cross-currency fills and stores the rateInstrRSD/rateAccRSD used to
+// convert the chunk cost into the placer's account currency.
+type OrderFill struct {
+	ID           int64     `gorm:"column:id;primaryKey"`
+	OrderID      int64     `gorm:"column:order_id;not null"`
+	Portions     int64     `gorm:"column:portions;not null"`
+	PricePerUnit int64     `gorm:"column:price_per_unit;not null"`
+	FxRate       *float64  `gorm:"column:fx_rate"`
+	CreatedAt    time.Time `gorm:"column:created_at;not null;autoCreateTime"`
+}
+
+func (OrderFill) TableName() string { return "order_fills" }
