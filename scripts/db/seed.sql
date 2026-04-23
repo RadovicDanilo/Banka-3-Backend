@@ -29,11 +29,11 @@ VALUES (
 )
 ON CONFLICT (email) DO NOTHING;
 
--- give admin user the admin permission
+-- give admin user the admin and supervisor permissions (spec p.38: admin implies supervisor)
 INSERT INTO employee_permissions (employee_id, permission_id)
 SELECT e.id, p.id
 FROM employees e, permissions p
-WHERE e.email = :'admin_email' AND p.name = 'admin'
+WHERE e.email = :'admin_email' AND p.name IN ('admin', 'supervisor')
 ON CONFLICT DO NOTHING;
 
 -- full-employee employee (password: "Test1234!") — has all permissions for testing
