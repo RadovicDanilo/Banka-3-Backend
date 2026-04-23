@@ -90,6 +90,13 @@ type instrumentInfo struct {
 	ContractSize   int64
 	MarketPrice    int64
 	SettlementDate *time.Time
+	// MarginBasePrice is the price used in the maintenance-margin formula
+	// (spec pp.47–49). For options it's the underlying stock's listing price,
+	// not the option premium; for everything else it matches MarketPrice.
+	MarginBasePrice int64
+	// MarginPermille is the maintenance-margin percentage expressed as permille
+	// (spec pp.47–49): stocks/options 500 (50%), futures/forex 100 (10%).
+	MarginPermille int64
 }
 
 // resolveInstrument loads the underlying referenced by the CreateOrder request
@@ -126,10 +133,12 @@ func (s *Server) resolveInstrument(req *tradingpb.CreateOrderRequest) (*instrume
 			return nil, status.Errorf(codes.Internal, "%v", err)
 		}
 		info := &instrumentInfo{
-			Exchange:     &exch,
-			Currency:     exch.Currency,
-			ContractSize: 1,
-			MarketPrice:  listing.Price,
+			Exchange:        &exch,
+			Currency:        exch.Currency,
+			ContractSize:    1,
+			MarketPrice:     listing.Price,
+			MarginBasePrice: listing.Price,
+			MarginPermille:  500,
 		}
 		if listing.FutureID != nil {
 			var fut Future
@@ -137,6 +146,7 @@ func (s *Server) resolveInstrument(req *tradingpb.CreateOrderRequest) (*instrume
 				return nil, status.Errorf(codes.Internal, "%v", err)
 			}
 			info.ContractSize = fut.ContractSize
+			info.MarginPermille = 100
 			sd := fut.SettlementDate
 			info.SettlementDate = &sd
 		}
@@ -163,11 +173,13 @@ func (s *Server) resolveInstrument(req *tradingpb.CreateOrderRequest) (*instrume
 		}
 		sd := opt.SettlementDate
 		return &instrumentInfo{
-			Exchange:       &exch,
-			Currency:       exch.Currency,
-			ContractSize:   1,
-			MarketPrice:    opt.Premium,
-			SettlementDate: &sd,
+			Exchange:        &exch,
+			Currency:        exch.Currency,
+			ContractSize:    1,
+			MarketPrice:     opt.Premium,
+			SettlementDate:  &sd,
+			MarginBasePrice: listing.Price,
+			MarginPermille:  500,
 		}, nil
 
 	default: // forex pair — no exchange
@@ -180,10 +192,13 @@ func (s *Server) resolveInstrument(req *tradingpb.CreateOrderRequest) (*instrume
 		}
 		// Forex convention (spec p.48, mirrored by ListForexPairs): contract
 		// size 1000, price in minor units is exchange_rate * 100.
+		fxPrice := int64(fx.ExchangeRate * 100)
 		return &instrumentInfo{
-			Currency:     fx.QuoteCurrency,
-			ContractSize: 1000,
-			MarketPrice:  int64(fx.ExchangeRate * 100),
+			Currency:        fx.QuoteCurrency,
+			ContractSize:    1000,
+			MarketPrice:     fxPrice,
+			MarginBasePrice: fxPrice,
+			MarginPermille:  100,
 		}, nil
 	}
 }
