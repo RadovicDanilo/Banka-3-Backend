@@ -215,6 +215,16 @@ func (s *Server) GetEmployees(_ context.Context, req *userpb.GetEmployeesRequest
 
 func (s *Server) UpdateEmployee(ctx context.Context, req *userpb.UpdateEmployeeRequest) (*userpb.GetEmployeeResponse, error) {
 	existing, existingErr := getUserByAttribute(Employee{}, s.db_gorm, "id", req.Id)
+
+	// Spec p.38: an admin may not edit another admin. Self-edits are allowed.
+	if existingErr == nil && existing != nil {
+		existingPerms := permissionSet(existing.Permissions)
+		if _, targetIsAdmin := existingPerms["admin"]; targetIsAdmin &&
+			!strings.EqualFold(strings.TrimSpace(req.CallerEmail), existing.Email) {
+			return nil, status.Error(codes.PermissionDenied, "admins cannot edit other admins")
+		}
+	}
+
 	if !req.Active {
 		if existingErr == nil && existing != nil {
 			for _, p := range existing.Permissions {
@@ -223,6 +233,12 @@ func (s *Server) UpdateEmployee(ctx context.Context, req *userpb.UpdateEmployeeR
 				}
 			}
 		}
+	}
+
+	// Spec p.38: every admin is also a supervisor. Granting admin implicitly
+	// grants supervisor; revoking admin leaves supervisor untouched.
+	if req.Permissions != nil {
+		req.Permissions = ensureAdminImpliesSupervisor(req.Permissions)
 	}
 
 	// Only admins may grant or revoke the `agent` / `supervisor` permissions.
@@ -420,6 +436,20 @@ func namesToSet(names []string) map[string]struct{} {
 		out[n] = struct{}{}
 	}
 	return out
+}
+
+// ensureAdminImpliesSupervisor returns perms with "supervisor" appended when
+// "admin" is present but "supervisor" is not (spec p.38: admin is-a supervisor).
+// Idempotent: calling twice yields the same result.
+func ensureAdminImpliesSupervisor(perms []string) []string {
+	set := namesToSet(perms)
+	if _, hasAdmin := set["admin"]; !hasAdmin {
+		return perms
+	}
+	if _, hasSup := set["supervisor"]; hasSup {
+		return perms
+	}
+	return append(perms, "supervisor")
 }
 
 // togglesTradingRole reports whether the `agent` or `supervisor` membership differs
@@ -1003,8 +1033,11 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 		log.Printf("Error generating salt %s", salt_err.Error())
 	}
 
-	permissions := make([]Permission, 0, len(req.Permissions))
-	for _, permName := range req.Permissions {
+	// Spec p.38: every admin is also a supervisor.
+	reqPerms := ensureAdminImpliesSupervisor(req.Permissions)
+
+	permissions := make([]Permission, 0, len(reqPerms))
+	for _, permName := range reqPerms {
 		var perm Permission
 		if err := s.db_gorm.First(&perm, "name = ?", permName).Error; err != nil {
 			log.Printf("Permission %q not found, skipping", permName)

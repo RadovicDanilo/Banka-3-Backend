@@ -2,8 +2,11 @@ package user
 
 import (
 	"context"
+	"regexp"
 	"testing"
+	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/gen/user"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -86,3 +89,74 @@ func TestUpdateEmployeeTradingLimitArgValidation(t *testing.T) {
 }
 
 func ptr64(v int64) *int64 { return &v }
+
+// Spec p.38: granting `admin` implicitly grants `supervisor`. Revoking `admin`
+// does not touch `supervisor`. ensureAdminImpliesSupervisor is the pure helper
+// behind both CreateEmployeeAccount and UpdateEmployee; covering it here pins
+// the invariant without needing a full DB harness.
+func TestEnsureAdminImpliesSupervisor(t *testing.T) {
+	tests := []struct {
+		name string
+		in   []string
+		want []string
+	}{
+		{"no admin, untouched", []string{"manage_loans"}, []string{"manage_loans"}},
+		{"admin without supervisor → appends", []string{"admin"}, []string{"admin", "supervisor"}},
+		{"admin with supervisor → idempotent", []string{"admin", "supervisor"}, []string{"admin", "supervisor"}},
+		{"supervisor alone stays alone", []string{"supervisor"}, []string{"supervisor"}},
+		{"nil in, nil out", nil, nil},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ensureAdminImpliesSupervisor(tc.in)
+			if len(got) != len(tc.want) {
+				t.Fatalf("len mismatch: got %v want %v", got, tc.want)
+			}
+			gotSet := namesToSet(got)
+			for _, p := range tc.want {
+				if _, ok := gotSet[p]; !ok {
+					t.Fatalf("missing %q in result %v", p, got)
+				}
+			}
+		})
+	}
+}
+
+// Spec p.38: an admin may not edit another admin. The server must short-circuit
+// before touching the permissions payload.
+func TestUpdateEmployeeBlocksAdminOnAdmin(t *testing.T) {
+	server, mock, db := newGormTestServer(t)
+	defer func() { _ = db.Close() }()
+
+	birth := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	now := time.Now()
+
+	// getUserByAttribute(Employee, "id", 1): returns a target who already has `admin`.
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "employees" WHERE id = $1 ORDER BY "employees"."id" LIMIT $2`)).
+		WithArgs(int64(1), 1).
+		WillReturnRows(sqlmockEmployeeRows().
+			AddRow(uint64(1), "Target", "Admin", birth, "M", "target-admin@banka.raf", "+381", "addr",
+				"tadmin", []byte("pw"), []byte("salt"), "Admin", "IT", true, int64(0), int64(0), false, now, now))
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "employee_permissions" WHERE "employee_permissions"."employee_id" = $1`)).
+		WithArgs(uint64(1)).
+		WillReturnRows(sqlmock.NewRows([]string{"employee_id", "permission_id"}).AddRow(uint64(1), uint64(1)))
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "permissions" WHERE "permissions"."id" = $1`)).
+		WithArgs(uint64(1)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(uint64(1), "admin"))
+
+	_, err := server.UpdateEmployee(context.Background(), &userpb.UpdateEmployeeRequest{
+		Id:          1,
+		Active:      true,
+		CallerEmail: "someone-else@banka.raf",
+		Permissions: []string{"admin"},
+	})
+	if err == nil {
+		t.Fatal("expected PermissionDenied, got nil")
+	}
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("got code %s, want PermissionDenied (err=%v)", status.Code(err), err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}
