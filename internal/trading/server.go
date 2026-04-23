@@ -90,28 +90,38 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 		return nil, err
 	}
 
-	exch, instrumentCurrency, err := s.resolveInstrument(req)
+	info, err := s.resolveInstrument(req)
 	if err != nil {
 		return nil, err
 	}
-	if acc.Currency != instrumentCurrency {
+	if acc.Currency != info.Currency {
 		return nil, status.Errorf(codes.InvalidArgument,
 			"account currency %s does not match instrument currency %s",
-			acc.Currency, instrumentCurrency)
+			acc.Currency, info.Currency)
 	}
 
+	now := time.Now()
 	// after_hours is an exchange-clock concept; forex pairs have no exchange
 	// and always leave the flag false.
-	afterHours := exch != nil && IsAfterHours(*exch, time.Now())
+	afterHours := info.Exchange != nil && IsAfterHours(*info.Exchange, now)
 
-	pricePerUnit := marketReferencePrice(orderType, req)
+	// Approximate-price inputs (spec p.57). We keep PricePerUnit=0 on market
+	// orders so the execution engine (#189) re-reads the quote at fill time,
+	// but approval math still needs a concrete number — that's what
+	// approvalPricePerUnit provides.
+	approvalPPU := approvalPricePerUnit(orderType, req, info.MarketPrice)
+	approxRSD, err := s.approxPriceRSD(info.Currency, info.ContractSize, approvalPPU, req.Quantity)
+	if err != nil {
+		return nil, err
+	}
+	pastSettlement := isPastSettlement(info.SettlementDate, now)
+
 	order := Order{
 		OrderType:         orderType,
 		Direction:         direction,
-		Status:            StatusPending,
 		Quantity:          req.Quantity,
-		ContractSize:      1,
-		PricePerUnit:      pricePerUnit,
+		ContractSize:      info.ContractSize,
+		PricePerUnit:      marketReferencePrice(orderType, req),
 		RemainingPortions: req.Quantity,
 		AfterHours:        afterHours,
 		AllOrNone:         req.AllOrNone,
@@ -132,6 +142,10 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 
 	if err := s.db.Transaction(func(tx *gorm.DB) error {
 		placer := OrderPlacer{}
+		role := roleClient
+		var limits agentLimits
+		var employeeID int64
+
 		if caller.IsClient {
 			id := caller.ClientID
 			placer.ClientID = &id
@@ -139,20 +153,43 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 			if caller.Email == "" {
 				return status.Error(codes.Internal, "employee email missing from caller")
 			}
-			empID, lookupErr := lookupEmployeeID(tx, caller.Email)
-			if lookupErr != nil {
-				return lookupErr
+			empID, r, lim, roleErr := resolveEmployeeRole(tx, caller.Email)
+			if roleErr != nil {
+				return roleErr
 			}
+			employeeID = empID
+			role = r
+			limits = lim
 			placer.EmployeeID = &empID
 		} else {
 			return status.Error(codes.PermissionDenied, "caller is neither client nor employee")
 		}
+
+		order.Status = decideOrderStatus(role, limits, approxRSD, pastSettlement)
+
 		if err := tx.Create(&placer).Error; err != nil {
 			return err
 		}
 		order.PlacerID = placer.ID
-		return tx.Create(&order).Error
+		if err := tx.Create(&order).Error; err != nil {
+			return err
+		}
+
+		// Agent self-approved orders consume daily limit immediately so a
+		// follow-on order sees the updated headroom. Pending orders stay out
+		// of used_limit until the supervisor approves them (#204).
+		if role == roleAgent && order.Status == StatusApproved {
+			if err := tx.Table("employees").
+				Where("id = ?", employeeID).
+				Update("used_limit", gorm.Expr("used_limit + ?", approxRSD)).Error; err != nil {
+				return err
+			}
+		}
+		return nil
 	}); err != nil {
+		if _, ok := status.FromError(err); ok {
+			return nil, err
+		}
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
