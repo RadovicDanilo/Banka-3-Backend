@@ -42,6 +42,12 @@ func (s *Server) AuthorizeAccountAccess(ctx context.Context, acc *Account) error
 	return s.authorizeAccountAccess(ctx, acc)
 }
 
+// GetExchangeRateToRSD is exported for in-process callers (trading uses it to
+// convert approximate order price into RSD for agent-limit accounting).
+func (s *Server) GetExchangeRateToRSD(currencyLabel string) (float64, error) {
+	return s.getExchangeRateToRSD(currencyLabel)
+}
+
 func (s *Server) ListAccounts(ctx context.Context, req *bankpb.ListAccountsRequest) (*bankpb.ListAccountsResponse, error) {
 	caller, err := s.resolveCaller(ctx)
 	if err != nil {

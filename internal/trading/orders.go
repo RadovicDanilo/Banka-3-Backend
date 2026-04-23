@@ -2,6 +2,7 @@ package trading
 
 import (
 	"errors"
+	"time"
 
 	tradingpb "github.com/RAF-SI-2025/Banka-3-Backend/gen/trading"
 	"google.golang.org/grpc/codes"
@@ -77,12 +78,26 @@ func marketReferencePrice(ot OrderType, req *tradingpb.CreateOrderRequest) int64
 	return 0
 }
 
-// resolveInstrument returns (exchange, currency) for the order's instrument.
-// Listings inherit both from their exchange; options follow the underlying
-// stock's listing to its exchange; forex pairs aren't tied to any exchange
-// and use the quote currency (exchange is returned as nil). Callers that
+// instrumentInfo bundles everything CreateOrder needs to know about the
+// underlying for auth, accounting, and approval routing. Exchange is nil for
+// forex pairs (they have no listing/exchange per spec). SettlementDate is set
+// only for futures and options — stocks and forex don't expire. MarketPrice is
+// the reference price used when the order type is `market` (issue #200's
+// approximate-price formula — page 57).
+type instrumentInfo struct {
+	Exchange       *Exchange
+	Currency       string
+	ContractSize   int64
+	MarketPrice    int64
+	SettlementDate *time.Time
+}
+
+// resolveInstrument loads the underlying referenced by the CreateOrder request
+// and returns the derived fields used downstream. Listings inherit currency
+// from their exchange; options follow the underlying stock's listing; forex
+// pairs aren't tied to any exchange and use the quote currency. Callers that
 // need the clock (IsOpen / IsAfterHours) should skip forex.
-func (s *Server) resolveInstrument(req *tradingpb.CreateOrderRequest) (*Exchange, string, error) {
+func (s *Server) resolveInstrument(req *tradingpb.CreateOrderRequest) (*instrumentInfo, error) {
 	set := 0
 	if req.ListingId != 0 {
 		set++
@@ -94,7 +109,7 @@ func (s *Server) resolveInstrument(req *tradingpb.CreateOrderRequest) (*Exchange
 		set++
 	}
 	if set != 1 {
-		return nil, "", status.Error(codes.InvalidArgument, "exactly one of listing_id, option_id, forex_pair_id must be set")
+		return nil, status.Error(codes.InvalidArgument, "exactly one of listing_id, option_id, forex_pair_id must be set")
 	}
 
 	switch {
@@ -102,63 +117,73 @@ func (s *Server) resolveInstrument(req *tradingpb.CreateOrderRequest) (*Exchange
 		var listing Listing
 		if err := s.db.First(&listing, req.ListingId).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, "", status.Error(codes.NotFound, "listing not found")
+				return nil, status.Error(codes.NotFound, "listing not found")
 			}
-			return nil, "", status.Errorf(codes.Internal, "%v", err)
+			return nil, status.Errorf(codes.Internal, "%v", err)
 		}
 		var exch Exchange
 		if err := s.db.First(&exch, listing.ExchangeID).Error; err != nil {
-			return nil, "", status.Errorf(codes.Internal, "%v", err)
+			return nil, status.Errorf(codes.Internal, "%v", err)
 		}
-		return &exch, exch.Currency, nil
+		info := &instrumentInfo{
+			Exchange:     &exch,
+			Currency:     exch.Currency,
+			ContractSize: 1,
+			MarketPrice:  listing.Price,
+		}
+		if listing.FutureID != nil {
+			var fut Future
+			if err := s.db.First(&fut, *listing.FutureID).Error; err != nil {
+				return nil, status.Errorf(codes.Internal, "%v", err)
+			}
+			info.ContractSize = fut.ContractSize
+			sd := fut.SettlementDate
+			info.SettlementDate = &sd
+		}
+		return info, nil
 
 	case req.OptionId != 0:
 		var opt Option
 		if err := s.db.First(&opt, req.OptionId).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, "", status.Error(codes.NotFound, "option not found")
+				return nil, status.Error(codes.NotFound, "option not found")
 			}
-			return nil, "", status.Errorf(codes.Internal, "%v", err)
+			return nil, status.Errorf(codes.Internal, "%v", err)
 		}
 		var listing Listing
 		if err := s.db.Where("stock_id = ?", opt.StockID).First(&listing).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, "", status.Error(codes.FailedPrecondition, "underlying stock has no listing")
+				return nil, status.Error(codes.FailedPrecondition, "underlying stock has no listing")
 			}
-			return nil, "", status.Errorf(codes.Internal, "%v", err)
+			return nil, status.Errorf(codes.Internal, "%v", err)
 		}
 		var exch Exchange
 		if err := s.db.First(&exch, listing.ExchangeID).Error; err != nil {
-			return nil, "", status.Errorf(codes.Internal, "%v", err)
+			return nil, status.Errorf(codes.Internal, "%v", err)
 		}
-		return &exch, exch.Currency, nil
+		sd := opt.SettlementDate
+		return &instrumentInfo{
+			Exchange:       &exch,
+			Currency:       exch.Currency,
+			ContractSize:   1,
+			MarketPrice:    opt.Premium,
+			SettlementDate: &sd,
+		}, nil
 
 	default: // forex pair — no exchange
 		var fx ForexPair
 		if err := s.db.First(&fx, req.ForexPairId).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, "", status.Error(codes.NotFound, "forex pair not found")
+				return nil, status.Error(codes.NotFound, "forex pair not found")
 			}
-			return nil, "", status.Errorf(codes.Internal, "%v", err)
+			return nil, status.Errorf(codes.Internal, "%v", err)
 		}
-		return nil, fx.QuoteCurrency, nil
+		// Forex convention (spec p.48, mirrored by ListForexPairs): contract
+		// size 1000, price in minor units is exchange_rate * 100.
+		return &instrumentInfo{
+			Currency:     fx.QuoteCurrency,
+			ContractSize: 1000,
+			MarketPrice:  int64(fx.ExchangeRate * 100),
+		}, nil
 	}
-}
-
-// lookupEmployeeID resolves an employee email to its bank-side id. We query
-// the employees table directly since we already have a DB handle; going
-// through the user gRPC service would add a hop for data that lives here.
-func lookupEmployeeID(tx *gorm.DB, email string) (int64, error) {
-	var row struct{ ID int64 }
-	err := tx.Table("employees").
-		Select("id").
-		Where("email = ?", email).
-		Take(&row).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return 0, status.Error(codes.NotFound, "employee not found")
-		}
-		return 0, status.Errorf(codes.Internal, "%v", err)
-	}
-	return row.ID, nil
 }
