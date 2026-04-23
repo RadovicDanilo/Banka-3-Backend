@@ -122,6 +122,14 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 	// and always leave the flag false.
 	afterHours := info.Exchange != nil && IsAfterHours(*info.Exchange, now)
 
+	// Market orders cannot be placed while the exchange is closed (spec p.57
+	// / issue #189): execution has no quote to fill against. Limit/stop
+	// variants are allowed outside hours because they wait for a trigger.
+	// Forex has no exchange and is always tradable.
+	if orderType == OrderMarket && info.Exchange != nil && !IsOpen(*info.Exchange, now) {
+		return nil, status.Error(codes.FailedPrecondition, "exchange is closed; market orders cannot be placed")
+	}
+
 	// Approximate-price inputs (spec p.57). We keep PricePerUnit=0 on market
 	// orders so the execution engine (#189) re-reads the quote at fill time,
 	// but approval math still needs a concrete number — that's what
@@ -138,6 +146,7 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 	order := Order{
 		OrderType:         orderType,
 		Direction:         direction,
+		AccountNumber:     req.AccountNumber,
 		Quantity:          req.Quantity,
 		ContractSize:      info.ContractSize,
 		PricePerUnit:      marketReferencePrice(orderType, req),
