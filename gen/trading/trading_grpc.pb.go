@@ -24,6 +24,8 @@ const (
 	TradingService_GetListing_FullMethodName              = "/trading.TradingService/GetListing"
 	TradingService_ListListingHistory_FullMethodName      = "/trading.TradingService/ListListingHistory"
 	TradingService_ListForexPairs_FullMethodName          = "/trading.TradingService/ListForexPairs"
+	TradingService_ListOptionDates_FullMethodName         = "/trading.TradingService/ListOptionDates"
+	TradingService_ListOptions_FullMethodName             = "/trading.TradingService/ListOptions"
 	TradingService_CreateOrder_FullMethodName             = "/trading.TradingService/CreateOrder"
 	TradingService_SetExchangeOpenOverride_FullMethodName = "/trading.TradingService/SetExchangeOpenOverride"
 )
@@ -37,6 +39,8 @@ type TradingServiceClient interface {
 	GetListing(ctx context.Context, in *GetListingRequest, opts ...grpc.CallOption) (*GetListingResponse, error)
 	ListListingHistory(ctx context.Context, in *ListListingHistoryRequest, opts ...grpc.CallOption) (*ListListingHistoryResponse, error)
 	ListForexPairs(ctx context.Context, in *ListForexPairsRequest, opts ...grpc.CallOption) (*ListForexPairsResponse, error)
+	ListOptionDates(ctx context.Context, in *ListOptionDatesRequest, opts ...grpc.CallOption) (*ListOptionDatesResponse, error)
+	ListOptions(ctx context.Context, in *ListOptionsRequest, opts ...grpc.CallOption) (*ListOptionsResponse, error)
 	CreateOrder(ctx context.Context, in *CreateOrderRequest, opts ...grpc.CallOption) (*CreateOrderResponse, error)
 	SetExchangeOpenOverride(ctx context.Context, in *SetExchangeOpenOverrideRequest, opts ...grpc.CallOption) (*SetExchangeOpenOverrideResponse, error)
 }
@@ -99,6 +103,26 @@ func (c *tradingServiceClient) ListForexPairs(ctx context.Context, in *ListForex
 	return out, nil
 }
 
+func (c *tradingServiceClient) ListOptionDates(ctx context.Context, in *ListOptionDatesRequest, opts ...grpc.CallOption) (*ListOptionDatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListOptionDatesResponse)
+	err := c.cc.Invoke(ctx, TradingService_ListOptionDates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *tradingServiceClient) ListOptions(ctx context.Context, in *ListOptionsRequest, opts ...grpc.CallOption) (*ListOptionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListOptionsResponse)
+	err := c.cc.Invoke(ctx, TradingService_ListOptions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *tradingServiceClient) CreateOrder(ctx context.Context, in *CreateOrderRequest, opts ...grpc.CallOption) (*CreateOrderResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateOrderResponse)
@@ -128,6 +152,8 @@ type TradingServiceServer interface {
 	GetListing(context.Context, *GetListingRequest) (*GetListingResponse, error)
 	ListListingHistory(context.Context, *ListListingHistoryRequest) (*ListListingHistoryResponse, error)
 	ListForexPairs(context.Context, *ListForexPairsRequest) (*ListForexPairsResponse, error)
+	ListOptionDates(context.Context, *ListOptionDatesRequest) (*ListOptionDatesResponse, error)
+	ListOptions(context.Context, *ListOptionsRequest) (*ListOptionsResponse, error)
 	CreateOrder(context.Context, *CreateOrderRequest) (*CreateOrderResponse, error)
 	SetExchangeOpenOverride(context.Context, *SetExchangeOpenOverrideRequest) (*SetExchangeOpenOverrideResponse, error)
 	mustEmbedUnimplementedTradingServiceServer()
@@ -154,6 +180,12 @@ func (UnimplementedTradingServiceServer) ListListingHistory(context.Context, *Li
 }
 func (UnimplementedTradingServiceServer) ListForexPairs(context.Context, *ListForexPairsRequest) (*ListForexPairsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListForexPairs not implemented")
+}
+func (UnimplementedTradingServiceServer) ListOptionDates(context.Context, *ListOptionDatesRequest) (*ListOptionDatesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListOptionDates not implemented")
+}
+func (UnimplementedTradingServiceServer) ListOptions(context.Context, *ListOptionsRequest) (*ListOptionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListOptions not implemented")
 }
 func (UnimplementedTradingServiceServer) CreateOrder(context.Context, *CreateOrderRequest) (*CreateOrderResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateOrder not implemented")
@@ -272,6 +304,42 @@ func _TradingService_ListForexPairs_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TradingService_ListOptionDates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListOptionDatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TradingServiceServer).ListOptionDates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TradingService_ListOptionDates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TradingServiceServer).ListOptionDates(ctx, req.(*ListOptionDatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TradingService_ListOptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListOptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TradingServiceServer).ListOptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TradingService_ListOptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TradingServiceServer).ListOptions(ctx, req.(*ListOptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _TradingService_CreateOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateOrderRequest)
 	if err := dec(in); err != nil {
@@ -334,6 +402,14 @@ var TradingService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListForexPairs",
 			Handler:    _TradingService_ListForexPairs_Handler,
+		},
+		{
+			MethodName: "ListOptionDates",
+			Handler:    _TradingService_ListOptionDates_Handler,
+		},
+		{
+			MethodName: "ListOptions",
+			Handler:    _TradingService_ListOptions_Handler,
 		},
 		{
 			MethodName: "CreateOrder",

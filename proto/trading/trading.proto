@@ -10,6 +10,8 @@ service TradingService {
   rpc GetListing(GetListingRequest) returns (GetListingResponse);
   rpc ListListingHistory(ListListingHistoryRequest) returns (ListListingHistoryResponse);
   rpc ListForexPairs(ListForexPairsRequest) returns (ListForexPairsResponse);
+  rpc ListOptionDates(ListOptionDatesRequest) returns (ListOptionDatesResponse);
+  rpc ListOptions(ListOptionsRequest) returns (ListOptionsResponse);
   rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
   rpc SetExchangeOpenOverride(SetExchangeOpenOverrideRequest) returns (SetExchangeOpenOverrideResponse);
 }
@@ -157,6 +159,66 @@ message ListForexPairsRequest {
 
 message ListForexPairsResponse {
   repeated ForexPair pairs = 1;
+}
+
+// Options attach to stocks directly (spec "Idea 1" — no options listings).
+// Actuaries (employees) only; clients get PermissionDenied. Dates and grid
+// are split into two calls so the stock detail page can render the expiry
+// selector before fetching the grid (spec p.60).
+message ListOptionDatesRequest {
+  int64 stock_id = 1;
+  string caller_email = 2;
+}
+
+message OptionDate {
+  int64 settlement_date_unix = 1;
+  int32 days_to_expiry = 2;
+}
+
+message ListOptionDatesResponse {
+  repeated OptionDate dates = 1;
+}
+
+// strikes is the number of rows above AND below the current stock price; the
+// response has at most 2*strikes+1 rows. settlement is the expiry to filter
+// on, formatted YYYY-MM-DD.
+message ListOptionsRequest {
+  int64 stock_id = 1;
+  string settlement = 2;
+  int32 strikes = 3;
+  string caller_email = 4;
+}
+
+// OptionContract carries the fields rendered in the grid (spec p.60). theta,
+// bid, ask and volume are stubbed to 0 until Black-Scholes + an options order
+// book are wired (issue #197 explicitly allows stubs). last == premium.
+message OptionContract {
+  int64 id = 1;
+  string ticker = 2;
+  string side = 3;
+  int64 strike = 4;
+  int64 last = 5;
+  int64 theta = 6;
+  int64 bid = 7;
+  int64 ask = 8;
+  int64 volume = 9;
+  int64 open_interest = 10;
+  int64 settlement_date_unix = 11;
+}
+
+message OptionGridRow {
+  int64 strike = 1;
+  OptionContract call = 2;
+  OptionContract put = 3;
+}
+
+message ListOptionsResponse {
+  int64 stock_id = 1;
+  string settlement = 2;
+  // shared_price is the current stock listing price, rendered once above the
+  // grid (spec p.60 "cena akcije iznad tabele").
+  int64 shared_price = 3;
+  repeated OptionGridRow rows = 4;
 }
 
 // Exactly one of listing_id / option_id / forex_pair_id must be set — that's

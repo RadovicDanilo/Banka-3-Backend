@@ -220,6 +220,104 @@ func (s *Server) GetListingHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"period": period, "points": points})
 }
 
+func (s *Server) ListStockOptionDates(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id must be a positive integer"})
+		return
+	}
+	ctx, cancel := tradingCtx(c)
+	defer cancel()
+
+	resp, err := s.TradingClient.ListOptionDates(ctx, &tradingpb.ListOptionDatesRequest{
+		StockId:     id,
+		CallerEmail: c.GetString("email"),
+	})
+	if err != nil {
+		writeGRPCError(c, err)
+		return
+	}
+	out := make([]gin.H, 0, len(resp.Dates))
+	for _, d := range resp.Dates {
+		out = append(out, gin.H{
+			"settlement_date": d.SettlementDateUnix,
+			"days_to_expiry":  d.DaysToExpiry,
+		})
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+func (s *Server) ListStockOptions(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id must be a positive integer"})
+		return
+	}
+	settlement := c.Query("settlement")
+	if settlement == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "settlement query param required (YYYY-MM-DD)"})
+		return
+	}
+	// strikes defaults to 5 (matches seed range); 0 means "no limit".
+	strikes := int32(5)
+	if raw := c.Query("strikes"); raw != "" {
+		v, err := strconv.Atoi(raw)
+		if err != nil || v < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "strikes must be a non-negative integer"})
+			return
+		}
+		strikes = int32(v)
+	}
+
+	ctx, cancel := tradingCtx(c)
+	defer cancel()
+
+	resp, err := s.TradingClient.ListOptions(ctx, &tradingpb.ListOptionsRequest{
+		StockId:     id,
+		Settlement:  settlement,
+		Strikes:     strikes,
+		CallerEmail: c.GetString("email"),
+	})
+	if err != nil {
+		writeGRPCError(c, err)
+		return
+	}
+
+	rows := make([]gin.H, 0, len(resp.Rows))
+	for _, r := range resp.Rows {
+		rows = append(rows, gin.H{
+			"strike": r.Strike,
+			"call":   optionToJSON(r.Call),
+			"put":    optionToJSON(r.Put),
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"stock_id":     resp.StockId,
+		"settlement":   resp.Settlement,
+		"shared_price": resp.SharedPrice,
+		"rows":         rows,
+	})
+}
+
+func optionToJSON(o *tradingpb.OptionContract) gin.H {
+	if o == nil {
+		return nil
+	}
+	return gin.H{
+		"id":              o.Id,
+		"ticker":          o.Ticker,
+		"side":            o.Side,
+		"strike":          o.Strike,
+		"last":            o.Last,
+		"theta":           o.Theta,
+		"bid":             o.Bid,
+		"ask":             o.Ask,
+		"volume":          o.Volume,
+		"open_interest":   o.OpenInterest,
+		"settlement_date": o.SettlementDateUnix,
+	}
+}
+
 func (s *Server) ListForexPairs(c *gin.Context) {
 	ctx, cancel := tradingCtx(c)
 	defer cancel()
