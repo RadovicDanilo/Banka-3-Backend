@@ -11,7 +11,8 @@ VALUES
     ('manage_companies'),
     ('manage_cards'),
     ('agent'),
-    ('supervisor')
+    ('supervisor'),
+    ('margin_trading')
 ON CONFLICT (name) DO NOTHING;
 
 -- default admin (password: "Admin123!")
@@ -57,7 +58,7 @@ FROM employees e, permissions p
 WHERE e.email = 'full_emp@banka.raf' AND p.name IN (
     'manage_employees', 'manage_clients', 'manage_accounts',
     'manage_companies', 'manage_loans', 'manage_cards',
-    'trade_stocks', 'view_stocks'
+    'trade_stocks', 'view_stocks', 'margin_trading'
 )
 ON CONFLICT DO NOTHING;
 
@@ -121,7 +122,7 @@ ON CONFLICT (email) DO NOTHING;
 INSERT INTO employee_permissions (employee_id, permission_id)
 SELECT e.id, p.id
 FROM employees e, permissions p
-WHERE e.email = 'supervisor@banka.raf' AND p.name IN ('supervisor', 'trade_stocks', 'view_stocks')
+WHERE e.email = 'supervisor@banka.raf' AND p.name IN ('supervisor', 'trade_stocks', 'view_stocks', 'margin_trading')
 ON CONFLICT DO NOTHING;
 
 -- test client (password: "Test1234!")

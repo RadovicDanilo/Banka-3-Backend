@@ -79,6 +79,15 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 		return nil, err
 	}
 
+	// Margin orders require the `margin_trading` permission for employee
+	// placers (spec p.56). Checked up front so clients skip the DB round-trip
+	// and the denial surfaces before we touch the DB.
+	if req.Margin && caller.IsEmployee {
+		if !callerHasMarginPermission(s.db, caller.Email) {
+			return nil, status.Error(codes.PermissionDenied, "margin_trading permission required")
+		}
+	}
+
 	acc, err := s.bank.GetAccountByNumber(req.AccountNumber)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -169,6 +178,20 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 		}
 
 		order.Status = decideOrderStatus(role, limits, approxRSD, pastSettlement)
+
+		// Margin eligibility runs only for orders that would actually debit
+		// (so past-settlement declines skip it). Clients qualify via an
+		// approved loan with remaining debt > IMC, otherwise both clients and
+		// employees fall back to the account's balance (spec p.56).
+		if order.Margin && order.Status != StatusDeclined {
+			var clientID int64
+			if caller.IsClient {
+				clientID = caller.ClientID
+			}
+			if err := s.checkMarginEligibility(tx, clientID, caller.IsClient, acc.Balance, info, req.Quantity); err != nil {
+				return err
+			}
+		}
 
 		if err := tx.Create(&placer).Error; err != nil {
 			return err
