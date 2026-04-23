@@ -151,6 +151,14 @@ func SetupApi(router *gin.Engine, server *Server) {
 		tradingReaders.GET("/forex-pairs", server.ListForexPairs)
 	}
 
+	// Options are actuary-only (spec p.59) — employees only at the gateway,
+	// and the trading RPC re-checks caller.IsClient as defense in depth.
+	stockOptions := api.Group("", auth, secured("role:employee"))
+	{
+		stockOptions.GET("/stocks/:id/options/dates", server.ListStockOptionDates)
+		stockOptions.GET("/stocks/:id/options", server.ListStockOptions)
+	}
+
 	// Supervisor-only toggle used to exercise the trading flow outside real
 	// market hours (see spec p.40 and issue #194). Admin bypass still applies
 	// through `secured("supervisor")`.

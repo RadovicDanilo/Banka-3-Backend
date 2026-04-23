@@ -1227,6 +1227,486 @@ func (x *ListForexPairsResponse) GetPairs() []*ForexPair {
 	return nil
 }
 
+// Options attach to stocks directly (spec "Idea 1" — no options listings).
+// Actuaries (employees) only; clients get PermissionDenied. Dates and grid
+// are split into two calls so the stock detail page can render the expiry
+// selector before fetching the grid (spec p.60).
+type ListOptionDatesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StockId       int64                  `protobuf:"varint,1,opt,name=stock_id,json=stockId,proto3" json:"stock_id,omitempty"`
+	CallerEmail   string                 `protobuf:"bytes,2,opt,name=caller_email,json=callerEmail,proto3" json:"caller_email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOptionDatesRequest) Reset() {
+	*x = ListOptionDatesRequest{}
+	mi := &file_trading_trading_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOptionDatesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOptionDatesRequest) ProtoMessage() {}
+
+func (x *ListOptionDatesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_trading_trading_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOptionDatesRequest.ProtoReflect.Descriptor instead.
+func (*ListOptionDatesRequest) Descriptor() ([]byte, []int) {
+	return file_trading_trading_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ListOptionDatesRequest) GetStockId() int64 {
+	if x != nil {
+		return x.StockId
+	}
+	return 0
+}
+
+func (x *ListOptionDatesRequest) GetCallerEmail() string {
+	if x != nil {
+		return x.CallerEmail
+	}
+	return ""
+}
+
+type OptionDate struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	SettlementDateUnix int64                  `protobuf:"varint,1,opt,name=settlement_date_unix,json=settlementDateUnix,proto3" json:"settlement_date_unix,omitempty"`
+	DaysToExpiry       int32                  `protobuf:"varint,2,opt,name=days_to_expiry,json=daysToExpiry,proto3" json:"days_to_expiry,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *OptionDate) Reset() {
+	*x = OptionDate{}
+	mi := &file_trading_trading_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OptionDate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OptionDate) ProtoMessage() {}
+
+func (x *OptionDate) ProtoReflect() protoreflect.Message {
+	mi := &file_trading_trading_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OptionDate.ProtoReflect.Descriptor instead.
+func (*OptionDate) Descriptor() ([]byte, []int) {
+	return file_trading_trading_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *OptionDate) GetSettlementDateUnix() int64 {
+	if x != nil {
+		return x.SettlementDateUnix
+	}
+	return 0
+}
+
+func (x *OptionDate) GetDaysToExpiry() int32 {
+	if x != nil {
+		return x.DaysToExpiry
+	}
+	return 0
+}
+
+type ListOptionDatesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Dates         []*OptionDate          `protobuf:"bytes,1,rep,name=dates,proto3" json:"dates,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOptionDatesResponse) Reset() {
+	*x = ListOptionDatesResponse{}
+	mi := &file_trading_trading_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOptionDatesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOptionDatesResponse) ProtoMessage() {}
+
+func (x *ListOptionDatesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_trading_trading_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOptionDatesResponse.ProtoReflect.Descriptor instead.
+func (*ListOptionDatesResponse) Descriptor() ([]byte, []int) {
+	return file_trading_trading_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ListOptionDatesResponse) GetDates() []*OptionDate {
+	if x != nil {
+		return x.Dates
+	}
+	return nil
+}
+
+// strikes is the number of rows above AND below the current stock price; the
+// response has at most 2*strikes+1 rows. settlement is the expiry to filter
+// on, formatted YYYY-MM-DD.
+type ListOptionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StockId       int64                  `protobuf:"varint,1,opt,name=stock_id,json=stockId,proto3" json:"stock_id,omitempty"`
+	Settlement    string                 `protobuf:"bytes,2,opt,name=settlement,proto3" json:"settlement,omitempty"`
+	Strikes       int32                  `protobuf:"varint,3,opt,name=strikes,proto3" json:"strikes,omitempty"`
+	CallerEmail   string                 `protobuf:"bytes,4,opt,name=caller_email,json=callerEmail,proto3" json:"caller_email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOptionsRequest) Reset() {
+	*x = ListOptionsRequest{}
+	mi := &file_trading_trading_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOptionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOptionsRequest) ProtoMessage() {}
+
+func (x *ListOptionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_trading_trading_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOptionsRequest.ProtoReflect.Descriptor instead.
+func (*ListOptionsRequest) Descriptor() ([]byte, []int) {
+	return file_trading_trading_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ListOptionsRequest) GetStockId() int64 {
+	if x != nil {
+		return x.StockId
+	}
+	return 0
+}
+
+func (x *ListOptionsRequest) GetSettlement() string {
+	if x != nil {
+		return x.Settlement
+	}
+	return ""
+}
+
+func (x *ListOptionsRequest) GetStrikes() int32 {
+	if x != nil {
+		return x.Strikes
+	}
+	return 0
+}
+
+func (x *ListOptionsRequest) GetCallerEmail() string {
+	if x != nil {
+		return x.CallerEmail
+	}
+	return ""
+}
+
+// OptionContract carries the fields rendered in the grid (spec p.60). theta,
+// bid, ask and volume are stubbed to 0 until Black-Scholes + an options order
+// book are wired (issue #197 explicitly allows stubs). last == premium.
+type OptionContract struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Id                 int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Ticker             string                 `protobuf:"bytes,2,opt,name=ticker,proto3" json:"ticker,omitempty"`
+	Side               string                 `protobuf:"bytes,3,opt,name=side,proto3" json:"side,omitempty"`
+	Strike             int64                  `protobuf:"varint,4,opt,name=strike,proto3" json:"strike,omitempty"`
+	Last               int64                  `protobuf:"varint,5,opt,name=last,proto3" json:"last,omitempty"`
+	Theta              int64                  `protobuf:"varint,6,opt,name=theta,proto3" json:"theta,omitempty"`
+	Bid                int64                  `protobuf:"varint,7,opt,name=bid,proto3" json:"bid,omitempty"`
+	Ask                int64                  `protobuf:"varint,8,opt,name=ask,proto3" json:"ask,omitempty"`
+	Volume             int64                  `protobuf:"varint,9,opt,name=volume,proto3" json:"volume,omitempty"`
+	OpenInterest       int64                  `protobuf:"varint,10,opt,name=open_interest,json=openInterest,proto3" json:"open_interest,omitempty"`
+	SettlementDateUnix int64                  `protobuf:"varint,11,opt,name=settlement_date_unix,json=settlementDateUnix,proto3" json:"settlement_date_unix,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *OptionContract) Reset() {
+	*x = OptionContract{}
+	mi := &file_trading_trading_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OptionContract) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OptionContract) ProtoMessage() {}
+
+func (x *OptionContract) ProtoReflect() protoreflect.Message {
+	mi := &file_trading_trading_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OptionContract.ProtoReflect.Descriptor instead.
+func (*OptionContract) Descriptor() ([]byte, []int) {
+	return file_trading_trading_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *OptionContract) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *OptionContract) GetTicker() string {
+	if x != nil {
+		return x.Ticker
+	}
+	return ""
+}
+
+func (x *OptionContract) GetSide() string {
+	if x != nil {
+		return x.Side
+	}
+	return ""
+}
+
+func (x *OptionContract) GetStrike() int64 {
+	if x != nil {
+		return x.Strike
+	}
+	return 0
+}
+
+func (x *OptionContract) GetLast() int64 {
+	if x != nil {
+		return x.Last
+	}
+	return 0
+}
+
+func (x *OptionContract) GetTheta() int64 {
+	if x != nil {
+		return x.Theta
+	}
+	return 0
+}
+
+func (x *OptionContract) GetBid() int64 {
+	if x != nil {
+		return x.Bid
+	}
+	return 0
+}
+
+func (x *OptionContract) GetAsk() int64 {
+	if x != nil {
+		return x.Ask
+	}
+	return 0
+}
+
+func (x *OptionContract) GetVolume() int64 {
+	if x != nil {
+		return x.Volume
+	}
+	return 0
+}
+
+func (x *OptionContract) GetOpenInterest() int64 {
+	if x != nil {
+		return x.OpenInterest
+	}
+	return 0
+}
+
+func (x *OptionContract) GetSettlementDateUnix() int64 {
+	if x != nil {
+		return x.SettlementDateUnix
+	}
+	return 0
+}
+
+type OptionGridRow struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Strike        int64                  `protobuf:"varint,1,opt,name=strike,proto3" json:"strike,omitempty"`
+	Call          *OptionContract        `protobuf:"bytes,2,opt,name=call,proto3" json:"call,omitempty"`
+	Put           *OptionContract        `protobuf:"bytes,3,opt,name=put,proto3" json:"put,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OptionGridRow) Reset() {
+	*x = OptionGridRow{}
+	mi := &file_trading_trading_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OptionGridRow) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OptionGridRow) ProtoMessage() {}
+
+func (x *OptionGridRow) ProtoReflect() protoreflect.Message {
+	mi := &file_trading_trading_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OptionGridRow.ProtoReflect.Descriptor instead.
+func (*OptionGridRow) Descriptor() ([]byte, []int) {
+	return file_trading_trading_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *OptionGridRow) GetStrike() int64 {
+	if x != nil {
+		return x.Strike
+	}
+	return 0
+}
+
+func (x *OptionGridRow) GetCall() *OptionContract {
+	if x != nil {
+		return x.Call
+	}
+	return nil
+}
+
+func (x *OptionGridRow) GetPut() *OptionContract {
+	if x != nil {
+		return x.Put
+	}
+	return nil
+}
+
+type ListOptionsResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	StockId    int64                  `protobuf:"varint,1,opt,name=stock_id,json=stockId,proto3" json:"stock_id,omitempty"`
+	Settlement string                 `protobuf:"bytes,2,opt,name=settlement,proto3" json:"settlement,omitempty"`
+	// shared_price is the current stock listing price, rendered once above the
+	// grid (spec p.60 "cena akcije iznad tabele").
+	SharedPrice   int64            `protobuf:"varint,3,opt,name=shared_price,json=sharedPrice,proto3" json:"shared_price,omitempty"`
+	Rows          []*OptionGridRow `protobuf:"bytes,4,rep,name=rows,proto3" json:"rows,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOptionsResponse) Reset() {
+	*x = ListOptionsResponse{}
+	mi := &file_trading_trading_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOptionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOptionsResponse) ProtoMessage() {}
+
+func (x *ListOptionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_trading_trading_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOptionsResponse.ProtoReflect.Descriptor instead.
+func (*ListOptionsResponse) Descriptor() ([]byte, []int) {
+	return file_trading_trading_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ListOptionsResponse) GetStockId() int64 {
+	if x != nil {
+		return x.StockId
+	}
+	return 0
+}
+
+func (x *ListOptionsResponse) GetSettlement() string {
+	if x != nil {
+		return x.Settlement
+	}
+	return ""
+}
+
+func (x *ListOptionsResponse) GetSharedPrice() int64 {
+	if x != nil {
+		return x.SharedPrice
+	}
+	return 0
+}
+
+func (x *ListOptionsResponse) GetRows() []*OptionGridRow {
+	if x != nil {
+		return x.Rows
+	}
+	return nil
+}
+
 // Exactly one of listing_id / option_id / forex_pair_id must be set — that's
 // the instrument being traded. limit_price / stop_price are required only
 // for LIMIT / STOP / STOP_LIMIT; senders must leave them 0 otherwise.
@@ -1249,7 +1729,7 @@ type CreateOrderRequest struct {
 
 func (x *CreateOrderRequest) Reset() {
 	*x = CreateOrderRequest{}
-	mi := &file_trading_trading_proto_msgTypes[16]
+	mi := &file_trading_trading_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1261,7 +1741,7 @@ func (x *CreateOrderRequest) String() string {
 func (*CreateOrderRequest) ProtoMessage() {}
 
 func (x *CreateOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_trading_trading_proto_msgTypes[16]
+	mi := &file_trading_trading_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1274,7 +1754,7 @@ func (x *CreateOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateOrderRequest.ProtoReflect.Descriptor instead.
 func (*CreateOrderRequest) Descriptor() ([]byte, []int) {
-	return file_trading_trading_proto_rawDescGZIP(), []int{16}
+	return file_trading_trading_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *CreateOrderRequest) GetListingId() int64 {
@@ -1364,7 +1844,7 @@ type CreateOrderResponse struct {
 
 func (x *CreateOrderResponse) Reset() {
 	*x = CreateOrderResponse{}
-	mi := &file_trading_trading_proto_msgTypes[17]
+	mi := &file_trading_trading_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1376,7 +1856,7 @@ func (x *CreateOrderResponse) String() string {
 func (*CreateOrderResponse) ProtoMessage() {}
 
 func (x *CreateOrderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_trading_trading_proto_msgTypes[17]
+	mi := &file_trading_trading_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1389,7 +1869,7 @@ func (x *CreateOrderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateOrderResponse.ProtoReflect.Descriptor instead.
 func (*CreateOrderResponse) Descriptor() ([]byte, []int) {
-	return file_trading_trading_proto_rawDescGZIP(), []int{17}
+	return file_trading_trading_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *CreateOrderResponse) GetOrderId() int64 {
@@ -1514,7 +1994,47 @@ const file_trading_trading_proto_rawDesc = "" +
 	"\x15ListForexPairsRequest\x12!\n" +
 	"\fcaller_email\x18\x01 \x01(\tR\vcallerEmail\"B\n" +
 	"\x16ListForexPairsResponse\x12(\n" +
-	"\x05pairs\x18\x01 \x03(\v2\x12.trading.ForexPairR\x05pairs\"\xec\x02\n" +
+	"\x05pairs\x18\x01 \x03(\v2\x12.trading.ForexPairR\x05pairs\"V\n" +
+	"\x16ListOptionDatesRequest\x12\x19\n" +
+	"\bstock_id\x18\x01 \x01(\x03R\astockId\x12!\n" +
+	"\fcaller_email\x18\x02 \x01(\tR\vcallerEmail\"d\n" +
+	"\n" +
+	"OptionDate\x120\n" +
+	"\x14settlement_date_unix\x18\x01 \x01(\x03R\x12settlementDateUnix\x12$\n" +
+	"\x0edays_to_expiry\x18\x02 \x01(\x05R\fdaysToExpiry\"D\n" +
+	"\x17ListOptionDatesResponse\x12)\n" +
+	"\x05dates\x18\x01 \x03(\v2\x13.trading.OptionDateR\x05dates\"\x8c\x01\n" +
+	"\x12ListOptionsRequest\x12\x19\n" +
+	"\bstock_id\x18\x01 \x01(\x03R\astockId\x12\x1e\n" +
+	"\n" +
+	"settlement\x18\x02 \x01(\tR\n" +
+	"settlement\x12\x18\n" +
+	"\astrikes\x18\x03 \x01(\x05R\astrikes\x12!\n" +
+	"\fcaller_email\x18\x04 \x01(\tR\vcallerEmail\"\xa1\x02\n" +
+	"\x0eOptionContract\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x16\n" +
+	"\x06ticker\x18\x02 \x01(\tR\x06ticker\x12\x12\n" +
+	"\x04side\x18\x03 \x01(\tR\x04side\x12\x16\n" +
+	"\x06strike\x18\x04 \x01(\x03R\x06strike\x12\x12\n" +
+	"\x04last\x18\x05 \x01(\x03R\x04last\x12\x14\n" +
+	"\x05theta\x18\x06 \x01(\x03R\x05theta\x12\x10\n" +
+	"\x03bid\x18\a \x01(\x03R\x03bid\x12\x10\n" +
+	"\x03ask\x18\b \x01(\x03R\x03ask\x12\x16\n" +
+	"\x06volume\x18\t \x01(\x03R\x06volume\x12#\n" +
+	"\ropen_interest\x18\n" +
+	" \x01(\x03R\fopenInterest\x120\n" +
+	"\x14settlement_date_unix\x18\v \x01(\x03R\x12settlementDateUnix\"\x7f\n" +
+	"\rOptionGridRow\x12\x16\n" +
+	"\x06strike\x18\x01 \x01(\x03R\x06strike\x12+\n" +
+	"\x04call\x18\x02 \x01(\v2\x17.trading.OptionContractR\x04call\x12)\n" +
+	"\x03put\x18\x03 \x01(\v2\x17.trading.OptionContractR\x03put\"\x9f\x01\n" +
+	"\x13ListOptionsResponse\x12\x19\n" +
+	"\bstock_id\x18\x01 \x01(\x03R\astockId\x12\x1e\n" +
+	"\n" +
+	"settlement\x18\x02 \x01(\tR\n" +
+	"settlement\x12!\n" +
+	"\fshared_price\x18\x03 \x01(\x03R\vsharedPrice\x12*\n" +
+	"\x04rows\x18\x04 \x03(\v2\x16.trading.OptionGridRowR\x04rows\"\xec\x02\n" +
 	"\x12CreateOrderRequest\x12\x1d\n" +
 	"\n" +
 	"listing_id\x18\x01 \x01(\x03R\tlistingId\x12\x1b\n" +
@@ -1534,14 +2054,16 @@ const file_trading_trading_proto_rawDesc = "" +
 	"\x06margin\x18\v \x01(\bR\x06margin\"H\n" +
 	"\x13CreateOrderResponse\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\x03R\aorderId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status2\xde\x04\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status2\xfe\x05\n" +
 	"\x0eTradingService\x12N\n" +
 	"\rListExchanges\x12\x1d.trading.ListExchangesRequest\x1a\x1e.trading.ListExchangesResponse\x12K\n" +
 	"\fListListings\x12\x1c.trading.ListListingsRequest\x1a\x1d.trading.ListListingsResponse\x12E\n" +
 	"\n" +
 	"GetListing\x12\x1a.trading.GetListingRequest\x1a\x1b.trading.GetListingResponse\x12]\n" +
 	"\x12ListListingHistory\x12\".trading.ListListingHistoryRequest\x1a#.trading.ListListingHistoryResponse\x12Q\n" +
-	"\x0eListForexPairs\x12\x1e.trading.ListForexPairsRequest\x1a\x1f.trading.ListForexPairsResponse\x12H\n" +
+	"\x0eListForexPairs\x12\x1e.trading.ListForexPairsRequest\x1a\x1f.trading.ListForexPairsResponse\x12T\n" +
+	"\x0fListOptionDates\x12\x1f.trading.ListOptionDatesRequest\x1a .trading.ListOptionDatesResponse\x12H\n" +
+	"\vListOptions\x12\x1b.trading.ListOptionsRequest\x1a\x1c.trading.ListOptionsResponse\x12H\n" +
 	"\vCreateOrder\x12\x1b.trading.CreateOrderRequest\x1a\x1c.trading.CreateOrderResponse\x12l\n" +
 	"\x17SetExchangeOpenOverride\x12'.trading.SetExchangeOpenOverrideRequest\x1a(.trading.SetExchangeOpenOverrideResponseB4Z2github.com/RAF-SI-2025/Banka-3-Backend/gen/tradingb\x06proto3"
 
@@ -1557,7 +2079,7 @@ func file_trading_trading_proto_rawDescGZIP() []byte {
 	return file_trading_trading_proto_rawDescData
 }
 
-var file_trading_trading_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_trading_trading_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_trading_trading_proto_goTypes = []any{
 	(*Exchange)(nil),                        // 0: trading.Exchange
 	(*SetExchangeOpenOverrideRequest)(nil),  // 1: trading.SetExchangeOpenOverrideRequest
@@ -1575,8 +2097,15 @@ var file_trading_trading_proto_goTypes = []any{
 	(*ForexPair)(nil),                       // 13: trading.ForexPair
 	(*ListForexPairsRequest)(nil),           // 14: trading.ListForexPairsRequest
 	(*ListForexPairsResponse)(nil),          // 15: trading.ListForexPairsResponse
-	(*CreateOrderRequest)(nil),              // 16: trading.CreateOrderRequest
-	(*CreateOrderResponse)(nil),             // 17: trading.CreateOrderResponse
+	(*ListOptionDatesRequest)(nil),          // 16: trading.ListOptionDatesRequest
+	(*OptionDate)(nil),                      // 17: trading.OptionDate
+	(*ListOptionDatesResponse)(nil),         // 18: trading.ListOptionDatesResponse
+	(*ListOptionsRequest)(nil),              // 19: trading.ListOptionsRequest
+	(*OptionContract)(nil),                  // 20: trading.OptionContract
+	(*OptionGridRow)(nil),                   // 21: trading.OptionGridRow
+	(*ListOptionsResponse)(nil),             // 22: trading.ListOptionsResponse
+	(*CreateOrderRequest)(nil),              // 23: trading.CreateOrderRequest
+	(*CreateOrderResponse)(nil),             // 24: trading.CreateOrderResponse
 }
 var file_trading_trading_proto_depIdxs = []int32{
 	0,  // 0: trading.SetExchangeOpenOverrideResponse.exchange:type_name -> trading.Exchange
@@ -1585,25 +2114,33 @@ var file_trading_trading_proto_depIdxs = []int32{
 	5,  // 3: trading.GetListingResponse.listing:type_name -> trading.Listing
 	11, // 4: trading.ListListingHistoryResponse.points:type_name -> trading.ListingHistoryPoint
 	13, // 5: trading.ListForexPairsResponse.pairs:type_name -> trading.ForexPair
-	3,  // 6: trading.TradingService.ListExchanges:input_type -> trading.ListExchangesRequest
-	6,  // 7: trading.TradingService.ListListings:input_type -> trading.ListListingsRequest
-	8,  // 8: trading.TradingService.GetListing:input_type -> trading.GetListingRequest
-	10, // 9: trading.TradingService.ListListingHistory:input_type -> trading.ListListingHistoryRequest
-	14, // 10: trading.TradingService.ListForexPairs:input_type -> trading.ListForexPairsRequest
-	16, // 11: trading.TradingService.CreateOrder:input_type -> trading.CreateOrderRequest
-	1,  // 12: trading.TradingService.SetExchangeOpenOverride:input_type -> trading.SetExchangeOpenOverrideRequest
-	4,  // 13: trading.TradingService.ListExchanges:output_type -> trading.ListExchangesResponse
-	7,  // 14: trading.TradingService.ListListings:output_type -> trading.ListListingsResponse
-	9,  // 15: trading.TradingService.GetListing:output_type -> trading.GetListingResponse
-	12, // 16: trading.TradingService.ListListingHistory:output_type -> trading.ListListingHistoryResponse
-	15, // 17: trading.TradingService.ListForexPairs:output_type -> trading.ListForexPairsResponse
-	17, // 18: trading.TradingService.CreateOrder:output_type -> trading.CreateOrderResponse
-	2,  // 19: trading.TradingService.SetExchangeOpenOverride:output_type -> trading.SetExchangeOpenOverrideResponse
-	13, // [13:20] is the sub-list for method output_type
-	6,  // [6:13] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	17, // 6: trading.ListOptionDatesResponse.dates:type_name -> trading.OptionDate
+	20, // 7: trading.OptionGridRow.call:type_name -> trading.OptionContract
+	20, // 8: trading.OptionGridRow.put:type_name -> trading.OptionContract
+	21, // 9: trading.ListOptionsResponse.rows:type_name -> trading.OptionGridRow
+	3,  // 10: trading.TradingService.ListExchanges:input_type -> trading.ListExchangesRequest
+	6,  // 11: trading.TradingService.ListListings:input_type -> trading.ListListingsRequest
+	8,  // 12: trading.TradingService.GetListing:input_type -> trading.GetListingRequest
+	10, // 13: trading.TradingService.ListListingHistory:input_type -> trading.ListListingHistoryRequest
+	14, // 14: trading.TradingService.ListForexPairs:input_type -> trading.ListForexPairsRequest
+	16, // 15: trading.TradingService.ListOptionDates:input_type -> trading.ListOptionDatesRequest
+	19, // 16: trading.TradingService.ListOptions:input_type -> trading.ListOptionsRequest
+	23, // 17: trading.TradingService.CreateOrder:input_type -> trading.CreateOrderRequest
+	1,  // 18: trading.TradingService.SetExchangeOpenOverride:input_type -> trading.SetExchangeOpenOverrideRequest
+	4,  // 19: trading.TradingService.ListExchanges:output_type -> trading.ListExchangesResponse
+	7,  // 20: trading.TradingService.ListListings:output_type -> trading.ListListingsResponse
+	9,  // 21: trading.TradingService.GetListing:output_type -> trading.GetListingResponse
+	12, // 22: trading.TradingService.ListListingHistory:output_type -> trading.ListListingHistoryResponse
+	15, // 23: trading.TradingService.ListForexPairs:output_type -> trading.ListForexPairsResponse
+	18, // 24: trading.TradingService.ListOptionDates:output_type -> trading.ListOptionDatesResponse
+	22, // 25: trading.TradingService.ListOptions:output_type -> trading.ListOptionsResponse
+	24, // 26: trading.TradingService.CreateOrder:output_type -> trading.CreateOrderResponse
+	2,  // 27: trading.TradingService.SetExchangeOpenOverride:output_type -> trading.SetExchangeOpenOverrideResponse
+	19, // [19:28] is the sub-list for method output_type
+	10, // [10:19] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_trading_trading_proto_init() }
@@ -1617,7 +2154,7 @@ func file_trading_trading_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_trading_trading_proto_rawDesc), len(file_trading_trading_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
