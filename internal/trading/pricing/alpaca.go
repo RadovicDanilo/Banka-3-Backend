@@ -73,7 +73,7 @@ func (c *AlpacaClient) GetQuote(ctx context.Context, ticker string) (Quote, erro
 	if err != nil {
 		return Quote{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	switch resp.StatusCode {
 	case http.StatusOK:
