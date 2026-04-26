@@ -24,13 +24,13 @@ func TestYahoo_FetchesAllExpirations(t *testing.T) {
 		date := r.URL.Query().Get("date")
 		if date == "" {
 			// First call: nearest expiry returned in `options`, full list in `expirationDates`.
-			fmt.Fprintf(w, `{"optionChain":{"result":[{"underlyingSymbol":"AAPL","expirationDates":[%d,%d],"options":[{"expirationDate":%d,"calls":[{"contractSymbol":"AAPL240503C00150000","strike":150,"lastPrice":12.5,"impliedVolatility":0.3}],"puts":[{"contractSymbol":"AAPL240503P00150000","strike":150,"lastPrice":2.25,"impliedVolatility":0.28}]}]}]}}`, exp1, exp2, exp1)
+			_, _ = fmt.Fprintf(w, `{"optionChain":{"result":[{"underlyingSymbol":"AAPL","expirationDates":[%d,%d],"options":[{"expirationDate":%d,"calls":[{"contractSymbol":"AAPL240503C00150000","strike":150,"lastPrice":12.5,"impliedVolatility":0.3}],"puts":[{"contractSymbol":"AAPL240503P00150000","strike":150,"lastPrice":2.25,"impliedVolatility":0.28}]}]}]}}`, exp1, exp2, exp1)
 			return
 		}
 		if date != "1717113600" {
 			t.Errorf("unexpected date param %q", date)
 		}
-		fmt.Fprintf(w, `{"optionChain":{"result":[{"underlyingSymbol":"AAPL","expirationDates":[%d,%d],"options":[{"expirationDate":%d,"calls":[{"contractSymbol":"AAPL240531C00160000","strike":160,"lastPrice":7.10,"impliedVolatility":0.32}],"puts":[]}]}]}}`, exp1, exp2, exp2)
+		_, _ = fmt.Fprintf(w, `{"optionChain":{"result":[{"underlyingSymbol":"AAPL","expirationDates":[%d,%d],"options":[{"expirationDate":%d,"calls":[{"contractSymbol":"AAPL240531C00160000","strike":160,"lastPrice":7.10,"impliedVolatility":0.32}],"puts":[]}]}]}}`, exp1, exp2, exp2)
 	}))
 	defer srv.Close()
 
@@ -127,7 +127,7 @@ func TestYahoo_TolerateMissingExpiry(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		date := r.URL.Query().Get("date")
 		if date == "" {
-			fmt.Fprintf(w, `{"optionChain":{"result":[{"underlyingSymbol":"AAPL","expirationDates":[%d,%d],"options":[{"expirationDate":%d,"calls":[{"contractSymbol":"AAPL240503C00150000","strike":150,"lastPrice":12.5,"impliedVolatility":0.3}],"puts":[]}]}]}}`, exp1, exp2, exp1)
+			_, _ = fmt.Fprintf(w, `{"optionChain":{"result":[{"underlyingSymbol":"AAPL","expirationDates":[%d,%d],"options":[{"expirationDate":%d,"calls":[{"contractSymbol":"AAPL240503C00150000","strike":150,"lastPrice":12.5,"impliedVolatility":0.3}],"puts":[]}]}]}}`, exp1, exp2, exp1)
 			return
 		}
 		// Second expiry returns a server error.
