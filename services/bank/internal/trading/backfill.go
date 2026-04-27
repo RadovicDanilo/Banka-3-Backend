@@ -3,9 +3,9 @@ package trading
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	"github.com/RAF-SI-2025/Banka-3-Backend/services/bank/internal/trading/pricing"
 	"gorm.io/gorm"
 )
@@ -93,7 +93,7 @@ func (b *Backfiller) run(ctx context.Context) {
 func (b *Backfiller) runOnce(ctx context.Context) {
 	targets, err := b.loadTargets()
 	if err != nil {
-		log.Printf("[Backfiller] load targets: %v", err)
+		logger.L().Error("load targets failed", "err", err)
 		return
 	}
 	for i, tgt := range targets {
@@ -112,10 +112,10 @@ func (b *Backfiller) runOnce(ctx context.Context) {
 				continue
 			}
 			if errors.Is(err, pricing.ErrRateLimited) {
-				log.Printf("[Backfiller] rate limited; aborting tick after %s", tgt.Ticker)
+				logger.L().Warn("rate limited; aborting tick", "ticker", tgt.Ticker)
 				return
 			}
-			log.Printf("[Backfiller] %s: %v", tgt.Ticker, err)
+			logger.L().Error("backfill tick failed", "ticker", tgt.Ticker, "err", err)
 		}
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"os"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	notificationpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/notification"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
 )
@@ -37,7 +37,8 @@ const (
 func NewTotpServer(conn *Connections) *TOTPServer {
 	baseURL := os.Getenv("TOTP_DISABLE_BASE_URL")
 	if baseURL == "" {
-		log.Fatalf("No url set for disabling TOTP!")
+		logger.L().Error("no url set for disabling TOTP")
+		os.Exit(1)
 	}
 	return &TOTPServer{
 		db:                  conn.Sql_db,
@@ -47,7 +48,7 @@ func NewTotpServer(conn *Connections) *TOTPServer {
 	}
 }
 
-func (s *TOTPServer) VerifyCode(_ context.Context, req *userpb.VerifyCodeRequest) (*userpb.VerifyCodeResponse, error) {
+func (s *TOTPServer) VerifyCode(ctx context.Context, req *userpb.VerifyCodeRequest) (*userpb.VerifyCodeResponse, error) {
 	client, err := getUserByAttribute(Client{}, s.gorm, "email", req.Email)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
@@ -76,10 +77,16 @@ func (s *TOTPServer) VerifyCode(_ context.Context, req *userpb.VerifyCodeRequest
 		if err != nil {
 			return nil, err
 		}
+		if *passed {
+			logger.FromContext(ctx).InfoContext(ctx, "audit: totp verified via backup code", "user_id", userId, "email", req.Email)
+		} else {
+			logger.FromContext(ctx).WarnContext(ctx, "audit: totp verify failed", "user_id", userId, "email", req.Email)
+		}
 		return &userpb.VerifyCodeResponse{
 			Valid: *passed,
 		}, nil
 	}
+	logger.FromContext(ctx).InfoContext(ctx, "audit: totp verified", "user_id", userId, "email", req.Email)
 	return &userpb.VerifyCodeResponse{Valid: valid}, nil
 }
 func (s *TOTPServer) EnrollBegin(_ context.Context, req *userpb.EnrollBeginRequest) (*userpb.EnrollBeginResponse, error) {
@@ -145,7 +152,7 @@ func generateBackupCodes(num uint64) (*[]string, error) {
 	return &codes, nil
 }
 
-func (s *TOTPServer) EnrollConfirm(_ context.Context, req *userpb.EnrollConfirmRequest) (*userpb.EnrollConfirmResponse, error) {
+func (s *TOTPServer) EnrollConfirm(ctx context.Context, req *userpb.EnrollConfirmRequest) (*userpb.EnrollConfirmResponse, error) {
 	client, err := getUserByAttribute(Client{}, s.gorm, "email", req.Email)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
@@ -195,6 +202,7 @@ func (s *TOTPServer) EnrollConfirm(_ context.Context, req *userpb.EnrollConfirmR
 	if err != nil {
 		return nil, err
 	}
+	logger.FromContext(ctx).InfoContext(ctx, "audit: totp enabled", "user_id", userId, "email", req.Email)
 	return &userpb.EnrollConfirmResponse{
 		Success:     true,
 		BackupCodes: *backupCodes,
@@ -264,7 +272,7 @@ func (s *TOTPServer) DisableBegin(ctx context.Context, req *userpb.DisableBeginR
 	}, nil
 }
 
-func (s *TOTPServer) DisableConfirm(_ context.Context, req *userpb.DisableConfirmRequest) (*userpb.DisableConfirmResponse, error) {
+func (s *TOTPServer) DisableConfirm(ctx context.Context, req *userpb.DisableConfirmRequest) (*userpb.DisableConfirmResponse, error) {
 	client, err := getUserByAttribute(Client{}, s.gorm, "email", req.Email)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
@@ -303,6 +311,7 @@ func (s *TOTPServer) DisableConfirm(_ context.Context, req *userpb.DisableConfir
 		return nil, status.Error(codes.Internal, "committing transaction failed")
 	}
 
+	logger.FromContext(ctx).InfoContext(ctx, "audit: totp disabled", "user_id", userId, "email", req.Email)
 	return &userpb.DisableConfirmResponse{
 		Success: true,
 	}, nil

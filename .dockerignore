@@ -6,8 +6,6 @@
 !go.work.sum
 !go.mod
 !go.sum
-!cmd/
-!internal/
 !pkg/
 !services/
 !proto/

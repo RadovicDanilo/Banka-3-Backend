@@ -3,9 +3,9 @@ package trading
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	"github.com/RAF-SI-2025/Banka-3-Backend/services/bank/internal/trading/pricing"
 	"gorm.io/gorm"
 )
@@ -72,7 +72,7 @@ func (r *ForexRefresher) run(ctx context.Context) {
 func (r *ForexRefresher) runOnce(ctx context.Context) {
 	bases, err := r.loadBases()
 	if err != nil {
-		log.Printf("[ForexRefresher] load bases: %v", err)
+		logger.L().Error("load bases failed", "err", err)
 		return
 	}
 	for i, base := range bases {
@@ -91,10 +91,10 @@ func (r *ForexRefresher) runOnce(ctx context.Context) {
 				continue
 			}
 			if errors.Is(err, pricing.ErrRateLimited) {
-				log.Printf("[ForexRefresher] rate limited; aborting tick after %s", base)
+				logger.L().Warn("rate limited; aborting tick", "base", base)
 				return
 			}
-			log.Printf("[ForexRefresher] %s: %v", base, err)
+			logger.L().Error("forex tick failed", "base", base, "err", err)
 		}
 	}
 }

@@ -5,6 +5,7 @@ go 1.25.0
 replace github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto => ../../pkg/proto
 
 require (
+	github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger v0.0.0-00010101000000-000000000000
 	github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto v0.0.0-00010101000000-000000000000
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.12.0
@@ -26,6 +27,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/lmittmann/tint v1.1.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -43,3 +45,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
+
+replace github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger => ../../pkg/logger

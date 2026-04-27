@@ -3,11 +3,11 @@ package trading
 import (
 	"context"
 	"errors"
-	"log"
 	"math"
 	"math/rand"
 	"time"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -82,7 +82,7 @@ func (s *Server) executorTick(now time.Time, nextFillAt map[int64]time.Time) {
 		StatusApproved, false,
 	).Find(&orders).Error
 	if err != nil {
-		log.Printf("[Executor] ERROR loading orders: %v", err)
+		logger.L().Error("loading orders failed", "err", err)
 		return
 	}
 
@@ -106,7 +106,7 @@ func (s *Server) executorTick(now time.Time, nextFillAt map[int64]time.Time) {
 		if needsActivation(o) {
 			fired, err := s.checkActivation(o, now)
 			if err != nil {
-				log.Printf("[Executor] order %d activation check failed: %v", o.ID, err)
+				logger.L().Error("order activation check failed", "order_id", o.ID, "err", err)
 				continue
 			}
 			if !fired {
@@ -128,7 +128,7 @@ func (s *Server) executorTick(now time.Time, nextFillAt map[int64]time.Time) {
 		}
 		next, err := s.executeFill(o, now)
 		if err != nil {
-			log.Printf("[Executor] order %d fill failed: %v", o.ID, err)
+			logger.L().Error("order fill failed", "order_id", o.ID, "err", err)
 			nextFillAt[o.ID] = now.Add(executorFailureBackoff)
 			continue
 		}

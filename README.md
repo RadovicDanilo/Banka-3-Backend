@@ -4,7 +4,8 @@ Projekat iz predmeta na RAF-u. Go/gRPC mikroservisi + Postgres.
 
 ## API
 
-Api specifikacija se nalazi [ovde](https://ivan-klikovac.github.io/raf-banka3-api/)
+Api specifikacija se nalazi
+[ovde](https://ivan-klikovac.github.io/raf-banka3-api/)
 
 ## Potrebno
 
@@ -29,7 +30,7 @@ Sve komande koriste Docker po defaultu. Dodajte `-l` suffix za lokalno
 pokretanje (potreban Go na sistemu).
 
 | Komanda        | Opis                                         |
-|----------------|----------------------------------------------|
+| -------------- | -------------------------------------------- |
 | `make all`     | Pokreni sve (proto, up, schema, seed)        |
 | `make up`      | Pokreni servise/containere                   |
 | `make down`    | Ugasi servise/containere                     |
@@ -67,16 +68,17 @@ development).
 Alternativno, mozete samo da skinete ove packages iz `flake.nix` sa svog package
 managera.
 
-
 ## Secrets
-U repozitorijum je dodat .env.example.gpg. Ovo je fajl sa simetricnom enkripcijom
-ciju sifru mozete na discordu u vidu pinnovane poruke. Sadrzaj ovog fajla ce
-takodje biti dostupan na discordu tako da korisnik nije primoran da koristi gpg.
 
-Za one koji imaju gpg (verovatno svi koji koriste linux, potreban je za package management)
-dovoljno je izvrsiti sledecu komandu kako bi dekriptovali fajl:
-`gpg --decrypt -o .env .env.example.gpg` nakon cega ce gpg promptovati za sifru preko GUI-a
-ili TUI-a u zavisnosti od podesavanja.
+U repozitorijum je dodat .env.example.gpg. Ovo je fajl sa simetricnom
+enkripcijom ciju sifru mozete na discordu u vidu pinnovane poruke. Sadrzaj ovog
+fajla ce takodje biti dostupan na discordu tako da korisnik nije primoran da
+koristi gpg.
 
-Emacs korisnici takodje mogu koristiti (epa) EasyPG Assistant, za automatsko enkriptovanje
-i dekriptovanje fajlova kao i dired integracije.
+Za one koji imaju gpg (verovatno svi koji koriste linux, potreban je za package
+management) dovoljno je izvrsiti sledecu komandu kako bi dekriptovali fajl:
+`gpg --decrypt -o .env .env.example.gpg` nakon cega ce gpg promptovati za sifru
+preko GUI-a ili TUI-a u zavisnosti od podesavanja.
+
+Emacs korisnici takodje mogu koristiti (epa) EasyPG Assistant, za automatsko
+enkriptovanje i dekriptovanje fajlova kao i dired integracije.

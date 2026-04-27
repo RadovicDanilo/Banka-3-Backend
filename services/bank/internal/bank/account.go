@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
 )
@@ -451,7 +452,7 @@ func (s *Server) triggerCardCreation(ctx context.Context, email, accNum string, 
 		CardBrand:     req.CardBrand,
 	})
 	if err != nil {
-		fmt.Printf("warning: card creation failed for %s: %v\n", accNum, err)
+		logger.L().Error("card creation failed", "account_number", accNum, "err", err)
 	}
 }
 

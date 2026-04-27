@@ -3,9 +3,9 @@ package trading
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	"github.com/RAF-SI-2025/Banka-3-Backend/services/bank/internal/trading/pricing"
 	"gorm.io/gorm"
 )
@@ -87,7 +87,7 @@ type optionsRefreshTarget struct {
 func (r *OptionsRefresher) runOnce(ctx context.Context) {
 	targets, err := r.loadTargets()
 	if err != nil {
-		log.Printf("[OptionsRefresher] load targets: %v", err)
+		logger.L().Error("load targets failed", "err", err)
 		return
 	}
 	for i, tgt := range targets {
@@ -106,10 +106,10 @@ func (r *OptionsRefresher) runOnce(ctx context.Context) {
 				continue
 			}
 			if errors.Is(err, pricing.ErrRateLimited) {
-				log.Printf("[OptionsRefresher] rate limited; aborting tick after %s", tgt.Ticker)
+				logger.L().Warn("rate limited; aborting tick", "ticker", tgt.Ticker)
 				return
 			}
-			log.Printf("[OptionsRefresher] %s: %v", tgt.Ticker, err)
+			logger.L().Error("options tick failed", "ticker", tgt.Ticker, "err", err)
 		}
 	}
 }

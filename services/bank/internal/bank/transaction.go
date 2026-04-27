@@ -5,12 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank"
 	"github.com/go-pdf/fpdf"
 	"google.golang.org/grpc/codes"
@@ -187,7 +187,7 @@ func (s *Server) PayoutMoneyToOtherAccount(
 		req.Amount, req.PaymentCode, req.ReferenceNumber, req.Purpose)
 
 	if err != nil {
-		log.Printf("bank/server.go: payment failed: %v", err)
+		logger.L().Error("payment failed", "err", err)
 		switch {
 		case errors.Is(err, ErrAccountNotFound):
 			return nil, status.Error(codes.NotFound, "account not found")
@@ -230,7 +230,7 @@ func (s *Server) TransferMoneyBetweenAccounts(
 
 	transfer, err := s.CreateTransfer(req.FromAccount, req.ToAccount, req.Amount)
 	if err != nil {
-		log.Printf("bank/server.go: failed to create transfer: %v", err)
+		logger.L().Error("failed to create transfer", "err", err)
 		switch {
 		case strings.Contains(err.Error(), "same account"):
 			return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -245,7 +245,7 @@ func (s *Server) TransferMoneyBetweenAccounts(
 
 	err = s.ConfirmTransfer(transfer.Transaction_id, "123456")
 	if err != nil {
-		log.Printf("bank/server.go: transfer confirmation failed: %v", err)
+		logger.L().Error("transfer confirmation failed", "err", err)
 		switch {
 		case strings.Contains(err.Error(), "insufficient funds"):
 			return nil, status.Error(codes.FailedPrecondition, "insufficient funds")

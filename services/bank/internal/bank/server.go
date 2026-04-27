@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -12,6 +11,7 @@ import (
 
 	"errors"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank"
 	exchangepb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/exchange"
 	notificationpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/notification"
@@ -763,7 +763,7 @@ func loanViewToProto(loan *loanView) *bankpb.Loan {
 	}
 }
 
-func (s *Server) GetLoans(_ context.Context, req *bankpb.GetLoansRequest) (*bankpb.GetLoansResponse, error) {
+func (s *Server) GetLoans(ctx context.Context, req *bankpb.GetLoansRequest) (*bankpb.GetLoansResponse, error) {
 	clientEmail := strings.TrimSpace(req.ClientEmail)
 	if clientEmail == "" {
 		return nil, status.Error(codes.Unauthenticated, "client email required")
@@ -794,7 +794,7 @@ func (s *Server) GetLoans(_ context.Context, req *bankpb.GetLoansRequest) (*bank
 		loanStatus,
 	)
 	if err != nil {
-		log.Printf("[GetLoans] ERROR fetching loans for client %s: %v", clientEmail, err)
+		logger.FromContext(ctx).ErrorContext(ctx, "GetLoans fetch failed", "client", clientEmail, "err", err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to retrieve loans: %v", err))
 	}
 
@@ -808,7 +808,7 @@ func (s *Server) GetLoans(_ context.Context, req *bankpb.GetLoansRequest) (*bank
 	}, nil
 }
 
-func (s *Server) GetLoanByNumber(_ context.Context, req *bankpb.GetLoanByNumberRequest) (*bankpb.Loan, error) {
+func (s *Server) GetLoanByNumber(ctx context.Context, req *bankpb.GetLoanByNumberRequest) (*bankpb.Loan, error) {
 	clientEmail := strings.TrimSpace(req.ClientEmail)
 	if clientEmail == "" {
 		return nil, status.Error(codes.Unauthenticated, "client email required")
@@ -824,7 +824,7 @@ func (s *Server) GetLoanByNumber(_ context.Context, req *bankpb.GetLoanByNumberR
 		return nil, status.Error(codes.InvalidArgument, "invalid loan number")
 	}
 
-	log.Printf("[GetLoanByNumber] Looking up loan %d for client email: %s", loanID, clientEmail)
+	l := logger.FromContext(ctx).With("loan_id", loanID, "client", clientEmail)
 
 	var loan *loanView
 	var clientLookupErr error
@@ -833,25 +833,20 @@ func (s *Server) GetLoanByNumber(_ context.Context, req *bankpb.GetLoanByNumberR
 
 	if clientLookupErr != nil {
 		if errors.Is(clientLookupErr, gorm.ErrRecordNotFound) {
-			// Check if this might be an employee (email not in clients table)
-			// Try unrestricted lookup for employees
-			log.Printf("[GetLoanByNumber] Client lookup failed for %s, trying employee lookup", clientEmail)
+			// not in clients table — try unrestricted lookup for employees
 			loan, err = s.getLoanByID(loanID)
 			if err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
-					log.Printf("[GetLoanByNumber] Loan %d not found", loanID)
+					l.WarnContext(ctx, "loan not found")
 					return nil, status.Error(codes.NotFound, "loan not found")
 				}
-				log.Printf("[GetLoanByNumber] ERROR fetching loan %d: %v", loanID, err)
+				l.ErrorContext(ctx, "loan fetch failed", "err", err)
 				return nil, status.Error(codes.Internal, fmt.Sprintf("failed to retrieve loan: %v", err))
 			}
-			log.Printf("[GetLoanByNumber] SUCCESS: Found loan %d for employee %s", loanID, clientEmail)
 		} else {
-			log.Printf("[GetLoanByNumber] ERROR fetching loan %d for client %s: %v", loanID, clientEmail, clientLookupErr)
+			l.ErrorContext(ctx, "loan fetch failed", "err", clientLookupErr)
 			return nil, status.Error(codes.Internal, fmt.Sprintf("failed to retrieve loan: %v", clientLookupErr))
 		}
-	} else {
-		log.Printf("[GetLoanByNumber] SUCCESS: Found loan %d for client %s", loanID, clientEmail)
 	}
 
 	return loanViewToProto(loan), nil
@@ -1151,7 +1146,7 @@ func (s *Server) RejectLoanRequest(_ context.Context, req *bankpb.RejectLoanRequ
 	return &bankpb.RejectLoanRequestResponse{}, nil
 }
 
-func (s *Server) GetAllLoans(_ context.Context, req *bankpb.GetAllLoansRequest) (*bankpb.GetLoansResponse, error) {
+func (s *Server) GetAllLoans(ctx context.Context, req *bankpb.GetAllLoansRequest) (*bankpb.GetLoansResponse, error) {
 	loanType := ""
 	if strings.TrimSpace(req.LoanType) != "" {
 		parsed, err := parseLoanType(req.LoanType)
@@ -1176,7 +1171,7 @@ func (s *Server) GetAllLoans(_ context.Context, req *bankpb.GetAllLoansRequest) 
 		loanStatus,
 	)
 	if err != nil {
-		log.Printf("[GetAllLoans] ERROR fetching all loans: %v", err)
+		logger.FromContext(ctx).ErrorContext(ctx, "GetAllLoans fetch failed", "err", err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to retrieve loans: %v", err))
 	}
 

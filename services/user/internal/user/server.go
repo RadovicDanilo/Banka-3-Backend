@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"reflect"
@@ -25,6 +24,7 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	notificationpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/notification"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
 )
@@ -132,7 +132,7 @@ func (client Client) toProtobuff() *userpb.Client {
 	}
 }
 
-func (s *Server) GetEmployeeByEmail(_ context.Context, req *userpb.GetUserByEmailRequest) (*userpb.GetEmployeeResponse, error) {
+func (s *Server) GetEmployeeByEmail(ctx context.Context, req *userpb.GetUserByEmailRequest) (*userpb.GetEmployeeResponse, error) {
 	resp, err := getUserByAttribute(Employee{}, s.db_gorm, "email", req.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -143,7 +143,7 @@ func (s *Server) GetEmployeeByEmail(_ context.Context, req *userpb.GetUserByEmai
 	return resp.toProtobuf(), nil
 }
 
-func (s *Server) GetEmployeeById(_ context.Context, req *userpb.GetUserByIdRequest) (*userpb.GetEmployeeResponse, error) {
+func (s *Server) GetEmployeeById(ctx context.Context, req *userpb.GetUserByIdRequest) (*userpb.GetEmployeeResponse, error) {
 	resp, err := getUserByAttribute(Employee{}, s.db_gorm, "id", req.Id)
 	if err != nil {
 		return nil, err
@@ -170,7 +170,7 @@ func (s *Server) GetClientById(_ context.Context, req *userpb.GetUserByIdRequest
 	return resp.toProtobuf(), nil
 }
 
-func (s *Server) DeleteEmployee(_ context.Context, req *userpb.DeleteEmployeeRequest) (*userpb.DeleteEmployeeResponse, error) {
+func (s *Server) DeleteEmployee(ctx context.Context, req *userpb.DeleteEmployeeRequest) (*userpb.DeleteEmployeeResponse, error) {
 
 	err := deleteUser(Employee{Id: uint64(req.Id)}, s)
 	if err != nil {
@@ -182,7 +182,7 @@ func (s *Server) DeleteEmployee(_ context.Context, req *userpb.DeleteEmployeeReq
 	return &userpb.DeleteEmployeeResponse{Success: true}, nil
 }
 
-func (s *Server) GetEmployees(_ context.Context, req *userpb.GetEmployeesRequest) (*userpb.GetEmployeesResponse, error) {
+func (s *Server) GetEmployees(ctx context.Context, req *userpb.GetEmployeesRequest) (*userpb.GetEmployeesResponse, error) {
 	map_func := func(emp Employee) *userpb.GetEmployeesResponse_Employee {
 		return &userpb.GetEmployeesResponse_Employee{
 			Id:           int64(emp.Id),
@@ -201,7 +201,7 @@ func (s *Server) GetEmployees(_ context.Context, req *userpb.GetEmployeesRequest
 
 	employees, err := GetAllUsersFromModel(Employee{}, s, restrictions)
 	if err != nil {
-		log.Printf("Error in retrieving employees: %s", err.Error())
+		logger.FromContext(ctx).ErrorContext(ctx, "error retrieving employees", "err", err)
 		return nil, status.Error(codes.Internal, "Failed to retrieve employees")
 	}
 
@@ -379,7 +379,7 @@ func (s *Server) UpdateEmployeeNeedApproval(ctx context.Context, req *userpb.Upd
 
 // GetActuaries returns employees that hold the `agent` permission, with the same
 // filter set as GetEmployees. Spec page 39 — supervisor portal.
-func (s *Server) GetActuaries(_ context.Context, req *userpb.GetEmployeesRequest) (*userpb.GetEmployeesResponse, error) {
+func (s *Server) GetActuaries(ctx context.Context, req *userpb.GetEmployeesRequest) (*userpb.GetEmployeesResponse, error) {
 	restrictions := user_restrictions{
 		"first_name": req.FirstName,
 		"last_name":  req.LastName,
@@ -389,7 +389,7 @@ func (s *Server) GetActuaries(_ context.Context, req *userpb.GetEmployeesRequest
 
 	employees, err := GetAllUsersFromModel(Employee{}, s, restrictions)
 	if err != nil {
-		log.Printf("Error in retrieving actuaries: %s", err.Error())
+		logger.FromContext(ctx).ErrorContext(ctx, "error retrieving actuaries", "err", err)
 		return nil, status.Error(codes.Internal, "Failed to retrieve actuaries")
 	}
 
@@ -497,12 +497,12 @@ func callerCanManageLimits(_ context.Context, s *Server, callerEmail string) boo
 	return false
 }
 
-func (s *Server) GetClients(_ context.Context, req *userpb.GetClientsRequest) (*userpb.GetClientsResponse, error) {
+func (s *Server) GetClients(ctx context.Context, req *userpb.GetClientsRequest) (*userpb.GetClientsResponse, error) {
 
 	clients, err := GetAllUsersFromModel(Client{}, s, user_restrictions{"first_name": strings.TrimSpace(req.FirstName), "last_name": strings.TrimSpace(req.LastName), "email": strings.TrimSpace(req.Email)})
 
 	if err != nil {
-		log.Printf("Error in retrieving clients: %s", err.Error())
+		logger.FromContext(ctx).ErrorContext(ctx, "error retrieving clients", "err", err)
 		return nil, status.Error(codes.Internal, "Failed to retrieve clients")
 	}
 
@@ -514,7 +514,7 @@ func (s *Server) GetClients(_ context.Context, req *userpb.GetClientsRequest) (*
 	return &userpb.GetClientsResponse{Clients: clientResponses}, nil
 }
 
-func (s *Server) UpdateClient(_ context.Context, req *userpb.UpdateClientRequest) (*userpb.UpdateClientResponse, error) {
+func (s *Server) UpdateClient(ctx context.Context, req *userpb.UpdateClientRequest) (*userpb.UpdateClientResponse, error) {
 	if req.Id <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "id must be greater than zero")
 	}
@@ -537,7 +537,7 @@ func (s *Server) UpdateClient(_ context.Context, req *userpb.UpdateClientRequest
 		field := ref.Field(i)
 		if field.Type() == reflect.TypeFor[string]() {
 			if !field.CanSet() {
-				log.Println("cannot set the value of struct field")
+				logger.FromContext(ctx).ErrorContext(ctx, "cannot set the value of struct field")
 				// This need not be an error, but it will also probably
 				// never happen
 				return nil, status.Error(codes.Internal, "client update failed")
@@ -622,7 +622,7 @@ func validateJWTToken(tokenString, secret string) (*userpb.ValidateTokenResponse
 	}, nil
 }
 
-func (s *Server) ValidateRefreshToken(_ context.Context, req *userpb.ValidateTokenRequest) (*userpb.ValidateTokenResponse, error) {
+func (s *Server) ValidateRefreshToken(ctx context.Context, req *userpb.ValidateTokenRequest) (*userpb.ValidateTokenResponse, error) {
 	return validateJWTToken(req.Token, s.refreshJwtSecret)
 }
 
@@ -735,8 +735,10 @@ func (s *Server) getRoleAndPermissions(email string) (role string, permissions [
 }
 
 func (s *Server) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.LoginResponse, error) {
+	l := logger.FromContext(ctx).With("email", req.Email)
 	user, err := s.GetUserByEmail(req.Email)
 	if err != nil || user == nil {
+		l.WarnContext(ctx, "audit: login failed", "reason", "unknown user")
 		return nil, status.Error(codes.Unauthenticated, "wrong creds")
 	}
 	hashedPassword := HashPassword(req.Password, user.salt)
@@ -745,6 +747,7 @@ func (s *Server) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.L
 		role, permissions, active := s.getRoleAndPermissions(user.email)
 
 		if !active {
+			l.WarnContext(ctx, "audit: login failed", "reason", "deactivated")
 			return nil, status.Error(codes.Unauthenticated, "account deactivated")
 		}
 
@@ -769,6 +772,7 @@ func (s *Server) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.L
 			return nil, status.Error(codes.Unavailable, "session store unavailable")
 		}
 
+		l.InfoContext(ctx, "audit: login success", "role", role)
 		return &userpb.LoginResponse{
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
@@ -777,6 +781,7 @@ func (s *Server) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.L
 		}, nil
 	}
 
+	l.WarnContext(ctx, "audit: login failed", "reason", "wrong password")
 	return nil, status.Error(codes.Unauthenticated, "wrong creds")
 }
 
@@ -798,6 +803,7 @@ func (s *Server) Logout(ctx context.Context, req *userpb.LogoutRequest) (*userpb
 
 	_ = s.DeleteSession(ctx, email)
 
+	logger.FromContext(ctx).InfoContext(ctx, "audit: logout", "email", email)
 	return &userpb.LogoutResponse{
 		Success: true,
 	}, nil
@@ -860,6 +866,7 @@ func (s *Server) SetPasswordWithToken(ctx context.Context, req *userpb.SetPasswo
 
 	_ = s.DeleteSession(ctx, email)
 
+	logger.FromContext(ctx).InfoContext(ctx, "audit: password set via token", "email", email, "action", actionType)
 	return &userpb.SetPasswordWithTokenResponse{Successful: true}, nil
 }
 
@@ -982,7 +989,7 @@ func buildActionLink(baseURL string, token string) (string, error) {
 	return parsedURL.String(), nil
 }
 
-func (s *Server) CreateClientAccount(_ context.Context, req *userpb.CreateClientRequest) (*userpb.CreateClientResponse, error) {
+func (s *Server) CreateClientAccount(ctx context.Context, req *userpb.CreateClientRequest) (*userpb.CreateClientResponse, error) {
 	is_null := func(str string) bool {
 		return strings.TrimSpace(str) == ""
 	}
@@ -999,7 +1006,7 @@ func (s *Server) CreateClientAccount(_ context.Context, req *userpb.CreateClient
 
 	salt, salt_err := generateSalt()
 	if salt_err != nil {
-		log.Printf("Error generating salt %s", salt_err.Error())
+		logger.FromContext(ctx).ErrorContext(ctx, "error generating salt", "err", salt_err)
 		return nil, status.Error(codes.Internal, "Password salting failed")
 	}
 
@@ -1011,7 +1018,7 @@ func (s *Server) CreateClientAccount(_ context.Context, req *userpb.CreateClient
 
 	err := create_user_from_model(client, s)
 	if err != nil {
-		log.Printf("Error in user creation%s", err.Error())
+		logger.FromContext(ctx).ErrorContext(ctx, "client creation failed", "err", err)
 		return nil, status.Error(codes.Internal, "Client creation failed")
 	}
 	return &userpb.CreateClientResponse{Valid: true}, nil
@@ -1030,7 +1037,7 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 
 	salt, salt_err := generateSalt()
 	if salt_err != nil {
-		log.Printf("Error generating salt %s", salt_err.Error())
+		logger.FromContext(ctx).ErrorContext(ctx, "error generating salt", "err", salt_err)
 	}
 
 	// Spec p.38: every admin is also a supervisor.
@@ -1040,7 +1047,7 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 	for _, permName := range reqPerms {
 		var perm Permission
 		if err := s.db_gorm.First(&perm, "name = ?", permName).Error; err != nil {
-			log.Printf("Permission %q not found, skipping", permName)
+			logger.FromContext(ctx).WarnContext(ctx, "permission not found, skipping", "name", permName)
 			continue
 		}
 		permissions = append(permissions, perm)
@@ -1056,14 +1063,14 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 	err := create_user_from_model(employee, s)
 
 	if err != nil {
-		log.Printf("Error in user creation%s", err.Error())
+		logger.FromContext(ctx).ErrorContext(ctx, "employee creation failed", "err", err)
 		return nil, status.Error(codes.Internal, "Employee creation failed")
 	}
 
 	// Re-fetch to get the auto-assigned ID and properly loaded permissions
 	created, err := getUserByAttribute(Employee{}, s.db_gorm, "email", employee.Email)
 	if err != nil {
-		log.Printf("Employee created but failed to fetch: %s", err.Error())
+		logger.FromContext(ctx).ErrorContext(ctx, "employee created but failed to fetch", "err", err)
 		return employee.toProtobuf(), nil
 	}
 
@@ -1072,7 +1079,7 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 		Email: req.Email,
 	})
 	if emailErr != nil {
-		log.Printf("Employee created but activation email failed: %s", emailErr.Error())
+		logger.FromContext(ctx).ErrorContext(ctx, "employee created but activation email failed", "err", emailErr)
 	}
 
 	return created.toProtobuf(), nil

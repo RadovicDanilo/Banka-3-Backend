@@ -3,10 +3,10 @@ package bank
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"time"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -70,7 +70,7 @@ func (s *Server) CollectCapitalGains(period string) (CapitalGainsCollectionResul
 		res.TotalDebtRSD += b.Total
 		paid, rows, err := s.collectOneAccount(stateAccount, b.AccountID, b.Total, period)
 		if err != nil {
-			log.Printf("[Cron] capital-gains collect account=%d: %v", b.AccountID, err)
+			logger.L().Error("capital-gains collect failed", "account_id", b.AccountID, "err", err)
 			continue
 		}
 		if !paid {
@@ -219,12 +219,11 @@ func convertRSDToAccountCcy(tx *gorm.DB, accCurrency string, totalRSD int64) (in
 // loan-collection cron so operators can scrape the same prefix.
 func (s *Server) RunMonthlyCapitalGainsCollection() {
 	period := time.Now().Format("2006-01")
-	log.Printf("[Cron] Running capital-gains collection for %s", period)
+	logger.L().Info("running capital-gains collection", "period", period)
 	res, err := s.CollectCapitalGains(period)
 	if err != nil {
-		log.Printf("[Cron] ERROR collecting capital gains: %v", err)
+		logger.L().Error("collecting capital gains failed", "err", err)
 		return
 	}
-	log.Printf("[Cron] Capital-gains %s: paid=%d accounts (%d rows, %d RSD), insufficient=%d (%d RSD outstanding)",
-		res.Period, res.AccountsPaid, res.RowsPaid, res.CollectedRSD, res.Insufficient, res.TotalDebtRSD-res.CollectedRSD)
+	logger.L().Info("capital-gains collection complete", "period", res.Period, "accounts_paid", res.AccountsPaid, "rows_paid", res.RowsPaid, "collected_rsd", res.CollectedRSD, "insufficient", res.Insufficient, "outstanding_rsd", res.TotalDebtRSD-res.CollectedRSD)
 }
