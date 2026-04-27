@@ -6,12 +6,12 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank"
 	exchangepb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/exchange"
 	notificationpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/notification"
 	tradingpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/trading"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
-	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 )
 
 func dialOpts() []grpc.DialOption {

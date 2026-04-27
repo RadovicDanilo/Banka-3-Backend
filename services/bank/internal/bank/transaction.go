@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank"
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
+	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank"
 	"github.com/go-pdf/fpdf"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

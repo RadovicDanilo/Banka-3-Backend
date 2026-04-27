@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
-	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

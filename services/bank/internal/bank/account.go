@@ -15,9 +15,9 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
-	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 )
 
 type callerIdentity struct {

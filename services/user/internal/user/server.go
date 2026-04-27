@@ -24,9 +24,9 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	notificationpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/notification"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
-	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 )
 
 type Connections struct {

@@ -9,8 +9,8 @@ import (
 	"os"
 	"time"
 
-	exchangepb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/exchange"
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
+	exchangepb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/exchange"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
