@@ -1,0 +1,48 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"net"
+	"os"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
+
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/notification"
+	internalNotification "github.com/RAF-SI-2025/Banka-3-Backend/services/notification/internal/notification"
+)
+
+func main() {
+	port := os.Getenv("GRPC_PORT")
+	if port == "" {
+		port = "50051"
+	}
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	grpcServer := grpc.NewServer()
+	backend := os.Getenv("BACKEND")
+
+	var sender internalNotification.EmailSender
+	switch backend {
+	case "SMTP":
+		sender = &internalNotification.SMTPSender{}
+	case "STDOUT":
+		sender = &internalNotification.StdoutSender{}
+	case "NOOP":
+		sender = &internalNotification.NoopSender{}
+	default:
+		sender = &internalNotification.SMTPSender{}
+	}
+	server := internalNotification.NewServer(sender)
+
+	notification.RegisterNotificationServiceServer(grpcServer, server)
+	reflection.Register(grpcServer)
+	log.Printf("Notification service listening on port %s", port)
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
+}

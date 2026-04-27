@@ -2,9 +2,12 @@
 *
 
 # Allow only what the build needs
+!go.work
+!go.work.sum
 !go.mod
 !go.sum
 !cmd/
 !internal/
-!gen/
+!pkg/
+!services/
 !proto/

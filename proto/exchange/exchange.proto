@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package exchange;
 
-option go_package = "github.com/RAF-SI-2025/Banka-3-Backend/gen/exchange";
+option go_package = "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/exchange";
 
 service ExchangeService {
   rpc GetExchangeRates(ExchangeRateListRequest) returns (ExchangeRateListResponse);

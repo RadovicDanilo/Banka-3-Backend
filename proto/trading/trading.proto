@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package trading;
 
-option go_package = "github.com/RAF-SI-2025/Banka-3-Backend/gen/trading";
+option go_package = "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/trading";
 
 service TradingService {
   rpc ListExchanges(ListExchangesRequest) returns (ListExchangesResponse);

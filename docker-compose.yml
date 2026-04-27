@@ -35,7 +35,9 @@ services:
     container_name: bank
     build:
       context: .
-      dockerfile: cmd/bank/Dockerfile
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: bank
     restart: on-failure
     ports:
       - "${BANK_GRPC_PORT:-50053}:50051"
@@ -52,7 +54,9 @@ services:
     container_name: exchange
     build:
       context: .
-      dockerfile: cmd/exchange/Dockerfile
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: exchange
     restart: on-failure
     ports:
       - "${EXCHANGE_GRPC_PORT:-50054}:50051"
@@ -69,7 +73,9 @@ services:
     container_name: user
     build:
       context: .
-      dockerfile: cmd/user/Dockerfile
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: user
     restart: on-failure
     ports:
       - "${USER_GRPC_PORT:-50051}:50051"
@@ -95,7 +101,9 @@ services:
     container_name: notification
     build:
       context: .
-      dockerfile: cmd/notification/Dockerfile
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: notification
     ports:
       - "${NOTIFICATION_GRPC_PORT:-50052}:50051"
     environment:
@@ -112,7 +120,9 @@ services:
     container_name: gateway
     build:
       context: .
-      dockerfile: cmd/gateway/Dockerfile
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: gateway
     ports:
       - "${GATEWAY_PORT:-8080}:8080"
     environment:

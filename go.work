@@ -1,0 +1,10 @@
+go 1.25.0
+
+use (
+	./pkg/proto
+	./services/bank
+	./services/exchange
+	./services/gateway
+	./services/notification
+	./services/user
+)
