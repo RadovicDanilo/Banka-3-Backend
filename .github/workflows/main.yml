@@ -12,21 +12,31 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version-file: services/bank/go.mod
       - name: Check gofmt
-        run: test -z "$(gofmt -l .)"
+        run: test -z "$(gofmt -l services/ pkg/)"
 
   lint:
     name: Lint check
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module:
+          - pkg/proto
+          - services/bank
+          - services/exchange
+          - services/gateway
+          - services/notification
+          - services/user
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version-file: ${{ matrix.module }}/go.mod
       - uses: golangci/golangci-lint-action@v9
         with:
           version: v2.4
+          working-directory: ${{ matrix.module }}
 
   proto-check:
     name: Proto staleness check
@@ -37,7 +47,7 @@ jobs:
         run: make proto
       - name: Check for diff
         run: |
-          if ! git diff --exit-code gen/; then
+          if ! git diff --exit-code pkg/proto/; then
             echo "::error::Generated proto code is out of date. Run 'make proto' and commit the result."
             exit 1
           fi
@@ -45,22 +55,30 @@ jobs:
   build:
     name: Build services
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [bank, exchange, gateway, notification, user]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
-      - run: go build ./cmd/...
+          go-version-file: services/${{ matrix.service }}/go.mod
+      - working-directory: services/${{ matrix.service }}
+        run: go build ./...
 
   tests-unit:
     name: Tests (unit)
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [bank, exchange, gateway, notification, user]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
-      - run: go test -race -count=1 ./...
+          go-version-file: services/${{ matrix.service }}/go.mod
+      - working-directory: services/${{ matrix.service }}
+        run: go test -race -count=1 ./...
 
   schema-check:
     name: Schema+seed check
@@ -119,7 +137,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version-file: services/bank/go.mod
       - name: Apply schema
         run: psql -f scripts/db/schema.sql
         env:
@@ -137,24 +155,31 @@ jobs:
           PGPASSWORD: banka_secret
           PGDATABASE: banka
       - name: Run integration tests
-        run: go test -race -count=1 -tags=integration ./...
         env:
           DATABASE_URL: postgres://banka:banka_secret@localhost:5432/banka?sslmode=disable
           ACCESS_JWT_SECRET: ci-test-access-secret
           REFRESH_JWT_SECRET: ci-test-refresh-secret
+        run: |
+          for s in services/*/; do
+            echo ">>> integration tests in $s"
+            (cd "$s" && go test -race -count=1 -tags=integration ./...) || exit 1
+          done
 
   docker-build:
-    name: Docker build
+    name: Docker build ${{ matrix.service }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         service: [user, notification, gateway, bank, exchange]
     steps:
       - uses: actions/checkout@v5
       - uses: docker/setup-buildx-action@v3
-      - name: Build ${{ matrix.service }} image
-        run: |
-          docker buildx build \
-            --cache-from type=gha \
-            --cache-to type=gha,mode=max \
-            -f cmd/${{ matrix.service }}/Dockerfile .
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          build-args: |
+            SERVICE=${{ matrix.service }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}

@@ -18,6 +18,11 @@ CREATE TABLE IF NOT EXISTS employees (
     position      VARCHAR(100) NOT NULL,
     department    VARCHAR(100) NOT NULL,
     active        BOOLEAN      NOT NULL DEFAULT true,
+    -- Daily trading limit (in RSD minor units) for employees with the `agent` permission.
+    -- Supervisors and admins ignore the limit.
+    "limit"       BIGINT       NOT NULL DEFAULT 0 CHECK ("limit" >= 0),
+    used_limit    BIGINT       NOT NULL DEFAULT 0 CHECK (used_limit >= 0),
+    need_approval BOOLEAN      NOT NULL DEFAULT false,
     created_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMP    NOT NULL DEFAULT NOW()
 );
@@ -83,30 +88,6 @@ CREATE TABLE IF NOT EXISTS currencies (
     UNIQUE(label)
 );
 
-CREATE TYPE owner_type AS ENUM ('personal', 'business');
-CREATE TYPE account_type AS ENUM ('checking', 'foreign');
-
-CREATE TABLE IF NOT EXISTS accounts (
-    id                  BIGSERIAL       PRIMARY KEY,
-    number              VARCHAR(20)     NOT NULL,
-    name                VARCHAR(127)    NOT NULL,
-    owner               BIGINT          NOT NULL REFERENCES clients(id) ON DELETE CASCADE, -- cascade delete??
-    balance             BIGINT          NOT NULL DEFAULT 0,
-    created_by          BIGINT          REFERENCES employees(id) ON DELETE SET NULL,
-    created_at          DATE            NOT NULL DEFAULT CURRENT_DATE,
-    valid_until         DATE            NOT NULL,
-    currency            VARCHAR(8)      NOT NULL REFERENCES currencies(label) ON UPDATE CASCADE ON DELETE RESTRICT,
-    active              BOOLEAN         NOT NULL DEFAULT FALSE,
-    owner_type          owner_type      NOT NULL,
-    account_type        account_type   NOT NULL,
-    maintainance_cost   BIGINT          NOT NULL,
-    daily_limit         BIGINT,
-    monthly_limit       BIGINT,
-    daily_expenditure   BIGINT,
-    monthly_expenditure BIGINT,
-    UNIQUE(number)
-);
-
 CREATE TABLE IF NOT EXISTS activity_codes (
     id BIGSERIAL PRIMARY KEY,
     code VARCHAR(7) NOT NULL,
@@ -127,8 +108,33 @@ CREATE TABLE IF NOT EXISTS companies (
     UNIQUE(tax_code)
 );
 
+CREATE TYPE owner_type AS ENUM ('personal', 'business');
+CREATE TYPE account_type AS ENUM ('checking', 'foreign');
+
+CREATE TABLE IF NOT EXISTS accounts (
+    id                  BIGSERIAL       PRIMARY KEY,
+    number              VARCHAR(20)     NOT NULL,
+    name                VARCHAR(127)    NOT NULL,
+    owner               BIGINT          NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    company_id          BIGINT          DEFAULT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    balance             BIGINT          NOT NULL DEFAULT 0,
+    created_by          BIGINT          REFERENCES employees(id) ON DELETE SET NULL,
+    created_at          DATE            NOT NULL DEFAULT CURRENT_DATE,
+    valid_until         DATE            NOT NULL,
+    currency            VARCHAR(8)      NOT NULL REFERENCES currencies(label) ON UPDATE CASCADE ON DELETE RESTRICT,
+    active              BOOLEAN         NOT NULL DEFAULT FALSE,
+    owner_type          owner_type      NOT NULL,
+    account_type        account_type    NOT NULL,
+    maintainance_cost   BIGINT          NOT NULL,
+    daily_limit         BIGINT,
+    monthly_limit       BIGINT,
+    daily_expenditure   BIGINT,
+    monthly_expenditure BIGINT,
+    UNIQUE(number)
+);
+
 CREATE TYPE card_type AS ENUM ('debit', 'credit');
-CREATE TYPE card_status AS ENUM ('active', 'blocked', 'deactivated');
+CREATE TYPE card_status AS ENUM ('active', 'blocked');
 CREATE TYPE card_brand AS ENUM ('visa', 'mastercard', 'amex', 'dinacard');
 
 CREATE TABLE IF NOT EXISTS cards (
@@ -176,11 +182,14 @@ CREATE TABLE IF NOT EXISTS payments (
     commission          BIGINT          NOT NULL,
     status              VARCHAR(20)     NOT NULL DEFAULT 'realized' CHECK (status IN ('realized', 'rejected', 'pending')),
     recipient_id        BIGINT          REFERENCES clients(id),
-    transcaction_code    INT            NOT NULL,
+    transaction_code    INT            NOT NULL,
     call_number         VARCHAR(31)     NOT NULL,
     reason              VARCHAR(255)    NOT NULL,
     timestamp           TIMESTAMP       NOT NULL DEFAULT NOW()
 );
+
+
+CREATE TYPE transfer_status AS ENUM ('pending', 'realized', 'rejected');
 
 CREATE TABLE IF NOT EXISTS transfers (
     transaction_id      BIGSERIAL       PRIMARY KEY,
@@ -191,7 +200,7 @@ CREATE TABLE IF NOT EXISTS transfers (
     start_currency_id   BIGINT          REFERENCES currencies(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     exchange_rate       DECIMAL(20,2),
     commission          BIGINT          NOT NULL,
-    status              VARCHAR(20)     NOT NULL DEFAULT 'pending' CHECK  (status IN ('pending', 'completed', 'rejected')),
+    status              transfer_status  NOT NULL DEFAULT 'pending',
     timestamp           TIMESTAMP       NOT NULL DEFAULT NOW()
 );
 
@@ -276,6 +285,236 @@ CREATE TABLE IF NOT EXISTS exchange_rates (
     updated_at    TIMESTAMP      NOT NULL DEFAULT NOW(),
     valid_until   TIMESTAMP      NOT NULL DEFAULT NOW()
 );
+
+-- ============================================================================
+-- Trading: securities, listings, orders
+-- ============================================================================
+
+-- open_time / close_time are the exchange's local-time working hours
+-- (see spec p.40). All exchanges within the same polity share the same
+-- hours and holiday calendar; the holiday table is hardcoded in Go
+-- (internal/trading/hours.go) rather than modeled here.
+CREATE TABLE IF NOT EXISTS exchanges (
+    id                  BIGSERIAL       PRIMARY KEY,
+    name                VARCHAR(127)    NOT NULL,
+    acronym             VARCHAR(31)     NOT NULL,
+    mic_code            VARCHAR(8)      NOT NULL,
+    polity              VARCHAR(127)    NOT NULL,
+    currency            VARCHAR(8)      NOT NULL REFERENCES currencies(label) ON UPDATE CASCADE ON DELETE RESTRICT,
+    time_zone_offset    VARCHAR(8)      NOT NULL,
+    open_time           TIME            NOT NULL DEFAULT '09:30',
+    close_time          TIME            NOT NULL DEFAULT '16:00',
+    open_override       BOOLEAN         NOT NULL DEFAULT FALSE,
+    UNIQUE(mic_code)
+);
+
+CREATE TABLE IF NOT EXISTS stocks (
+    id                  BIGSERIAL       PRIMARY KEY,
+    ticker              VARCHAR(8)      NOT NULL,
+    name                VARCHAR(127)    NOT NULL,
+    outstanding_shares  BIGINT          NOT NULL DEFAULT 0,
+    dividend_yield      DECIMAL(10, 6)  NOT NULL DEFAULT 0,
+    UNIQUE(ticker)
+);
+
+CREATE TABLE IF NOT EXISTS futures (
+    id                  BIGSERIAL       PRIMARY KEY,
+    ticker              VARCHAR(16)     NOT NULL,
+    name                VARCHAR(127)    NOT NULL,
+    contract_size       BIGINT          NOT NULL,
+    contract_unit       VARCHAR(31)     NOT NULL,
+    settlement_date     DATE            NOT NULL,
+    UNIQUE(ticker)
+);
+
+CREATE TYPE forex_liquidity AS ENUM ('high', 'medium', 'low');
+
+CREATE TABLE IF NOT EXISTS forex_pairs (
+    id                  BIGSERIAL       PRIMARY KEY,
+    ticker              VARCHAR(8)      NOT NULL,
+    name                VARCHAR(127)    NOT NULL,
+    base_currency       VARCHAR(8)      NOT NULL REFERENCES currencies(label) ON UPDATE CASCADE ON DELETE RESTRICT,
+    quote_currency      VARCHAR(8)      NOT NULL REFERENCES currencies(label) ON UPDATE CASCADE ON DELETE RESTRICT,
+    exchange_rate       DECIMAL(20, 6)  NOT NULL,
+    liquidity           forex_liquidity NOT NULL DEFAULT 'medium',
+    UNIQUE(ticker),
+    UNIQUE(base_currency, quote_currency)
+);
+
+CREATE TYPE option_type AS ENUM ('call', 'put');
+
+CREATE TABLE IF NOT EXISTS options (
+    id                  BIGSERIAL       PRIMARY KEY,
+    ticker              VARCHAR(32)     NOT NULL,
+    name                VARCHAR(127)    NOT NULL,
+    stock_id            BIGINT          NOT NULL REFERENCES stocks(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    option_type         option_type     NOT NULL,
+    strike_price        BIGINT          NOT NULL,
+    premium             BIGINT          NOT NULL,
+    implied_volatility  DECIMAL(10, 4)  NOT NULL DEFAULT 0,
+    open_interest       BIGINT          NOT NULL DEFAULT 0,
+    settlement_date     DATE            NOT NULL,
+    UNIQUE(ticker)
+);
+
+-- A listing pairs a tradable security (stock or future) with an exchange
+-- and carries the current market-data snapshot. ForexPairs have no listings
+-- (spec: "Ideja 1 — ForexPairs nemaju listinge").
+-- Options have no listings either; they hang off their underlying stock.
+CREATE TABLE IF NOT EXISTS listings (
+    id                  BIGSERIAL       PRIMARY KEY,
+    exchange_id         BIGINT          NOT NULL REFERENCES exchanges(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    stock_id            BIGINT          REFERENCES stocks(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    future_id           BIGINT          REFERENCES futures(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    last_refresh        TIMESTAMP       NOT NULL DEFAULT NOW(),
+    price               BIGINT          NOT NULL DEFAULT 0,
+    ask_price           BIGINT          NOT NULL DEFAULT 0,
+    bid_price           BIGINT          NOT NULL DEFAULT 0,
+    CHECK ((stock_id IS NOT NULL)::int + (future_id IS NOT NULL)::int = 1)
+);
+
+CREATE TABLE IF NOT EXISTS listing_daily_price_info (
+    id                  BIGSERIAL       PRIMARY KEY,
+    listing_id          BIGINT          NOT NULL REFERENCES listings(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    date                DATE            NOT NULL,
+    price               BIGINT          NOT NULL,
+    ask_price           BIGINT          NOT NULL,
+    bid_price           BIGINT          NOT NULL,
+    change              BIGINT          NOT NULL DEFAULT 0,
+    volume              BIGINT          NOT NULL DEFAULT 0,
+    UNIQUE(listing_id, date)
+);
+
+-- Orders can be placed by either a client or an employee (actuary); the
+-- order_placers table holds exactly one of the two, so `orders` carries a
+-- single FK regardless of the placer's kind.
+CREATE TABLE IF NOT EXISTS order_placers (
+    id                  BIGSERIAL       PRIMARY KEY,
+    client_id           BIGINT          REFERENCES clients(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    employee_id         BIGINT          REFERENCES employees(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    CHECK ((client_id IS NOT NULL)::int + (employee_id IS NOT NULL)::int = 1)
+);
+
+-- One placer row per client / employee identity. Holdings (#207) are keyed on
+-- placer_id, so the row has to outlive any single order — the partial indexes
+-- enforce this without breaking the polymorphic NULL pattern.
+CREATE UNIQUE INDEX IF NOT EXISTS order_placers_client_uniq   ON order_placers(client_id)   WHERE client_id   IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS order_placers_employee_uniq ON order_placers(employee_id) WHERE employee_id IS NOT NULL;
+
+CREATE TYPE order_type AS ENUM ('market', 'limit', 'stop', 'stop_limit');
+CREATE TYPE order_direction AS ENUM ('buy', 'sell');
+-- 'cancelled' distinguishes supervisor/owner withdrawals from supervisor-declined
+-- orders: declined is for pending orders that never went live (and get a
+-- commission refund); cancelled is for orders that were approved but are being
+-- withdrawn against their remaining unfilled portion (spec pp.57–58, #204).
+CREATE TYPE order_status AS ENUM ('pending', 'approved', 'declined', 'done', 'cancelled');
+
+CREATE TABLE IF NOT EXISTS orders (
+    id                  BIGSERIAL       PRIMARY KEY,
+    placer_id           BIGINT          NOT NULL REFERENCES order_placers(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    listing_id          BIGINT          REFERENCES listings(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    option_id           BIGINT          REFERENCES options(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    forex_pair_id       BIGINT          REFERENCES forex_pairs(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    -- Debit target for the placer side of each fill. Kept on the row so the
+    -- execution engine can settle fills without re-reading the original
+    -- request; also lets decline/cancel refund commission if we ever wire it.
+    account_number      VARCHAR(20)     NOT NULL REFERENCES accounts(number) ON UPDATE CASCADE ON DELETE RESTRICT,
+    order_type          order_type      NOT NULL,
+    direction           order_direction NOT NULL,
+    status              order_status    NOT NULL DEFAULT 'pending',
+    quantity            BIGINT          NOT NULL,
+    contract_size       BIGINT          NOT NULL DEFAULT 1,
+    price_per_unit      BIGINT          NOT NULL,
+    -- stop_price holds the activation trigger for stop_limit orders (where
+    -- price_per_unit already carries the limit). Stop orders keep the trigger
+    -- in price_per_unit for backward compatibility and leave this at 0.
+    stop_price          BIGINT          NOT NULL DEFAULT 0,
+    -- triggered_at is set once a stop / stop_limit order's activation
+    -- condition is first met; after that the executor treats it like a
+    -- plain market / limit respectively. NULL = not yet activated. Persisted
+    -- so restarts don't re-arm an already-triggered order.
+    triggered_at        TIMESTAMP,
+    remaining_portions  BIGINT          NOT NULL,
+    commission          BIGINT          NOT NULL DEFAULT 0,
+    approved_by         BIGINT          REFERENCES employees(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    is_done             BOOLEAN         NOT NULL DEFAULT FALSE,
+    after_hours         BOOLEAN         NOT NULL DEFAULT FALSE,
+    all_or_none         BOOLEAN         NOT NULL DEFAULT FALSE,
+    margin              BOOLEAN         NOT NULL DEFAULT FALSE,
+    last_modification   TIMESTAMP       NOT NULL DEFAULT NOW(),
+    created_at          TIMESTAMP       NOT NULL DEFAULT NOW(),
+    CHECK ((listing_id IS NOT NULL)::int + (option_id IS NOT NULL)::int + (forex_pair_id IS NOT NULL)::int = 1)
+);
+
+-- Portfolio holdings (#207, spec p.62). Polymorphic over the four asset
+-- kinds — stock / future / forex_pair / option — same exactly-one pattern
+-- as orders.asset. Keyed by (placer_id, asset) so a buy-fill upserts the
+-- existing row instead of creating duplicates; account_id records where
+-- subsequent sell proceeds should land (relevant for tax). public_amount
+-- is the OTC-discoverable share count (stocks only); the OTC flow itself
+-- ships in the fourth celina, this column is just the counter.
+CREATE TABLE IF NOT EXISTS holdings (
+    id              BIGSERIAL       PRIMARY KEY,
+    placer_id       BIGINT          NOT NULL REFERENCES order_placers(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    stock_id        BIGINT          REFERENCES stocks(id)       ON UPDATE CASCADE ON DELETE CASCADE,
+    future_id       BIGINT          REFERENCES futures(id)      ON UPDATE CASCADE ON DELETE CASCADE,
+    forex_pair_id   BIGINT          REFERENCES forex_pairs(id)  ON UPDATE CASCADE ON DELETE CASCADE,
+    option_id       BIGINT          REFERENCES options(id)      ON UPDATE CASCADE ON DELETE CASCADE,
+    account_id      BIGINT          NOT NULL REFERENCES accounts(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    amount          BIGINT          NOT NULL DEFAULT 0 CHECK (amount >= 0),
+    avg_cost        BIGINT          NOT NULL DEFAULT 0 CHECK (avg_cost >= 0),
+    public_amount   BIGINT          NOT NULL DEFAULT 0 CHECK (public_amount >= 0),
+    last_modified   TIMESTAMP       NOT NULL DEFAULT NOW(),
+    CHECK ((stock_id IS NOT NULL)::int + (future_id IS NOT NULL)::int + (forex_pair_id IS NOT NULL)::int + (option_id IS NOT NULL)::int = 1),
+    -- public_amount is meaningful only for stocks; everywhere else it stays 0.
+    CHECK (stock_id IS NOT NULL OR public_amount = 0)
+);
+
+-- One holding per (placer, asset). Partial unique indexes keep the polymorphic
+-- shape working with NULLs (default Postgres NULLS DISTINCT would otherwise
+-- let two stock_id-NULL rows coexist on the same future_id).
+CREATE UNIQUE INDEX IF NOT EXISTS holdings_placer_stock_uniq  ON holdings(placer_id, stock_id)      WHERE stock_id      IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS holdings_placer_future_uniq ON holdings(placer_id, future_id)     WHERE future_id     IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS holdings_placer_forex_uniq  ON holdings(placer_id, forex_pair_id) WHERE forex_pair_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS holdings_placer_option_uniq ON holdings(placer_id, option_id)     WHERE option_id     IS NOT NULL;
+
+-- Per-chunk fills written by the execution engine (#205). price_per_unit is
+-- in the instrument's currency; fx_rate is NULL for same-currency fills and
+-- otherwise stores the rateInstrRSD/rateAccRSD snapshot used to convert the
+-- chunk cost into the placer's account currency at settle time.
+CREATE TABLE IF NOT EXISTS order_fills (
+    id                  BIGSERIAL        PRIMARY KEY,
+    order_id            BIGINT           NOT NULL REFERENCES orders(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    portions            BIGINT           NOT NULL,
+    price_per_unit      BIGINT           NOT NULL,
+    fx_rate             DOUBLE PRECISION,
+    created_at          TIMESTAMP        NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_order_fills_order ON order_fills(order_id);
+
+-- Capital-gains tax tracking (#208, spec pp.63–64). One row per sell-fill that
+-- realizes positive dobit on a stock; loss fills are skipped because there's
+-- nothing to tax (spec p.62 "u slučaju gubitka"). realized_profit is in the
+-- booking account's currency (avg_cost vs sell proceeds both live there);
+-- tax_due is 15% of that, converted to RSD at the sale-day rate because the
+-- state company has only an RSD account (Napomena 2 on p.63). paid_at stays
+-- NULL until the monthly collection cron (#209) debits the placer.
+CREATE TABLE IF NOT EXISTS capital_gains (
+    id                  BIGSERIAL       PRIMARY KEY,
+    seller_placer_id    BIGINT          NOT NULL REFERENCES order_placers(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    account_id          BIGINT          NOT NULL REFERENCES accounts(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    order_fill_id       BIGINT          REFERENCES order_fills(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    realized_profit     BIGINT          NOT NULL CHECK (realized_profit > 0),
+    tax_due             BIGINT          NOT NULL CHECK (tax_due >= 0),
+    period              CHAR(7)         NOT NULL,
+    paid_at             TIMESTAMP,
+    created_at          TIMESTAMP       NOT NULL DEFAULT NOW()
+);
+-- The cron scans by (period, unpaid) — partial index keeps it selective as
+-- paid rows accumulate.
+CREATE INDEX IF NOT EXISTS idx_capital_gains_period_unpaid
+    ON capital_gains(period, seller_placer_id)
+    WHERE paid_at IS NULL;
 
 -- Notify Redis when employee permissions change
 CREATE OR REPLACE FUNCTION notify_permission_change() RETURNS trigger AS $$

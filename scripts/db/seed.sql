@@ -9,7 +9,11 @@ VALUES
     ('manage_clients'),
     ('manage_accounts'),
     ('manage_companies'),
-    ('manage_cards')
+    ('manage_cards'),
+    ('agent'),
+    ('supervisor'),
+    ('margin_trading'),
+    ('trading_cancel')
 ON CONFLICT (name) DO NOTHING;
 
 -- default admin (password: "Admin123!")
@@ -27,11 +31,11 @@ VALUES (
 )
 ON CONFLICT (email) DO NOTHING;
 
--- give admin user the admin permission
+-- give admin user the admin and supervisor permissions (spec p.38: admin implies supervisor)
 INSERT INTO employee_permissions (employee_id, permission_id)
 SELECT e.id, p.id
 FROM employees e, permissions p
-WHERE e.email = :'admin_email' AND p.name = 'admin'
+WHERE e.email = :'admin_email' AND p.name IN ('admin', 'supervisor')
 ON CONFLICT DO NOTHING;
 
 -- full-employee employee (password: "Test1234!") — has all permissions for testing
@@ -55,7 +59,7 @@ FROM employees e, permissions p
 WHERE e.email = 'full_emp@banka.raf' AND p.name IN (
     'manage_employees', 'manage_clients', 'manage_accounts',
     'manage_companies', 'manage_loans', 'manage_cards',
-    'trade_stocks', 'view_stocks'
+    'trade_stocks', 'view_stocks', 'margin_trading'
 )
 ON CONFLICT DO NOTHING;
 
@@ -78,6 +82,48 @@ INSERT INTO employee_permissions (employee_id, permission_id)
 SELECT e.id, p.id
 FROM employees e, permissions p
 WHERE e.email = 'limited_emp@banka.raf' AND p.name = 'view_stocks'
+ON CONFLICT DO NOTHING;
+
+-- trading agent (password: "Test1234!") — has `agent` perm with a 100,000 RSD daily limit
+INSERT INTO employees (
+    first_name, last_name, date_of_birth, gender, email,
+    phone_number, address, username, password, salt_password,
+    position, department, active, "limit", used_limit
+)
+VALUES (
+    'Agent', 'Trgovac', '1990-01-01', 'M', 'agent@banka.raf',
+    '+381649990003', 'Test Adresa 3', 'agent',
+    '\xa514f71947f5447cdfc2845f40d020cea4146ba28e84cb1a82662a6286f8228d'::BYTEA,
+    '\x11223344556677889900aabbccddeeff'::BYTEA,
+    'Trader', 'Brokersko', true, 10000000, 0
+)
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO employee_permissions (employee_id, permission_id)
+SELECT e.id, p.id
+FROM employees e, permissions p
+WHERE e.email = 'agent@banka.raf' AND p.name IN ('agent', 'trade_stocks', 'view_stocks', 'trading_cancel')
+ON CONFLICT DO NOTHING;
+
+-- trading supervisor (password: "Test1234!") — has `supervisor` perm, no trading limit
+INSERT INTO employees (
+    first_name, last_name, date_of_birth, gender, email,
+    phone_number, address, username, password, salt_password,
+    position, department, active
+)
+VALUES (
+    'Supervizor', 'Trgovac', '1990-01-01', 'F', 'supervisor@banka.raf',
+    '+381649990004', 'Test Adresa 4', 'supervisor',
+    '\xa514f71947f5447cdfc2845f40d020cea4146ba28e84cb1a82662a6286f8228d'::BYTEA,
+    '\x11223344556677889900aabbccddeeff'::BYTEA,
+    'Head Trader', 'Brokersko', true
+)
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO employee_permissions (employee_id, permission_id)
+SELECT e.id, p.id
+FROM employees e, permissions p
+WHERE e.email = 'supervisor@banka.raf' AND p.name IN ('supervisor', 'trade_stocks', 'view_stocks', 'margin_trading', 'trading_cancel')
 ON CONFLICT DO NOTHING;
 
 -- test client (password: "Test1234!")
@@ -200,7 +246,7 @@ ON CONFLICT (currency_code) DO NOTHING;
 -- Internal bank accounts (one per currency)
 --
 -- These are the bank's own accounts used for:
---   1. Receiving transaction commissions
+--   1. Receiving transaction commissions (payments + trading, spec pp. 51–52)
 --   2. Intermediary in currency exchange (menjacnica)
 --   3. Loan disbursements and repayments
 --
@@ -577,12 +623,12 @@ ON CONFLICT (code) DO NOTHING;
 -------------------------------------------------------------------------------
 -- Sample payments between client accounts (via bank internal account)
 -------------------------------------------------------------------------------
-INSERT INTO payments (from_account, to_account, start_amount, end_amount, commission, recipient_id, transcaction_code, call_number, reason)
+INSERT INTO payments (from_account, to_account, start_amount, end_amount, commission, recipient_id, transaction_code, call_number, reason)
 SELECT
     '333000112345678910', '333000198765432110', 50000, 50000, 0, c.id, 289, '00112233', 'Vracanje duga za veceru'
 FROM clients c WHERE c.email = 'marko@primer.raf';
 
-INSERT INTO payments (from_account, to_account, start_amount, end_amount, commission, recipient_id, transcaction_code, call_number, reason)
+INSERT INTO payments (from_account, to_account, start_amount, end_amount, commission, recipient_id, transaction_code, call_number, reason)
 SELECT
     '333000198765432110', '333000112345678910', 25000, 25000, 0, c.id, 290, '00445566', 'Kupovina laptopa'
 FROM clients c WHERE c.email = :'client_email';
@@ -649,3 +695,254 @@ INSERT INTO authorized_party (name, last_name, date_of_birth, gender, email, pho
 VALUES
     ('Ana', 'Petrovic', '1992-07-12', 'F', 'ana.petrovic@example.com', '+381641111111', 'Nemanjina 5')
 ON CONFLICT DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- Trading: dummy securities/listings/history so orders, portfolio and tax
+-- features are exercisable locally and in CI without hitting external APIs.
+--
+-- Monetary values are BIGINT minor units of the exchange's currency
+-- (USD cents, GBP pence, RSD para, etc.), matching the `listings.price`
+-- convention used elsewhere in the system.
+-------------------------------------------------------------------------------
+INSERT INTO exchanges (name, acronym, mic_code, polity, currency, time_zone_offset, open_time, close_time)
+VALUES
+    ('New York Stock Exchange',     'NYSE',   'XNYS', 'United States',  'USD', '-05:00', '09:30', '16:00'),
+    ('NASDAQ',                      'NASDAQ', 'XNAS', 'United States',  'USD', '-05:00', '09:30', '16:00'),
+    ('London Stock Exchange',       'LSE',    'XLON', 'United Kingdom', 'GBP', '+00:00', '08:00', '16:30'),
+    ('Tokyo Stock Exchange',        'TSE',    'XTKS', 'Japan',          'JPY', '+09:00', '09:00', '15:00'),
+    ('Belgrade Stock Exchange',     'BELEX',  'XBEL', 'Serbia',         'RSD', '+01:00', '09:30', '14:00'),
+    ('Chicago Mercantile Exchange', 'CME',    'XCME', 'United States',  'USD', '-06:00', '08:30', '15:15')
+ON CONFLICT (mic_code) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- Stocks (~20 tickers spread across the exchanges above)
+-------------------------------------------------------------------------------
+INSERT INTO stocks (ticker, name, outstanding_shares, dividend_yield)
+VALUES
+    ('AAPL',  'Apple Inc.',                15300000000, 0.0052),
+    ('MSFT',  'Microsoft Corporation',      7430000000, 0.0074),
+    ('GOOGL', 'Alphabet Inc. Class A',     12500000000, 0.0000),
+    ('AMZN',  'Amazon.com Inc.',           10400000000, 0.0000),
+    ('TSLA',  'Tesla Inc.',                 3180000000, 0.0000),
+    ('META',  'Meta Platforms Inc.',        2540000000, 0.0040),
+    ('NVDA',  'NVIDIA Corporation',        24600000000, 0.0003),
+    ('NFLX',  'Netflix Inc.',                440000000, 0.0000),
+    ('JPM',   'JPMorgan Chase & Co.',       2870000000, 0.0230),
+    ('KO',    'The Coca-Cola Company',      4310000000, 0.0306),
+    ('DIS',   'The Walt Disney Company',    1810000000, 0.0095),
+    ('BAC',   'Bank of America Corp',       7900000000, 0.0256),
+    ('XOM',   'Exxon Mobil Corporation',    4380000000, 0.0328),
+    ('HSBA',  'HSBC Holdings plc',         19300000000, 0.0625),
+    ('BP',    'BP p.l.c.',                 16700000000, 0.0510),
+    ('VOD',   'Vodafone Group Plc',        26800000000, 0.1080),
+    ('GSK',   'GSK plc',                    4100000000, 0.0450),
+    ('AZN',   'AstraZeneca PLC',            1550000000, 0.0220),
+    ('7203',  'Toyota Motor Corp',         13400000000, 0.0280),
+    ('6758',  'Sony Group Corp',            1240000000, 0.0075),
+    ('NIIS',  'NIS a.d. Novi Sad',           163060400, 0.0480),
+    ('AERO',  'Aerodrom Nikola Tesla',        72140400, 0.0210)
+ON CONFLICT (ticker) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- Futures (CME) — mix of past and future settlement dates so the new-order
+-- routing auto-decline path (issue #new-order-routing) has both kinds.
+-------------------------------------------------------------------------------
+INSERT INTO futures (ticker, name, contract_size, contract_unit, settlement_date)
+VALUES
+    ('CLZ25', 'Crude Oil Dec 2025',          1000, 'barrel',      '2025-12-19'),
+    ('CLM26', 'Crude Oil Jun 2026',          1000, 'barrel',      '2026-06-22'),
+    ('GCZ25', 'Gold Dec 2025',                100, 'troy ounce',  '2025-12-29'),
+    ('GCM26', 'Gold Jun 2026',                100, 'troy ounce',  '2026-06-26'),
+    ('SIH26', 'Silver Mar 2026',             5000, 'troy ounce',  '2026-03-27'),
+    ('NGM26', 'Natural Gas Jun 2026',       10000, 'MMBtu',       '2026-06-26'),
+    ('ZCH26', 'Corn Mar 2026',               5000, 'bushel',      '2026-03-13'),
+    ('ZSK26', 'Soybeans May 2026',           5000, 'bushel',      '2026-05-14'),
+    ('HEZ25', 'Lean Hogs Dec 2025',         40000, 'pound',       '2025-12-12'),
+    ('ESM26', 'E-mini S&P 500 Jun 2026',       50, 'USD x index', '2026-06-19')
+ON CONFLICT (ticker) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- Forex pairs: all 56 permutations of our 8 supported currencies (spec p.43).
+-- Rates derived from the RSD-baseline rates in `exchange_rates` above.
+-- Liquidity: majors (USD/EUR/GBP/JPY) -> high, RSD pairs -> low, rest medium.
+-------------------------------------------------------------------------------
+WITH ccy(code, rate) AS (
+    VALUES
+        ('RSD', 1.0::numeric),
+        ('EUR', 117.15::numeric),
+        ('CHF', 120.45::numeric),
+        ('USD', 108.50::numeric),
+        ('GBP', 137.20::numeric),
+        ('JPY', 0.72::numeric),
+        ('CAD', 79.80::numeric),
+        ('AUD', 70.25::numeric)
+)
+INSERT INTO forex_pairs (ticker, name, base_currency, quote_currency, exchange_rate, liquidity)
+SELECT
+    b.code || q.code,
+    b.code || '/' || q.code,
+    b.code,
+    q.code,
+    ROUND(b.rate / q.rate, 6),
+    CASE
+        WHEN b.code IN ('USD','EUR','GBP','JPY') AND q.code IN ('USD','EUR','GBP','JPY') THEN 'high'::forex_liquidity
+        WHEN 'RSD' IN (b.code, q.code) THEN 'low'::forex_liquidity
+        ELSE 'medium'::forex_liquidity
+    END
+FROM ccy b, ccy q
+WHERE b.code <> q.code
+ON CONFLICT (ticker) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- Listings: one per stock (mapped to its home exchange) and one per future
+-- (all on CME). Prices in minor units of the exchange currency.
+-- Forex and options have no listings (spec "Ideja 1").
+-------------------------------------------------------------------------------
+WITH stock_listing(ticker, mic, price) AS (
+    VALUES
+        ('AAPL',  'XNAS',    18500),
+        ('MSFT',  'XNAS',    42000),
+        ('GOOGL', 'XNAS',    17200),
+        ('AMZN',  'XNAS',    21000),
+        ('TSLA',  'XNAS',    23500),
+        ('META',  'XNAS',    55000),
+        ('NVDA',  'XNAS',    89000),
+        ('NFLX',  'XNAS',    68000),
+        ('JPM',   'XNYS',    21500),
+        ('KO',    'XNYS',     6800),
+        ('DIS',   'XNYS',    11200),
+        ('BAC',   'XNYS',     4200),
+        ('XOM',   'XNYS',    11500),
+        ('HSBA',  'XLON',      720),
+        ('BP',    'XLON',      485),
+        ('VOD',   'XLON',       95),
+        ('GSK',   'XLON',     1650),
+        ('AZN',   'XLON',    12300),
+        ('7203',  'XTKS',   283000),
+        ('6758',  'XTKS',  1295000),
+        ('NIIS',  'XBEL',    78550),
+        ('AERO',  'XBEL',   189500)
+)
+INSERT INTO listings (exchange_id, stock_id, price, ask_price, bid_price)
+SELECT e.id, s.id, sl.price, sl.price + GREATEST(sl.price / 500, 1), sl.price - GREATEST(sl.price / 500, 1)
+FROM stock_listing sl
+JOIN exchanges e ON e.mic_code = sl.mic
+JOIN stocks s ON s.ticker = sl.ticker
+WHERE NOT EXISTS (SELECT 1 FROM listings l WHERE l.stock_id = s.id);
+
+WITH future_listing(ticker, price) AS (
+    VALUES
+        ('CLZ25',   7200),
+        ('CLM26',   7350),
+        ('GCZ25', 265000),
+        ('GCM26', 272000),
+        ('SIH26',   3150),
+        ('NGM26',    385),
+        ('ZCH26',    465),
+        ('ZSK26',   1085),
+        ('HEZ25',     85),
+        ('ESM26', 528000)
+)
+INSERT INTO listings (exchange_id, stock_id, future_id, price, ask_price, bid_price)
+SELECT e.id, NULL, f.id, fl.price, fl.price + GREATEST(fl.price / 500, 1), fl.price - GREATEST(fl.price / 500, 1)
+FROM future_listing fl
+JOIN exchanges e ON e.mic_code = 'XCME'
+JOIN futures f ON f.ticker = fl.ticker
+WHERE NOT EXISTS (SELECT 1 FROM listings l WHERE l.future_id = f.id);
+
+-------------------------------------------------------------------------------
+-- 30 days of price history per listing so the chart endpoint has data.
+-- Deterministic pseudo-walk around the current price (+/- ~6%).
+-------------------------------------------------------------------------------
+INSERT INTO listing_daily_price_info (listing_id, date, price, ask_price, bid_price, change, volume)
+SELECT
+    l.id,
+    (CURRENT_DATE - gs.n)::date AS date,
+    (l.price * (100 + (((gs.n * 17) % 13) - 6)) / 100)::bigint AS price,
+    (l.price * (100 + (((gs.n * 17) % 13) - 5)) / 100)::bigint AS ask_price,
+    (l.price * (100 + (((gs.n * 17) % 13) - 7)) / 100)::bigint AS bid_price,
+    (l.price * (((gs.n * 17) % 13) - 6)) / 100 AS change,
+    (500000 + ((gs.n * 9973) % 500000))::bigint AS volume
+FROM listings l
+CROSS JOIN generate_series(1, 30) AS gs(n)
+ON CONFLICT (listing_id, date) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- State as a company (spec p.38 "naša država = firma", #208). Acts as the
+-- destination for capital-gains tax transfers. tax_code = 1 is the stable
+-- magic value lookups can key off; one RSD current account per the spec
+-- ("država ima samo RSD račun", p.63 Napomena 2).
+-------------------------------------------------------------------------------
+INSERT INTO clients (
+    first_name, last_name, date_of_birth, gender, email,
+    phone_number, address, password, salt_password
+)
+VALUES (
+    'Republika', 'Srbija', '1900-01-01', 'M', 'drzava@republika.rs',
+    '+381600000002', 'Nemanjina 11',
+    '\x0000000000000000000000000000000000000000000000000000000000000000'::BYTEA,
+    '\x00000000000000000000000000000000'::BYTEA
+)
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO activity_codes (code, sector, branch)
+VALUES ('84.11', 'Public administration', 'General public administration')
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO companies (registered_id, name, tax_code, activity_code_id, address, owner_id)
+SELECT 84110001, 'Republika Srbija', 1, ac.id, 'Nemanjina 11', c.id
+FROM activity_codes ac, clients c
+WHERE ac.code = '84.11' AND c.email = 'drzava@republika.rs'
+ON CONFLICT (registered_id) DO NOTHING;
+
+INSERT INTO accounts (number, name, owner, company_id, balance, created_by, valid_until, currency, active, owner_type, account_type, maintainance_cost, daily_limit, monthly_limit, daily_expenditure, monthly_expenditure)
+SELECT
+    '333000100000099910' AS number,
+    'Republika Srbija - RSD' AS name,
+    c.id AS owner,
+    co.id AS company_id,
+    0 AS balance,
+    e.id AS created_by,
+    '2099-12-31' AS valid_until,
+    'RSD' AS currency,
+    TRUE AS active,
+    'business'::owner_type AS owner_type,
+    'checking'::account_type AS account_type,
+    0 AS maintainance_cost,
+    NULL AS daily_limit,
+    NULL AS monthly_limit,
+    0 AS daily_expenditure,
+    0 AS monthly_expenditure
+FROM clients c, companies co, employees e
+WHERE c.email = 'drzava@republika.rs' AND co.tax_code = 1 AND e.email = :'admin_email'
+ON CONFLICT (number) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- Options: Black-Scholes fallback (spec p.45) — 11 strikes per stock at 10%
+-- steps around spot, CALL + PUT for each, with 6-day and 30-day expiries.
+-- IV=1 (placeholder until BS pricing is wired up); premium is a simple
+-- intrinsic-or-floor approximation just so rows exist and are non-zero.
+-------------------------------------------------------------------------------
+INSERT INTO options (ticker, name, stock_id, option_type, strike_price, premium, implied_volatility, open_interest, settlement_date)
+SELECT
+    s.ticker || '_' || to_char(sd.settle, 'YYYYMMDD') || '_' ||
+        LPAD(((l.price * (100 + step * 10)) / 100)::bigint::text, 8, '0') || '_' ||
+        UPPER(LEFT(ot.type::text, 1)) AS ticker,
+    s.ticker || ' ' || ot.type || ' ' || to_char(sd.settle, 'YYYY-MM-DD') ||
+        ' @ ' || ((l.price * (100 + step * 10)) / 100)::bigint AS name,
+    s.id,
+    ot.type,
+    ((l.price * (100 + step * 10)) / 100)::bigint AS strike_price,
+    GREATEST(l.price / 20, ABS(l.price - ((l.price * (100 + step * 10)) / 100)::bigint))::bigint AS premium,
+    1.0,
+    0,
+    sd.settle
+FROM stocks s
+JOIN listings l ON l.stock_id = s.id
+CROSS JOIN (VALUES ('call'::option_type), ('put'::option_type)) AS ot(type)
+CROSS JOIN (VALUES
+    ((CURRENT_DATE + 6)::date),
+    ((CURRENT_DATE + 30)::date)
+) AS sd(settle)
+CROSS JOIN generate_series(-5, 5) AS step
+ON CONFLICT (ticker) DO NOTHING;

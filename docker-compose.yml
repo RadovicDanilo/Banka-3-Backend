@@ -35,7 +35,10 @@ services:
     container_name: bank
     build:
       context: .
-      dockerfile: cmd/bank/Dockerfile
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: bank
+    restart: on-failure
     ports:
       - "${BANK_GRPC_PORT:-50053}:50051"
     environment:
@@ -53,7 +56,10 @@ services:
     container_name: exchange
     build:
       context: .
-      dockerfile: cmd/exchange/Dockerfile
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: exchange
+    restart: on-failure
     ports:
       - "${EXCHANGE_GRPC_PORT:-50054}:50051"
     environment:
@@ -71,7 +77,10 @@ services:
     container_name: user
     build:
       context: .
-      dockerfile: cmd/user/Dockerfile
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: user
+    restart: on-failure
     ports:
       - "${USER_GRPC_PORT:-50051}:50051"
     environment:
@@ -98,10 +107,13 @@ services:
     container_name: notification
     build:
       context: .
-      dockerfile: cmd/notification/Dockerfile
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: notification
     ports:
       - "${NOTIFICATION_GRPC_PORT:-50052}:50051"
     environment:
+      BACKEND: "SMTP"
       GRPC_PORT: "50051"
       FROM_EMAIL: "${FROM_EMAIL}"
       FROM_EMAIL_AUTH: "${FROM_EMAIL_AUTH}"
@@ -116,7 +128,9 @@ services:
     container_name: gateway
     build:
       context: .
-      dockerfile: cmd/gateway/Dockerfile
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: gateway
     ports:
       - "${GATEWAY_PORT:-8080}:8080"
     environment:
@@ -125,6 +139,7 @@ services:
       NOTIFICATION_GRPC_ADDR: "notification:50051"
       BANK_GRPC_ADDR: "bank:50051"
       EXCHANGE_GRPC_ADDR: "exchange:50051"
+      TRADING_GRPC_ADDR: "bank:50051"
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_FORMAT: ${LOG_FORMAT:-text}
     depends_on:

@@ -2,18 +2,27 @@ syntax = "proto3";
 
 package notification;
 
-option go_package = "github.com/RAF-SI-2025/Banka-3-Backend/gen/notification";
+option go_package = "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/notification";
 
 service NotificationService {
   rpc SendConfirmationEmail(ConfirmationMailRequest) returns (SuccessResponse);
   rpc SendActivationEmail(ActivationMailRequest) returns (SuccessResponse);
   rpc SendPasswordResetEmail(PasswordLinkMailRequest) returns (SuccessResponse);
   rpc SendInitialPasswordSetEmail(PasswordLinkMailRequest) returns (SuccessResponse);
+
   rpc SendCardConfirmationEmail(CardConfirmationMailRequest) returns (SuccessResponse);
   rpc SendCardCreatedEmail(CardCreatedMailRequest) returns (SuccessResponse);
-  rpc SendLoanPaymentFailedEmail(LoanPaymentFailedMailRequest) returns (SuccessResponse);
+  rpc SendCardBlockedEmail(CardBlockedReqest) returns (SuccessResponse);
 
+  rpc SendLoanPaymentFailedEmail(LoanPaymentFailedMailRequest) returns (SuccessResponse);
   rpc SendTOTPDisableEmail(SendTOTPDisableEmailRequest) returns (SuccessResponse);
+
+  rpc SendBankAccountCreationEmail(SendBankAccountCreationEmailRequest) returns (SuccessResponse);
+}
+
+message SendBankAccountCreationEmailRequest {
+  string to_addr = 1;
+  string account_name = 2;
 }
 
 message SendTOTPDisableEmailRequest {
@@ -44,6 +53,11 @@ message CardConfirmationMailRequest {
 
 message CardCreatedMailRequest {
   string to_addr = 1;
+}
+
+message CardBlockedReqest {
+  string to_addr = 1;
+  bool is_blocked = 2;
 }
 
 message LoanPaymentFailedMailRequest {

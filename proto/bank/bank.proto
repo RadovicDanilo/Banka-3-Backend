@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package bank;
 
-option go_package = "github.com/RAF-SI-2025/Banka-3-Backend/gen/bank";
+option go_package = "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank";
 import "google/protobuf/empty.proto";
 
 service BankService {
@@ -32,7 +32,7 @@ service BankService {
   rpc ListAccounts(ListAccountsRequest) returns (ListAccountsResponse);
   rpc GetAccountDetails(GetAccountDetailsRequest) returns (GetAccountDetailsResponse);
   rpc ListClientTransactions(ListClientTranasctionsRequest) returns (ListClientTransactionsResponse);
-  
+
   rpc GetLoans(GetLoansRequest) returns (GetLoansResponse);
   rpc GetLoanByNumber(GetLoanByNumberRequest) returns (Loan);
   rpc CreateLoanRequest(CreateLoanRequestRequest) returns (CreateLoanRequestResponse);
@@ -52,9 +52,9 @@ message TransferHistoryResponse{
   repeated TransferResponse history = 1;
 }
 message TransferHistoryRequest{
-  string email =1;
-  int32  page =3;
-  int32  page_size =2;
+  string email = 1;
+  int32  page = 3;
+  int32  page_size = 2;
 }
 
 message CreateCardRequest {
@@ -87,8 +87,7 @@ message GetCardsResponse {
 }
 
 message BlockCardRequest {
-  int64 card_id = 1;
-  string card_number = 2;
+  string card_number = 1;
 }
 
 message BlockCardResponse {
@@ -200,34 +199,41 @@ message UpdateCompanyRequest {
 message UpdateCompanyResponse {
   Company company = 1;
 }
+
 message Transaction {
+  // Common fields:
   int64 id = 1;
-  string type = 2;
+  string type = 2; // da li je transfer ili placanje
+  // Note: PK == id + type, jer transfer i placanje mogu imati iste id-jeve
   string from_account = 3;
   string to_account = 4;
-  double start_amount = 5;
-  double end_amount = 6;
-  double commission = 7;
-  string status = 8;
-  int64 timestamp = 9;
+  int64 initial_amount = 5;
+  int64 final_amount = 6;
+  int64 fee = 7;
+  string currency = 8;
+  string status = 12;
+  string timestamp = 13;
 
-  int64 recipient_id = 10;
-  string transaction_code = 11;
-  string call_number = 12;
-  string reason = 13;
+  // Payment specific;
+  string payment_code = 9;
+  string reference_number = 10;
+  string purpose = 11;
+  int64 recipient_id = 14;
 
-  int64 start_currency_id = 14;
-  double exchange_rate = 15;
+  // Transfer specific;
+  int64 start_currency_id = 15;
+  int64 target_currency_id = 17;
+  double exchange_rate = 16;
 }
 
 message GetTransactionsRequest {
-  int64 client_id = 1;
+  string account_number = 1;
 
   string date_from = 2;
   string date_to = 3;
 
-  double amount_from = 4;
-  double amount_to = 5;
+  int64 amount_from = 4;
+  int64 amount_to = 5;
 
   string status = 6;
 
@@ -247,9 +253,8 @@ message GetTransactionsResponse {
 }
 
 message GetTransactionByIdRequest {
-  int64 client_id = 1;
-  int64 id = 2;
-  string type = 3;
+  int64 id = 1;
+  string type = 2;
 }
 
 message GetTransactionByIdResponse {
@@ -257,9 +262,8 @@ message GetTransactionByIdResponse {
 }
 
 message GenerateTransactionPdfRequest {
-  int64 client_id = 1;
-  int64 id = 2;
-  string type = 3;
+  int64 id = 1;
+  string type = 2;
 }
 
 message GenerateTransactionPdfResponse {
@@ -280,7 +284,7 @@ message PaymentRequest{
 message PaymentResponse{
   string from_account = 1;
   string to_account = 2;
-  int64 initial_amount =3;
+  int64 initial_amount = 3;
   int64 final_amount = 4;
   int64 fee = 5;
   string currency = 6;
@@ -293,7 +297,7 @@ message PaymentResponse{
 
 message TransferRequest{
   string from_account = 1;
-  string to_account =2;
+  string to_account = 2;
   int64 amount = 3;
   string description = 4;
 }
@@ -331,22 +335,44 @@ message Account {
 }
 
 message CreateAccountRequest {
-  string Name = 1;
-  int64 Owner = 2;
-  string Currency = 3;
-  string OwnerType = 4;
-  string AccountType = 5;
-  int64 MaintainanceCost = 6;
-  int64 DailyLimit = 7;
-  int64 MonthlyLimit = 8;
-  int64 CreatedBy = 9;
-  int64 ValidUntil = 10;
+  int64 client_id = 1;
+  string account_type = 2;
+  string subtype = 3;
+  string currency = 4;
+  double initial_balance = 5;
+  double daily_limit = 6;
+  double monthly_limit = 7;
+  bool create_card = 8;
+  string card_type = 9;
+  string card_brand = 10;
+  BusinessInfo business_info = 11;
+  string name = 12;
+}
+
+message BusinessInfo {
+  string company_name = 1;
+  string registration_number = 2;
+  string pib = 3;
+  string activity_code = 4;
+  string address = 5;
 }
 
 message CreateAccountResponse {
-  bool Valid = 1;
-  string AccountNumber = 2;
-  string Error = 3;
+  string account_number = 1;
+  string account_name = 2;
+  int64 owner_id = 3;
+  double balance = 4;
+  double available_balance = 5;
+  int64 employee_id = 6;
+  string creation_date = 7;
+  string expiration_date = 8;
+  string currency = 9;
+  string status = 10;
+  string account_type = 11;
+  double daily_limit = 12;
+  double monthly_limit = 13;
+  double daily_spending = 14;
+  double monthly_spending = 15;
 }
 
 message UpdateAccountNameRequest {
