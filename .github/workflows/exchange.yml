@@ -1,0 +1,113 @@
+name: exchange
+
+on:
+  pull_request:
+    paths:
+      - 'services/exchange/**'
+      - 'pkg/**'
+      - 'go.work'
+      - 'go.work.sum'
+      - 'docker/Dockerfile'
+      - '.github/workflows/exchange.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'services/exchange/**'
+      - 'pkg/**'
+      - 'go.work'
+      - 'go.work.sum'
+      - 'docker/Dockerfile'
+      - '.github/workflows/exchange.yml'
+
+jobs:
+  fmt:
+    name: gofmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: services/exchange/go.mod
+      - run: test -z "$(gofmt -l services/exchange)"
+
+  tidy:
+    name: go mod tidy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: services/exchange/go.mod
+      - working-directory: services/exchange
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+  lint:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: services/exchange/go.mod
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.4
+          working-directory: services/exchange
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: services/exchange/go.mod
+      - working-directory: services/exchange
+        run: go build ./...
+
+  test:
+    name: unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: services/exchange/go.mod
+      - working-directory: services/exchange
+        run: go test -race -count=1 ./...
+
+  docker:
+    name: docker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}-exchange
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          build-args: SERVICE=exchange
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=exchange
+          cache-to: type=gha,mode=max,scope=exchange
