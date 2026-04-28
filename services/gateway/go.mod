@@ -2,11 +2,10 @@ module github.com/RAF-SI-2025/Banka-3-Backend/services/gateway
 
 go 1.25.0
 
-replace github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto => ../../pkg/proto
+replace github.com/RAF-SI-2025/Banka-3-Backend/pkg => ../../pkg
 
 require (
-	github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger v0.0.0-00010101000000-000000000000
-	github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto v0.0.0-00010101000000-000000000000
+	github.com/RAF-SI-2025/Banka-3-Backend/pkg v0.0.0-00010101000000-000000000000
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.12.0
 	google.golang.org/grpc v1.79.3
@@ -45,5 +44,3 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
-
-replace github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger => ../../pkg/logger

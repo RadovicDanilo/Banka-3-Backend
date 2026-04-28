@@ -8,12 +8,12 @@ ADMIN_EMAIL  ?= admin@banka.raf
 CLIENT_EMAIL ?= petar@primer.raf
 
 SERVICES := bank exchange gateway notification user
-PACKAGES := pkg-proto pkg-logger
+PACKAGES := pkg
 NAMES    := $(SERVICES) $(PACKAGES)
 
-MODULES := pkg/proto pkg/logger services/bank services/exchange services/gateway services/notification services/user
+MODULES := pkg services/bank services/exchange services/gateway services/notification services/user
 
-module_path = $(if $(filter $(1),$(SERVICES)),services/$(1),pkg/$(patsubst pkg-%,%,$(1)))
+module_path = $(if $(filter $(1),$(SERVICES)),services/$(1),$(1))
 
 TARGET     := $(filter $(NAMES),$(MAKECMDGOALS))
 TARGET_DIR := $(if $(TARGET),$(foreach t,$(TARGET),$(call module_path,$(t))),$(MODULES))
