@@ -23,7 +23,7 @@ INSERT INTO employees (
     position, department, active
 )
 VALUES (
-    'Admin', 'Admin', '1990-01-01', 'M', 'admin_email',
+    'Admin', 'Admin', '1990-01-01', 'M', :'admin_email',
     '+381600000000', 'N/A', 'admin',
     '\x78db8c5a70624a77ff540ee38898086ab4db699e8905399b8a84c485cd7c4953'::BYTEA,
     '\xf5e2740f7afc0e0dd44968b7364fc102'::BYTEA,
@@ -35,7 +35,7 @@ ON CONFLICT (email) DO NOTHING;
 INSERT INTO employee_permissions (employee_id, permission_id)
 SELECT e.id, p.id
 FROM employees e, permissions p
-WHERE e.email = 'admin_email' AND p.name IN ('admin', 'supervisor')
+WHERE e.email = :'admin_email' AND p.name IN ('admin', 'supervisor')
 ON CONFLICT DO NOTHING;
 
 -- full-employee employee (password: "Test1234!") — has all permissions for testing
