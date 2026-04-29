@@ -1,87 +1,75 @@
-name: CI
+name: shared
 
 on:
   pull_request:
+  push:
     branches: [main]
 
 jobs:
-  fmt:
-    name: Format check
+  proto-staleness:
+    name: proto staleness
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: services/bank/go.mod
-      - name: Check gofmt
-        run: test -z "$(gofmt -l services/ pkg/)"
-
-  lint:
-    name: Lint check
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        module:
-          - pkg/proto
-          - services/bank
-          - services/exchange
-          - services/gateway
-          - services/notification
-          - services/user
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: ${{ matrix.module }}/go.mod
-      - uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.4
-          working-directory: ${{ matrix.module }}
-
-  proto-check:
-    name: Proto staleness check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - name: Generate protos
-        run: make proto
-      - name: Check for diff
+      - run: make proto
+      - name: Diff
         run: |
           if ! git diff --exit-code pkg/proto/; then
-            echo "::error::Generated proto code is out of date. Run 'make proto' and commit the result."
+            echo "::error::Generated proto code is out of date. Run 'make proto' and commit."
             exit 1
           fi
 
-  build:
-    name: Build services
+  workspace-integrity:
+    name: go.work integrity
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [bank, exchange, gateway, notification, user]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version-file: services/${{ matrix.service }}/go.mod
-      - working-directory: services/${{ matrix.service }}
-        run: go build ./...
+          go-version-file: pkg/go.mod
+      - name: Verify go.work covers all modules
+        run: |
+          go work use -r .
+          git diff --exit-code go.work
 
-  tests-unit:
-    name: Tests (unit)
+  pkg-fmt:
+    name: gofmt (pkg/)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [bank, exchange, gateway, notification, user]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version-file: services/${{ matrix.service }}/go.mod
-      - working-directory: services/${{ matrix.service }}
-        run: go test -race -count=1 ./...
+          go-version-file: pkg/go.mod
+      - run: test -z "$(gofmt -s -l pkg/)"
+
+  pkg-tidy:
+    name: go mod tidy (pkg/)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: pkg/go.mod
+      - working-directory: pkg
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+  pkg-lint:
+    name: golangci-lint (pkg/)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: pkg/go.mod
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.4
+          working-directory: pkg
 
   schema-check:
-    name: Schema+seed check
+    name: schema + seed
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -100,24 +88,24 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Apply schema
-        run: psql -f scripts/db/schema.sql
         env:
           PGHOST: localhost
           PGPORT: "5432"
           PGUSER: banka
           PGPASSWORD: banka_secret
           PGDATABASE: banka
+        run: psql -v ON_ERROR_STOP=1 -f scripts/db/schema.sql
       - name: Apply seed
-        run: psql -f scripts/db/seed.sql
         env:
           PGHOST: localhost
           PGPORT: "5432"
           PGUSER: banka
           PGPASSWORD: banka_secret
           PGDATABASE: banka
+        run: psql -v ON_ERROR_STOP=1 -v admin_email=admin@banka.raf -v client_email=petar@primer.raf -f scripts/db/seed.sql
 
-  test-integration:
-    name: Tests (integration)
+  integration:
+    name: integration tests
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -139,21 +127,21 @@ jobs:
         with:
           go-version-file: services/bank/go.mod
       - name: Apply schema
-        run: psql -f scripts/db/schema.sql
         env:
           PGHOST: localhost
           PGPORT: "5432"
           PGUSER: banka
           PGPASSWORD: banka_secret
           PGDATABASE: banka
+        run: psql -v ON_ERROR_STOP=1 -f scripts/db/schema.sql
       - name: Apply seed
-        run: psql -f scripts/db/seed.sql
         env:
           PGHOST: localhost
           PGPORT: "5432"
           PGUSER: banka
           PGPASSWORD: banka_secret
           PGDATABASE: banka
+        run: psql -v ON_ERROR_STOP=1 -v admin_email=admin@banka.raf -v client_email=petar@primer.raf -f scripts/db/seed.sql
       - name: Run integration tests
         env:
           DATABASE_URL: postgres://banka:banka_secret@localhost:5432/banka?sslmode=disable
@@ -164,22 +152,3 @@ jobs:
             echo ">>> integration tests in $s"
             (cd "$s" && go test -race -count=1 -tags=integration ./...) || exit 1
           done
-
-  docker-build:
-    name: Docker build ${{ matrix.service }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service: [user, notification, gateway, bank, exchange]
-    steps:
-      - uses: actions/checkout@v5
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: docker/Dockerfile
-          build-args: |
-            SERVICE=${{ matrix.service }}
-          cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
