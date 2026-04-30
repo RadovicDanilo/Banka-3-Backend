@@ -7,7 +7,11 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/model"
 )
+
+// all **shared** utilties go here
 
 func generateSalt() ([]byte, error) {
 	salt := make([]byte, 16)
@@ -61,4 +65,40 @@ func buildActionLink(baseURL string, token string) (string, error) {
 	parsedURL.RawQuery = query.Encode()
 
 	return parsedURL.String(), nil
+}
+
+// permissionSet converts a list of Permission rows to a string set for easy membership tests.
+func permissionSet(perms []model.Permission) map[string]struct{} {
+	out := make(map[string]struct{}, len(perms))
+	for _, p := range perms {
+		out[p.Name] = struct{}{}
+	}
+	return out
+}
+
+// TogglesTradingRole reports whether the `agent` or `supervisor` membership differs
+// between the old and new permission sets.
+func TogglesTradingRole(oldSet, newSet map[string]struct{}) bool {
+	for _, perm := range []string{"agent", "supervisor"} {
+		_, inOld := oldSet[perm]
+		_, inNew := newSet[perm]
+		if inOld != inNew {
+			return true
+		}
+	}
+	return false
+}
+
+// EnsureAdminImpliesSupervisor returns perms with "supervisor" appended when
+// "admin" is present but "supervisor" is not (spec p.38: admin is-a supervisor).
+// Idempotent: calling twice yields the same result.
+func EnsureAdminImpliesSupervisor(perms []string) []string {
+	set := NamesToSet(perms)
+	if _, hasAdmin := set["admin"]; !hasAdmin {
+		return perms
+	}
+	if _, hasSup := set["supervisor"]; hasSup {
+		return perms
+	}
+	return append(perms, "supervisor")
 }

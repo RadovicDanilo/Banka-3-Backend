@@ -92,6 +92,7 @@ func (s *TOTPServer) VerifyCode(ctx context.Context, req *userpb.VerifyCodeReque
 	logger.FromContext(ctx).InfoContext(ctx, "audit: totp verified", "user_id", userId, "email", req.Email)
 	return &userpb.VerifyCodeResponse{Valid: valid}, nil
 }
+
 func (s *TOTPServer) EnrollBegin(_ context.Context, req *userpb.EnrollBeginRequest) (*userpb.EnrollBeginResponse, error) {
 	client, err := s.repo.GetClientByAttribute("email", req.Email)
 	if err != nil {

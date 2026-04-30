@@ -12,13 +12,6 @@ import (
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
 )
 
-type Connections struct {
-	NotificationClient notificationpb.NotificationServiceClient
-	Sql_db             *sql.DB
-	Gorm               *gorm.DB
-	Rdb                *redis.Client
-}
-
 const (
 	PasswordActionReset      = "reset"
 	PasswordActionInitialSet = "initial_set"
@@ -27,6 +20,13 @@ const (
 	initialSetPasswordTTL  = 24 * time.Hour
 	defaultNotificationURL = "notification:50051"
 )
+
+type Connections struct {
+	NotificationClient notificationpb.NotificationServiceClient
+	Sql_db             *sql.DB
+	Gorm               *gorm.DB
+	Rdb                *redis.Client
+}
 
 type Server struct {
 	userpb.UnimplementedUserServiceServer

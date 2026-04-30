@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
-	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/model"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -88,65 +86,6 @@ func (s *Server) Logout(ctx context.Context, req *userpb.LogoutRequest) (*userpb
 	}, nil
 }
 
-// EnsureAdminImpliesSupervisor returns perms with "supervisor" appended when
-// "admin" is present but "supervisor" is not (spec p.38: admin is-a supervisor).
-// Idempotent: calling twice yields the same result.
-func EnsureAdminImpliesSupervisor(perms []string) []string {
-	set := NamesToSet(perms)
-	if _, hasAdmin := set["admin"]; !hasAdmin {
-		return perms
-	}
-	if _, hasSup := set["supervisor"]; hasSup {
-		return perms
-	}
-	return append(perms, "supervisor")
-}
-
-// TogglesTradingRole reports whether the `agent` or `supervisor` membership differs
-// between the old and new permission sets.
-func TogglesTradingRole(oldSet, newSet map[string]struct{}) bool {
-	for _, perm := range []string{"agent", "supervisor"} {
-		_, inOld := oldSet[perm]
-		_, inNew := newSet[perm]
-		if inOld != inNew {
-			return true
-		}
-	}
-	return false
-}
-
-func callerIsAdmin(_ context.Context, s *Server, callerEmail string) bool {
-	if strings.TrimSpace(callerEmail) == "" {
-		return false
-	}
-	caller, err := s.repo.GetEmployeeByAttribute("email", callerEmail)
-	if err != nil || caller == nil {
-		return false
-	}
-	for _, p := range caller.Permissions {
-		if p.Name == "admin" {
-			return true
-		}
-	}
-	return false
-}
-
-func callerCanManageLimits(_ context.Context, s *Server, callerEmail string) bool {
-	if strings.TrimSpace(callerEmail) == "" {
-		return false
-	}
-	caller, err := s.repo.GetEmployeeByAttribute("email", callerEmail)
-	if err != nil || caller == nil {
-		return false
-	}
-	for _, p := range caller.Permissions {
-		if p.Name == "admin" || p.Name == "supervisor" {
-			return true
-		}
-	}
-	return false
-}
-
 func (s *Server) GetUserPermissions(ctx context.Context, req *userpb.GetUserPermissionsRequest) (*userpb.GetUserPermissionsResponse, error) {
 	session, err := s.GetSession(ctx, req.Email)
 	if err != nil {
@@ -175,13 +114,4 @@ func (s *Server) getRoleAndPermissions(email string) (role string, permissions [
 		return "employee", permissions, emp.Active
 	}
 	return "client", []string{}, true
-}
-
-// permissionSet converts a list of Permission rows to a string set for easy membership tests.
-func permissionSet(perms []model.Permission) map[string]struct{} {
-	out := make(map[string]struct{}, len(perms))
-	for _, p := range perms {
-		out[p.Name] = struct{}{}
-	}
-	return out
 }

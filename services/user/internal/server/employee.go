@@ -245,6 +245,22 @@ func (s *Server) GetEmployees(ctx context.Context, req *userpb.GetEmployeesReque
 	return &userpb.GetEmployeesResponse{Employees: employee_responses}, nil
 }
 
+func callerIsAdmin(_ context.Context, s *Server, callerEmail string) bool {
+	if strings.TrimSpace(callerEmail) == "" {
+		return false
+	}
+	caller, err := s.repo.GetEmployeeByAttribute("email", callerEmail)
+	if err != nil || caller == nil {
+		return false
+	}
+	for _, p := range caller.Permissions {
+		if p.Name == "admin" {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Server) UpdateEmployee(ctx context.Context, req *userpb.UpdateEmployeeRequest) (*userpb.GetEmployeeResponse, error) {
 	existing, existingErr := s.repo.GetEmployeeByAttribute("id", req.Id)
 
@@ -347,4 +363,20 @@ func (s *Server) GetEmployeeById(_ context.Context, req *userpb.GetUserByIdReque
 		return nil, err
 	}
 	return resp.ToProtobuf(), nil
+}
+
+func callerCanManageLimits(_ context.Context, s *Server, callerEmail string) bool {
+	if strings.TrimSpace(callerEmail) == "" {
+		return false
+	}
+	caller, err := s.repo.GetEmployeeByAttribute("email", callerEmail)
+	if err != nil || caller == nil {
+		return false
+	}
+	for _, p := range caller.Permissions {
+		if p.Name == "admin" || p.Name == "supervisor" {
+			return true
+		}
+	}
+	return false
 }
