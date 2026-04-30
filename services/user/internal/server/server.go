@@ -36,6 +36,7 @@ type Connections struct {
 	Sql_db             *sql.DB
 	Gorm               *gorm.DB
 	Rdb                *redis.Client
+	Repo               *repo.Repository
 }
 
 const (
@@ -55,6 +56,7 @@ type Server struct {
 	database         *sql.DB
 	db_gorm          *gorm.DB
 	rdb              *redis.Client
+	repo             *repo.Repository
 }
 
 func generateSalt() ([]byte, error) {
@@ -80,101 +82,54 @@ func NewServer(accessJwtSecret string, refreshJwtSecret string, conn *Connection
 		database:         conn.Sql_db,
 		db_gorm:          conn.Gorm,
 		rdb:              conn.Rdb,
+		repo:             conn.Repo,
 	}
 }
 
-func (c model.Client) toProtobuf() *userpb.GetClientResponse {
-	return &userpb.GetClientResponse{
-		Id:          int64(c.Id),
-		FirstName:   c.First_name,
-		LastName:    c.Last_name,
-		BirthDate:   c.Date_of_birth.Unix(),
-		Gender:      c.Gender,
-		Email:       c.Email,
-		PhoneNumber: c.Phone_number,
-		Address:     c.Address,
-	}
-}
-
-func (emp model.Employee) toProtobuf() *userpb.GetEmployeeResponse {
-	permissions := make([]string, len(emp.Permissions))
-	for i, v := range emp.Permissions {
-		permissions[i] = v.Name
-	}
-	return &userpb.GetEmployeeResponse{
-		Id:           int64(emp.Id),
-		FirstName:    emp.First_name,
-		LastName:     emp.Last_name,
-		BirthDate:    emp.Date_of_birth.Unix(),
-		Gender:       emp.Gender,
-		Email:        emp.Email,
-		PhoneNumber:  emp.Phone_number,
-		Address:      emp.Address,
-		Username:     emp.Username,
-		Position:     emp.Position,
-		Department:   emp.Department,
-		Active:       emp.Active,
-		Permissions:  permissions,
-		Limit:        emp.Limit,
-		UsedLimit:    emp.Used_limit,
-		NeedApproval: emp.Need_approval,
-	}
-}
-
-func (client model.Client) toProtobuff() *userpb.Client {
-	return &userpb.Client{
-		Id:          int64(client.Id),
-		FirstName:   client.First_name,
-		LastName:    client.Last_name,
-		DateOfBirth: client.Date_of_birth.Unix(),
-		Gender:      client.Gender,
-		Email:       client.Email,
-		PhoneNumber: client.Phone_number,
-		Address:     client.Address,
-	}
-}
-
-func (s *Server) GetEmployeeByEmail(ctx context.Context, req *userpb.GetUserByEmailRequest) (*userpb.GetEmployeeResponse, error) {
-	resp, err := repo.getUserByAttribute(model.Employee{}, s.db_gorm, "email", req.Email)
+func (s *Server) GetEmployeeByEmail(_ context.Context, req *userpb.GetUserByEmailRequest) (*userpb.GetEmployeeResponse, error) {
+	resp, err := s.repo.GetEmployeeByAttribute("email", req.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "employee not found")
 		}
 		return nil, status.Error(codes.Internal, "failed to get employee")
 	}
-	return resp.toProtobuf(), nil
+	return resp.ToProtobuf(), nil
 }
 
-func (s *Server) GetEmployeeById(ctx context.Context, req *userpb.GetUserByIdRequest) (*userpb.GetEmployeeResponse, error) {
-	resp, err := repo.getUserByAttribute(model.Employee{}, s.db_gorm, "id", req.Id)
+func (s *Server) GetEmployeeById(_ context.Context, req *userpb.GetUserByIdRequest) (*userpb.GetEmployeeResponse, error) {
+	resp, err := s.repo.GetEmployeeByAttribute("id", req.Id)
+
 	if err != nil {
 		return nil, err
 	}
-	return resp.toProtobuf(), nil
+	return resp.ToProtobuf(), nil
 }
 
 func (s *Server) GetClientByEmail(_ context.Context, req *userpb.GetUserByEmailRequest) (*userpb.GetClientResponse, error) {
-	resp, err := repo.getUserByAttribute(model.Client{}, s.db_gorm, "email", req.Email)
+	resp, err := s.repo.GetClientByAttribute("email", req.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "employee not found")
 		}
 		return nil, status.Error(codes.Internal, "failed to get employee")
 	}
-	return resp.toProtobuf(), nil
+	return resp.ToProtobuf(), nil
 }
 
 func (s *Server) GetClientById(_ context.Context, req *userpb.GetUserByIdRequest) (*userpb.GetClientResponse, error) {
-	resp, err := repo.getUserByAttribute(model.Client{}, s.db_gorm, "id", req.Id)
+	resp, err := s.repo.GetClientByAttribute("id", req.Id)
 	if err != nil {
 		return nil, err
 	}
-	return resp.toProtobuf(), nil
+	return resp.ToProtobuf(), nil
 }
 
-func (s *Server) DeleteEmployee(ctx context.Context, req *userpb.DeleteEmployeeRequest) (*userpb.DeleteEmployeeResponse, error) {
+func (s *Server) DeleteEmployee(_ context.Context, req *userpb.DeleteEmployeeRequest) (*userpb.DeleteEmployeeResponse, error) {
+	err := s.repo.DeleteEmployee(model.Employee{
+		Id: uint64(req.Id),
+	})
 
-	err := repo.deleteUser(model.Employee{Id: uint64(req.Id)}, s)
 	if err != nil {
 		if errors.Is(err, repo.ErrEmployeeNotFound) {
 			return nil, status.Error(codes.NotFound, "employee not found")
@@ -199,9 +154,9 @@ func (s *Server) GetEmployees(ctx context.Context, req *userpb.GetEmployeesReque
 			NeedApproval: emp.Need_approval,
 		}
 	}
-	restrictions := repo.user_restrictions{"first_name": req.FirstName, "last_name": req.LastName, "email": req.Email, "position": req.Position}
+	restrictions := repo.UserRestrictions{"first_name": req.FirstName, "last_name": req.LastName, "email": req.Email, "position": req.Position}
 
-	employees, err := repo.GetAllUsersFromModel(model.Employee{}, s, restrictions)
+	employees, err := s.repo.GetAllEmployees(restrictions)
 	if err != nil {
 		logger.FromContext(ctx).ErrorContext(ctx, "error retrieving employees", "err", err)
 		return nil, status.Error(codes.Internal, "Failed to retrieve employees")
@@ -216,7 +171,7 @@ func (s *Server) GetEmployees(ctx context.Context, req *userpb.GetEmployeesReque
 }
 
 func (s *Server) UpdateEmployee(ctx context.Context, req *userpb.UpdateEmployeeRequest) (*userpb.GetEmployeeResponse, error) {
-	existing, existingErr := repo.getUserByAttribute(model.Employee{}, s.db_gorm, "id", req.Id)
+	existing, existingErr := s.repo.GetEmployeeByAttribute("id", req.Id)
 
 	// Spec p.38: an admin may not edit another admin. Self-edits are allowed.
 	if existingErr == nil && existing != nil {
@@ -273,7 +228,7 @@ func (s *Server) UpdateEmployee(ctx context.Context, req *userpb.UpdateEmployeeR
 		Permissions:  permissions,
 	}
 
-	updated, err := repo.updateUserRecord(emp, s)
+	updated, err := s.repo.UpdateEmployee(emp)
 	if err != nil {
 		if errors.Is(err, repo.ErrEmployeeNotFound) {
 			return nil, status.Error(codes.NotFound, "Employee not found")
@@ -295,7 +250,7 @@ func (s *Server) UpdateEmployee(ctx context.Context, req *userpb.UpdateEmployeeR
 		_ = s.UpdateSessionPermissions(ctx, updated.Email, "employee", permNames)
 	}
 
-	return updated.toProtobuf(), nil
+	return updated.ToProtobuf(), nil
 
 }
 
@@ -320,7 +275,7 @@ func (s *Server) UpdateEmployeeTradingLimit(ctx context.Context, req *userpb.Upd
 		return nil, status.Error(codes.PermissionDenied, "only admins and supervisors may change an agent's limit")
 	}
 
-	target, err := repo.getUserByAttribute(model.Employee{}, s.db_gorm, "id", req.Id)
+	target, err := s.repo.GetEmployeeByAttribute("id", req.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "employee not found")
@@ -340,11 +295,11 @@ func (s *Server) UpdateEmployeeTradingLimit(ctx context.Context, req *userpb.Upd
 		return nil, status.Error(codes.Internal, "failed to update trading limit")
 	}
 
-	reloaded, err := repo.getUserByAttribute(model.Employee{}, s.db_gorm, "id", req.Id)
+	reloaded, err := s.repo.GetEmployeeByAttribute("id", req.Id)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to reload employee")
 	}
-	return reloaded.toProtobuf(), nil
+	return reloaded.ToProtobuf(), nil
 }
 
 // UpdateEmployeeNeedApproval flips the need_approval flag on an employee. Admins
@@ -357,7 +312,7 @@ func (s *Server) UpdateEmployeeNeedApproval(ctx context.Context, req *userpb.Upd
 		return nil, status.Error(codes.PermissionDenied, "only admins and supervisors may change need_approval")
 	}
 
-	target, err := repo.getUserByAttribute(model.Employee{}, s.db_gorm, "id", req.Id)
+	target, err := s.repo.GetEmployeeByAttribute("id", req.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "employee not found")
@@ -372,24 +327,24 @@ func (s *Server) UpdateEmployeeNeedApproval(ctx context.Context, req *userpb.Upd
 		return nil, status.Error(codes.Internal, "failed to update need_approval")
 	}
 
-	reloaded, err := repo.getUserByAttribute(model.Employee{}, s.db_gorm, "id", req.Id)
+	reloaded, err := s.repo.GetEmployeeByAttribute("id", req.Id)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to reload employee")
 	}
-	return reloaded.toProtobuf(), nil
+	return reloaded.ToProtobuf(), nil
 }
 
 // GetActuaries returns employees that hold the `agent` permission, with the same
 // filter set as GetEmployees. Spec page 39 — supervisor portal.
 func (s *Server) GetActuaries(ctx context.Context, req *userpb.GetEmployeesRequest) (*userpb.GetEmployeesResponse, error) {
-	restrictions := repo.user_restrictions{
+	restrictions := repo.UserRestrictions{
 		"first_name": req.FirstName,
 		"last_name":  req.LastName,
 		"email":      req.Email,
 		"position":   req.Position,
 	}
 
-	employees, err := repo.GetAllUsersFromModel(model.Employee{}, s, restrictions)
+	employees, err := s.repo.GetAllEmployees(restrictions)
 	if err != nil {
 		logger.FromContext(ctx).ErrorContext(ctx, "error retrieving actuaries", "err", err)
 		return nil, status.Error(codes.Internal, "Failed to retrieve actuaries")
@@ -471,7 +426,7 @@ func callerIsAdmin(_ context.Context, s *Server, callerEmail string) bool {
 	if strings.TrimSpace(callerEmail) == "" {
 		return false
 	}
-	caller, err := repo.getUserByAttribute(model.Employee{}, s.db_gorm, "email", callerEmail)
+	caller, err := s.repo.GetEmployeeByAttribute("email", callerEmail)
 	if err != nil || caller == nil {
 		return false
 	}
@@ -487,7 +442,7 @@ func callerCanManageLimits(_ context.Context, s *Server, callerEmail string) boo
 	if strings.TrimSpace(callerEmail) == "" {
 		return false
 	}
-	caller, err := repo.getUserByAttribute(model.Employee{}, s.db_gorm, "email", callerEmail)
+	caller, err := s.repo.GetEmployeeByAttribute("email", callerEmail)
 	if err != nil || caller == nil {
 		return false
 	}
@@ -501,7 +456,7 @@ func callerCanManageLimits(_ context.Context, s *Server, callerEmail string) boo
 
 func (s *Server) GetClients(ctx context.Context, req *userpb.GetClientsRequest) (*userpb.GetClientsResponse, error) {
 
-	clients, err := repo.GetAllUsersFromModel(model.Client{}, s, repo.user_restrictions{"first_name": strings.TrimSpace(req.FirstName), "last_name": strings.TrimSpace(req.LastName), "email": strings.TrimSpace(req.Email)})
+	clients, err := s.repo.GetAllClients(repo.UserRestrictions{"first_name": strings.TrimSpace(req.FirstName), "last_name": strings.TrimSpace(req.LastName), "email": strings.TrimSpace(req.Email)})
 
 	if err != nil {
 		logger.FromContext(ctx).ErrorContext(ctx, "error retrieving clients", "err", err)
@@ -510,7 +465,7 @@ func (s *Server) GetClients(ctx context.Context, req *userpb.GetClientsRequest) 
 
 	var clientResponses []*userpb.Client
 	for _, client := range clients {
-		clientResponses = append(clientResponses, client.toProtobuff())
+		clientResponses = append(clientResponses, client.ToProtobuff())
 	}
 
 	return &userpb.GetClientsResponse{Clients: clientResponses}, nil
@@ -553,7 +508,7 @@ func (s *Server) UpdateClient(ctx context.Context, req *userpb.UpdateClientReque
 		client.Date_of_birth = time.Unix(req.DateOfBirth, 0)
 	}
 
-	_, err := repo.updateUserRecord(client, s)
+	_, err := s.repo.UpdateClient(client)
 	if err != nil {
 		switch {
 		case errors.Is(err, repo.ErrClientNotFound):
@@ -624,7 +579,7 @@ func validateJWTToken(tokenString, secret string) (*userpb.ValidateTokenResponse
 	}, nil
 }
 
-func (s *Server) ValidateRefreshToken(ctx context.Context, req *userpb.ValidateTokenRequest) (*userpb.ValidateTokenResponse, error) {
+func (s *Server) ValidateRefreshToken(_ context.Context, req *userpb.ValidateTokenRequest) (*userpb.ValidateTokenResponse, error) {
 	return validateJWTToken(req.Token, s.refreshJwtSecret)
 }
 
@@ -701,7 +656,7 @@ func (s *Server) Refresh(ctx context.Context, req *userpb.RefreshRequest) (*user
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	err = s.rotateRefreshToken(tx, email, HashValue(req.RefreshToken), HashValue(newSignedToken), newExpiry.Time)
+	err = s.repo.RotateRefreshToken(tx, email, HashValue(req.RefreshToken), HashValue(newSignedToken), newExpiry.Time)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "wrong token")
 	}
@@ -725,7 +680,7 @@ func (s *Server) Refresh(ctx context.Context, req *userpb.RefreshRequest) (*user
 // Employees get role "employee" with their DB permissions; clients get role "client" with empty permissions.
 // The active flag is only meaningful for employees; clients always return true.
 func (s *Server) getRoleAndPermissions(email string) (role string, permissions []string, active bool) {
-	emp, err := repo.getUserByAttribute(model.Employee{}, s.db_gorm, "email", email)
+	emp, err := s.repo.GetEmployeeByAttribute("email", email)
 	if err == nil && emp != nil {
 		permissions := make([]string, len(emp.Permissions))
 		for i, v := range emp.Permissions {
@@ -738,35 +693,35 @@ func (s *Server) getRoleAndPermissions(email string) (role string, permissions [
 
 func (s *Server) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.LoginResponse, error) {
 	l := logger.FromContext(ctx).With("email", req.Email)
-	user, err := s.GetUserByEmail(req.Email)
+	user, err := s.repo.GetUserByEmail(req.Email)
 	if err != nil || user == nil {
 		l.WarnContext(ctx, "audit: login failed", "reason", "unknown user")
 		return nil, status.Error(codes.Unauthenticated, "wrong creds")
 	}
-	hashedPassword := HashPassword(req.Password, user.salt)
+	hashedPassword := HashPassword(req.Password, user.Salt)
 
-	if bytes.Equal(hashedPassword, user.hashedPassword) {
-		role, permissions, active := s.getRoleAndPermissions(user.email)
+	if bytes.Equal(hashedPassword, user.HashedPassword) {
+		role, permissions, active := s.getRoleAndPermissions(user.Email)
 
 		if !active {
 			l.WarnContext(ctx, "audit: login failed", "reason", "deactivated")
 			return nil, status.Error(codes.Unauthenticated, "account deactivated")
 		}
 
-		accessToken, err := s.GenerateAccessToken(user.email)
+		accessToken, err := s.GenerateAccessToken(user.Email)
 		if err != nil {
 			return nil, err
 		}
-		refreshToken, err := s.GenerateRefreshToken(user.email)
+		refreshToken, err := s.GenerateRefreshToken(user.Email)
 		if err != nil {
 			return nil, err
 		}
-		err = s.InsertRefreshToken(refreshToken)
+		err = s.repo.InsertRefreshToken(refreshToken)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := s.CreateSession(ctx, user.email, SessionData{
+		if err := s.CreateSession(ctx, user.Email, SessionData{
 			Role:        role,
 			Permissions: permissions,
 			Active:      true,
@@ -794,7 +749,7 @@ func (s *Server) Logout(ctx context.Context, req *userpb.LogoutRequest) (*userpb
 		return nil, fmt.Errorf("starting transaction: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	err = s.RevokeRefreshTokensByEmail(tx, email)
+	err = s.repo.RevokeRefreshTokensByEmail(tx, email)
 	if err != nil {
 		return nil, err
 	}
@@ -833,7 +788,7 @@ func (s *Server) SetPasswordWithToken(ctx context.Context, req *userpb.SetPasswo
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	email, actionType, err := repo.consumePasswordActionToken(tx, HashValue(token))
+	email, actionType, err := s.repo.ConsumePasswordActionToken(tx, HashValue(token))
 	if err != nil {
 		if errors.Is(err, repo.ErrInvalidPasswordActionToken) {
 			return nil, status.Error(codes.InvalidArgument, "invalid or expired token")
@@ -841,14 +796,14 @@ func (s *Server) SetPasswordWithToken(ctx context.Context, req *userpb.SetPasswo
 		return nil, status.Error(codes.Internal, "token validation failed")
 	}
 
-	user, err := s.GetUserByEmail(email)
+	user, err := s.repo.GetUserByEmail(email)
 	if err != nil || user == nil {
 		return nil, status.Error(codes.Internal, "user lookup failed")
 	}
 
-	hashedPassword := HashPassword(newPassword, user.salt)
+	hashedPassword := HashPassword(newPassword, user.Salt)
 
-	if err := s.UpdatePasswordByEmail(tx, email, hashedPassword); err != nil {
+	if err := s.repo.UpdatePasswordByEmail(tx, email, hashedPassword); err != nil {
 		return nil, status.Error(codes.Internal, "password update failed")
 	}
 
@@ -858,7 +813,7 @@ func (s *Server) SetPasswordWithToken(ctx context.Context, req *userpb.SetPasswo
 		}
 	}
 
-	if err := s.RevokeRefreshTokensByEmail(tx, email); err != nil {
+	if err := s.repo.RevokeRefreshTokensByEmail(tx, email); err != nil {
 		return nil, status.Error(codes.Internal, "refresh token revocation failed")
 	}
 
@@ -877,7 +832,8 @@ func (s *Server) requestPasswordAction(ctx context.Context, email string, action
 		return nil, status.Error(codes.InvalidArgument, "email is required")
 	}
 
-	user, err := s.GetUserByEmail(email)
+	user, err := s.repo.GetUserByEmail(email)
+
 	if err != nil {
 		return nil, status.Error(codes.Internal, "user lookup failed")
 	}
@@ -895,7 +851,7 @@ func (s *Server) requestPasswordAction(ctx context.Context, email string, action
 		validUntil = time.Now().Add(initialSetPasswordTTL)
 	}
 
-	if err := s.UpsertPasswordActionToken(user.email, actionType, HashValue(token), validUntil); err != nil {
+	if err := s.repo.UpsertPasswordActionToken(user.Email, actionType, HashValue(token), validUntil); err != nil {
 		return nil, status.Error(codes.Internal, "storing token failed")
 	}
 
@@ -908,7 +864,7 @@ func (s *Server) requestPasswordAction(ctx context.Context, email string, action
 		return nil, status.Error(codes.Internal, "building password link failed")
 	}
 
-	if err := s.sendPasswordActionEmail(ctx, user.email, link, actionType); err != nil {
+	if err := s.sendPasswordActionEmail(ctx, user.Email, link, actionType); err != nil {
 		return nil, err
 	}
 
@@ -1018,7 +974,7 @@ func (s *Server) CreateClientAccount(ctx context.Context, req *userpb.CreateClie
 		Address: req.Address, Password: HashPassword(req.Password, salt),
 		Salt_password: salt}
 
-	err := repo.create_user_from_model(client, s)
+	err := s.repo.CreateClient(client)
 	if err != nil {
 		logger.FromContext(ctx).ErrorContext(ctx, "client creation failed", "err", err)
 		return nil, status.Error(codes.Internal, "Client creation failed")
@@ -1062,7 +1018,7 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 		Department: req.Department, Salt_password: salt,
 		Password: []byte{}, Active: true, Permissions: permissions}
 
-	err := repo.create_user_from_model(employee, s)
+	err := s.repo.CreateEmployee(employee)
 
 	if err != nil {
 		logger.FromContext(ctx).ErrorContext(ctx, "employee creation failed", "err", err)
@@ -1070,10 +1026,10 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 	}
 
 	// Re-fetch to get the auto-assigned ID and properly loaded permissions
-	created, err := repo.getUserByAttribute(model.Employee{}, s.db_gorm, "email", employee.Email)
+	created, err := s.repo.GetEmployeeByAttribute("email", employee.Email)
 	if err != nil {
 		logger.FromContext(ctx).ErrorContext(ctx, "employee created but failed to fetch", "err", err)
-		return employee.toProtobuf(), nil
+		return employee.ToProtobuf(), nil
 	}
 
 	// Send activation email so the employee can set their own password
@@ -1084,6 +1040,5 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 		logger.FromContext(ctx).ErrorContext(ctx, "employee created but activation email failed", "err", emailErr)
 	}
 
-	return created.toProtobuf(), nil
-
+	return created.ToProtobuf(), nil
 }
