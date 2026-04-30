@@ -1,4 +1,4 @@
-package user
+package server
 
 import (
 	"context"
@@ -10,6 +10,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/model"
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/repo"
 	"github.com/pquerna/otp/totp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -49,9 +51,9 @@ func NewTotpServer(conn *Connections) *TOTPServer {
 }
 
 func (s *TOTPServer) VerifyCode(ctx context.Context, req *userpb.VerifyCodeRequest) (*userpb.VerifyCodeResponse, error) {
-	client, err := getUserByAttribute(Client{}, s.gorm, "email", req.Email)
+	client, err := repo.getUserByAttribute(model.Client{}, s.gorm, "email", req.Email)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repo.ErrUserNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		return nil, err
@@ -59,7 +61,7 @@ func (s *TOTPServer) VerifyCode(ctx context.Context, req *userpb.VerifyCodeReque
 	userId := client.Id
 	secret, err := s.GetSecret(userId)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repo.ErrUserNotFound) {
 			return nil, status.Error(codes.Unauthenticated, "user doesn't have TOTP set up")
 		}
 		return nil, err
@@ -90,9 +92,9 @@ func (s *TOTPServer) VerifyCode(ctx context.Context, req *userpb.VerifyCodeReque
 	return &userpb.VerifyCodeResponse{Valid: valid}, nil
 }
 func (s *TOTPServer) EnrollBegin(_ context.Context, req *userpb.EnrollBeginRequest) (*userpb.EnrollBeginResponse, error) {
-	client, err := getUserByAttribute(Client{}, s.gorm, "email", req.Email)
+	client, err := repo.getUserByAttribute(model.Client{}, s.gorm, "email", req.Email)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repo.ErrUserNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		return nil, err
@@ -106,7 +108,7 @@ func (s *TOTPServer) EnrollBegin(_ context.Context, req *userpb.EnrollBeginReque
 
 	active, err := s.status(tx, userId)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repo.ErrUserNotFound) {
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, err
@@ -153,9 +155,9 @@ func generateBackupCodes(num uint64) (*[]string, error) {
 }
 
 func (s *TOTPServer) EnrollConfirm(ctx context.Context, req *userpb.EnrollConfirmRequest) (*userpb.EnrollConfirmResponse, error) {
-	client, err := getUserByAttribute(Client{}, s.gorm, "email", req.Email)
+	client, err := repo.getUserByAttribute(model.Client{}, s.gorm, "email", req.Email)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repo.ErrUserNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		return nil, err
@@ -170,7 +172,7 @@ func (s *TOTPServer) EnrollConfirm(ctx context.Context, req *userpb.EnrollConfir
 
 	tempSecret, err := s.GetTempSecret(tx, userId)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repo.ErrUserNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		return nil, err
@@ -212,7 +214,7 @@ func (s *TOTPServer) EnrollConfirm(ctx context.Context, req *userpb.EnrollConfir
 func (s *TOTPServer) Status(_ context.Context, req *userpb.StatusRequest) (*userpb.StatusResponse, error) {
 	userId, err := s.getUserIdByEmail(req.Email)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repo.ErrUserNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		return nil, err
@@ -226,7 +228,7 @@ func (s *TOTPServer) Status(_ context.Context, req *userpb.StatusRequest) (*user
 
 	active, err := s.status(tx, *userId)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repo.ErrUserNotFound) {
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, err
@@ -251,7 +253,7 @@ func (s *TOTPServer) DisableBegin(ctx context.Context, req *userpb.DisableBeginR
 
 	validUntil := time.Now().Add(time.Hour)
 
-	if err := upsertPasswordActionToken(s.db, email, totpDisableAction, hashValue(token), validUntil); err != nil {
+	if err := repo.upsertPasswordActionToken(s.db, email, totpDisableAction, HashValue(token), validUntil); err != nil {
 		return nil, status.Error(codes.Internal, "storing token failed")
 	}
 
@@ -273,9 +275,9 @@ func (s *TOTPServer) DisableBegin(ctx context.Context, req *userpb.DisableBeginR
 }
 
 func (s *TOTPServer) DisableConfirm(ctx context.Context, req *userpb.DisableConfirmRequest) (*userpb.DisableConfirmResponse, error) {
-	client, err := getUserByAttribute(Client{}, s.gorm, "email", req.Email)
+	client, err := repo.getUserByAttribute(model.Client{}, s.gorm, "email", req.Email)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repo.ErrUserNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		return nil, err
@@ -289,9 +291,9 @@ func (s *TOTPServer) DisableConfirm(ctx context.Context, req *userpb.DisableConf
 
 	token := req.Token
 
-	_, _, err = consumePasswordActionToken(tx, hashValue(token))
+	_, _, err = repo.consumePasswordActionToken(tx, HashValue(token))
 	if err != nil {
-		if errors.Is(err, ErrInvalidPasswordActionToken) {
+		if errors.Is(err, repo.ErrInvalidPasswordActionToken) {
 			return nil, status.Error(codes.InvalidArgument, "invalid or expired token")
 		}
 		return nil, status.Error(codes.Internal, "token validation failed")

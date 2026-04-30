@@ -1,4 +1,4 @@
-package user
+package repo
 
 import (
 	"bytes"
@@ -10,12 +10,24 @@ import (
 	"sort"
 	"time"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/model"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 )
+
+// Repository holds database connections for user operations
+type Repository struct {
+	database *sql.DB
+	db_gorm  *gorm.DB
+}
+
+// TOTPRepository holds database connection for TOTP operations
+type TOTPRepository struct {
+	db *sql.DB
+}
 
 type User struct {
 	email          string
@@ -24,11 +36,6 @@ type User struct {
 }
 
 type (
-
-	// I am indeed aware (unlike most)
-	// That these are in fact the same type
-	// But We should disambiguate what purpose
-	// these are used for
 	user_restrictions = map[string]string
 )
 
@@ -41,7 +48,7 @@ var ErrEmployeeNotFound = errors.New("employee not found")
 
 var ErrUnknownPermission = errors.New("unknown permissions")
 
-func (s *Server) GetUserByEmail(email string) (*User, error) {
+func (r *Repository) GetUserByEmail(email string) (*User, error) {
 	query := `
 		SELECT email, password, salt_password FROM employees WHERE email = $1
 		UNION ALL
@@ -51,7 +58,7 @@ func (s *Server) GetUserByEmail(email string) (*User, error) {
 
 	var user User
 
-	err := s.database.QueryRow(query, email).Scan(&user.email, &user.hashedPassword, &user.salt)
+	err := r.database.QueryRow(query, email).Scan(&user.email, &user.hashedPassword, &user.salt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -61,7 +68,7 @@ func (s *Server) GetUserByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-func (s *Server) rotateRefreshToken(tx *sql.Tx, email string, oldHash, newHash []byte, newExpiry time.Time) error {
+func (r *Repository) rotateRefreshToken(tx *sql.Tx, email string, oldHash, newHash []byte, newExpiry time.Time) error {
 	var storedHash []byte
 	err := tx.QueryRow(`
         SELECT hashed_token FROM refresh_tokens
@@ -90,7 +97,7 @@ func (s *Server) rotateRefreshToken(tx *sql.Tx, email string, oldHash, newHash [
 	return err
 }
 
-func (s *Server) InsertRefreshToken(token string) error {
+func (r *Repository) InsertRefreshToken(token string) error {
 	parsed, _, err := jwt.NewParser().ParseUnverified(token, &jwt.RegisteredClaims{})
 	if err != nil {
 		return fmt.Errorf("parsing token: %w", err)
@@ -112,7 +119,7 @@ func (s *Server) InsertRefreshToken(token string) error {
 	INSERT INTO refresh_tokens VALUES ($1, $2, $3, FALSE)
 	ON CONFLICT (email) DO UPDATE SET (hashed_token, valid_until, revoked) = (excluded.hashed_token, excluded.valid_until, excluded.revoked)
 	`
-	_, err = s.database.Exec(query, email, hashed_token, expiry.Time)
+	_, err = r.database.Exec(query, email, hashed_token, expiry.Time)
 	if err != nil {
 		return fmt.Errorf("inserting refresh token: %w", err)
 	}
@@ -139,8 +146,8 @@ func upsertPasswordActionToken(db *sql.DB, email, actionType string, hashedToken
 	return nil
 }
 
-func (s *Server) UpsertPasswordActionToken(email, actionType string, hashedToken []byte, validUntil time.Time) error {
-	return upsertPasswordActionToken(s.database, email, actionType, hashedToken, validUntil)
+func (r *Repository) UpsertPasswordActionToken(email, actionType string, hashedToken []byte, validUntil time.Time) error {
+	return upsertPasswordActionToken(r.database, email, actionType, hashedToken, validUntil)
 }
 
 func consumePasswordActionToken(tx *sql.Tx, hashedToken []byte) (string, string, error) {
@@ -171,7 +178,7 @@ func consumePasswordActionToken(tx *sql.Tx, hashedToken []byte) (string, string,
 	return email, actionType, nil
 }
 
-func (s *Server) UpdatePasswordByEmail(tx *sql.Tx, email string, hashedPassword []byte) error {
+func (r *Repository) UpdatePasswordByEmail(tx *sql.Tx, email string, hashedPassword []byte) error {
 	employeeRes, err := tx.Exec(`
 		UPDATE employees
 		SET password = $1, updated_at = NOW()
@@ -207,7 +214,7 @@ func (s *Server) UpdatePasswordByEmail(tx *sql.Tx, email string, hashedPassword 
 	return nil
 }
 
-func (s *Server) RevokeRefreshTokensByEmail(tx *sql.Tx, email string) error {
+func (r *Repository) RevokeRefreshTokensByEmail(tx *sql.Tx, email string) error {
 	_, err := tx.Exec(`UPDATE refresh_tokens SET revoked = TRUE WHERE email = $1`, email)
 	if err != nil {
 		return fmt.Errorf("revoking refresh tokens: %w", err)
@@ -215,7 +222,7 @@ func (s *Server) RevokeRefreshTokensByEmail(tx *sql.Tx, email string) error {
 	return nil
 }
 
-func GetAllUsersFromModel[T Client | Employee](user T, s *Server, constraints user_restrictions) ([]T, error) {
+func GetAllUsersFromModel[T model.Client | model.Employee](user T, r *Repository, constraints user_restrictions) ([]T, error) {
 	add_constraints := func(query *gorm.DB, restrictions user_restrictions) *gorm.DB {
 		keys := make([]string, 0, len(restrictions))
 		for k := range restrictions {
@@ -241,13 +248,13 @@ func GetAllUsersFromModel[T Client | Employee](user T, s *Server, constraints us
 		return query
 	}
 	switch any(user).(type) {
-	case Client, Employee:
+	case model.Client, model.Employee:
 		var users []T
 		var query *gorm.DB
-		if reflect.TypeOf(any(user)) == reflect.TypeFor[Employee]() {
-			query = s.db_gorm.Model(&user).Preload("Permissions")
+		if reflect.TypeOf(any(user)) == reflect.TypeFor[model.Employee]() {
+			query = r.db_gorm.Model(&user).Preload("Permissions")
 		} else {
-			query = s.db_gorm.Model(&user)
+			query = r.db_gorm.Model(&user)
 		}
 		query = add_constraints(query, constraints)
 		err := query.Find(&users).Error
@@ -266,8 +273,8 @@ func isUniqueViolation(err error) bool {
 	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
-func create_user_from_model[T Client | Employee](user T, s *Server) error {
-	result := s.db_gorm.Create(&user)
+func create_user_from_model[T model.Client | model.Employee](user T, r *Repository) error {
+	result := r.db_gorm.Create(&user)
 	if result.Error != nil {
 		logger.L().Error("create user failed", "err", result.Error)
 		return result.Error
@@ -275,13 +282,13 @@ func create_user_from_model[T Client | Employee](user T, s *Server) error {
 	return nil
 }
 
-func getUserByAttribute[T Client | Employee](user T, gorm *gorm.DB, attribute_name string, attribute_value any) (*T, error) {
+func getUserByAttribute[T model.Client | model.Employee](user T, gormDB *gorm.DB, attribute_name string, attribute_value any) (*T, error) {
 	var ret T
 	var err error
-	if reflect.TypeOf(any(user)) == reflect.TypeFor[Employee]() {
-		err = gorm.Preload("Permissions").Where(attribute_name+" = ?", attribute_value).First(&ret).Error
+	if reflect.TypeOf(any(user)) == reflect.TypeFor[model.Employee]() {
+		err = gormDB.Preload("Permissions").Where(attribute_name+" = ?", attribute_value).First(&ret).Error
 	} else {
-		err = gorm.Model(&user).Where(attribute_name+" = ?", attribute_value).First(&ret).Error
+		err = gormDB.Model(&user).Where(attribute_name+" = ?", attribute_value).First(&ret).Error
 	}
 	if err != nil {
 		logger.L().Error("getUserByAttribute failed", "err", err)
@@ -292,8 +299,8 @@ func getUserByAttribute[T Client | Employee](user T, gorm *gorm.DB, attribute_na
 	return &ret, nil
 }
 
-func deleteUser[T Client | Employee](user T, s *Server) error {
-	result := s.db_gorm.Delete(&user)
+func deleteUser[T model.Client | model.Employee](user T, r *Repository) error {
+	result := r.db_gorm.Delete(&user)
 	if result.RowsAffected == 0 {
 		return ErrEmployeeNotFound
 	} else if result.Error != nil {
@@ -303,8 +310,8 @@ func deleteUser[T Client | Employee](user T, s *Server) error {
 
 }
 
-func userExists[T Client | Employee](user T, s *Server) bool {
-	result := s.db_gorm.First(&user)
+func userExists[T model.Client | model.Employee](user T, r *Repository) bool {
+	result := r.db_gorm.First(&user)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return false
 	} else if result.Error != nil {
@@ -314,26 +321,26 @@ func userExists[T Client | Employee](user T, s *Server) bool {
 	return true
 }
 
-func updateUserRecord[T Client | Employee](user T, s *Server) (*T, error) {
+func updateUserRecord[T model.Client | model.Employee](user T, r *Repository) (*T, error) {
 	find_perm_by_name := func(perm_name string) uint64 {
-		var perms Permission
-		s.db_gorm.First(&perms, "name = ?", perm_name)
+		var perms model.Permission
+		r.db_gorm.First(&perms, "name = ?", perm_name)
 		return perms.Id
 	}
 
-	var result = s.db_gorm
+	var result = r.db_gorm
 	switch any(user).(type) {
-	case Client:
-		if userExists(user, s) {
-			result = s.db_gorm.Model(&user).Updates(user)
+	case model.Client:
+		if userExists(user, r) {
+			result = r.db_gorm.Model(&user).Updates(user)
 		}
 
-	case Employee:
-		for index, val := range any(user).(Employee).Permissions {
-			any(user).(Employee).Permissions[index].Id = find_perm_by_name(val.Name)
+	case model.Employee:
+		for index, val := range any(user).(model.Employee).Permissions {
+			any(user).(model.Employee).Permissions[index].Id = find_perm_by_name(val.Name)
 		}
-		if userExists(user, s) {
-			result = s.db_gorm.Model(&user).Updates(user)
+		if userExists(user, r) {
+			result = r.db_gorm.Model(&user).Updates(user)
 		}
 	}
 
@@ -353,7 +360,7 @@ func updateUserRecord[T Client | Employee](user T, s *Server) (*T, error) {
 var ErrUserNotFound = errors.New("user not found")
 var ErrTOTPAlreadyActive = errors.New("totp already active")
 
-func (s *TOTPServer) getUserIdByEmail(email string) (*uint64, error) {
+func (t *TOTPRepository) getUserIdByEmail(email string) (*uint64, error) {
 	query := `
 		SELECT id FROM employees WHERE email = $1
 		UNION ALL
@@ -363,7 +370,7 @@ func (s *TOTPServer) getUserIdByEmail(email string) (*uint64, error) {
 
 	var id uint64
 
-	err := s.db.QueryRow(query, email).Scan(&id)
+	err := t.db.QueryRow(query, email).Scan(&id)
 	if err == sql.ErrNoRows {
 		return nil, ErrUserNotFound
 	}
@@ -373,7 +380,7 @@ func (s *TOTPServer) getUserIdByEmail(email string) (*uint64, error) {
 	return &id, nil
 }
 
-func (s *TOTPServer) SetTempTOTPSecret(tx *sql.Tx, id uint64, secret string) error {
+func (t *TOTPRepository) SetTempTOTPSecret(tx *sql.Tx, id uint64, secret string) error {
 	_, err := tx.Exec(`
 		INSERT INTO verification_codes (client_id, temp_secret, temp_created_at)
 		VALUES ($1, $2, NOW())
@@ -385,7 +392,7 @@ func (s *TOTPServer) SetTempTOTPSecret(tx *sql.Tx, id uint64, secret string) err
 	return err
 }
 
-func (s *TOTPServer) GetTempSecret(tx *sql.Tx, id uint64) (*string, error) {
+func (t *TOTPRepository) GetTempSecret(tx *sql.Tx, id uint64) (*string, error) {
 	var temp_secret string
 	row := tx.QueryRow(`
 		SELECT temp_secret
@@ -403,9 +410,9 @@ func (s *TOTPServer) GetTempSecret(tx *sql.Tx, id uint64) (*string, error) {
 	return &temp_secret, nil
 }
 
-func (s *TOTPServer) GetSecret(id uint64) (*string, error) {
+func (t *TOTPRepository) GetSecret(id uint64) (*string, error) {
 	var secret string
-	row := s.db.QueryRow(`
+	row := t.db.QueryRow(`
 		SELECT secret
 		FROM verification_codes
 		WHERE client_id = $1 AND enabled = TRUE
@@ -417,7 +424,7 @@ func (s *TOTPServer) GetSecret(id uint64) (*string, error) {
 	return &secret, nil
 }
 
-func (s *TOTPServer) EnableTOTP(tx *sql.Tx, id uint64, tempSecret string) error {
+func (t *TOTPRepository) EnableTOTP(tx *sql.Tx, id uint64, tempSecret string) error {
 	_, err := tx.Exec(`
 		UPDATE verification_codes
 		SET enabled = TRUE,
@@ -432,7 +439,7 @@ func (s *TOTPServer) EnableTOTP(tx *sql.Tx, id uint64, tempSecret string) error 
 	return nil
 }
 
-func (s *TOTPServer) DisableTOTP(tx *sql.Tx, id uint64) error {
+func (t *TOTPRepository) DisableTOTP(tx *sql.Tx, id uint64) error {
 	_, err := tx.Exec(`
 		UPDATE verification_codes
 		SET enabled = FALSE
@@ -445,7 +452,7 @@ func (s *TOTPServer) DisableTOTP(tx *sql.Tx, id uint64) error {
 	return nil
 }
 
-func (s *TOTPServer) deleteOldCodes(tx *sql.Tx, id uint64) error {
+func (t *TOTPRepository) deleteOldCodes(tx *sql.Tx, id uint64) error {
 	_, err := tx.Exec(`
 		DELETE FROM backup_codes
 		WHERE client_id = $1
@@ -456,8 +463,8 @@ func (s *TOTPServer) deleteOldCodes(tx *sql.Tx, id uint64) error {
 	return nil
 }
 
-func (s *TOTPServer) InsertGeneratedCodes(tx *sql.Tx, id uint64, codes []string) error {
-	err := s.deleteOldCodes(tx, id)
+func (t *TOTPRepository) InsertGeneratedCodes(tx *sql.Tx, id uint64, codes []string) error {
+	err := t.deleteOldCodes(tx, id)
 	if err != nil {
 		return err
 	}
@@ -482,7 +489,7 @@ func (s *TOTPServer) InsertGeneratedCodes(tx *sql.Tx, id uint64, codes []string)
 	return nil
 }
 
-func (s *TOTPServer) status(tx *sql.Tx, id uint64) (*bool, error) {
+func (t *TOTPRepository) status(tx *sql.Tx, id uint64) (*bool, error) {
 	var active bool
 	query := `
 		SELECT enabled
@@ -502,13 +509,13 @@ func (s *TOTPServer) status(tx *sql.Tx, id uint64) (*bool, error) {
 	return &active, nil
 }
 
-func (s *TOTPServer) tryBurnBackupCode(id uint64, code string) (*bool, error) {
+func (t *TOTPRepository) tryBurnBackupCode(id uint64, code string) (*bool, error) {
 	query := `
 		UPDATE backup_codes
 		SET used = TRUE
 		WHERE client_id = $1 AND token = $2
 	`
-	res, err := s.db.Exec(query, id, code)
+	res, err := t.db.Exec(query, id, code)
 	if err != nil {
 		return nil, err
 	}
