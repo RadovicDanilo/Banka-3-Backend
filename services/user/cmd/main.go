@@ -59,11 +59,11 @@ func connect() (*server.Connections, error) {
 	}
 
 	db := connectToDB()
-	gorm := connect_to_db_gorm()
+	dbGorm := connect_to_db_gorm()
 	return &server.Connections{
 		NotificationClient: notification.NewNotificationServiceClient(notificationConn),
 		Sql_db:             db,
-		Gorm:               gorm,
+		Gorm:               dbGorm,
 	}, nil
 }
 

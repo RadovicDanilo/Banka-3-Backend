@@ -36,7 +36,6 @@ type Connections struct {
 	Sql_db             *sql.DB
 	Gorm               *gorm.DB
 	Rdb                *redis.Client
-	Repo               *repo.Repository
 }
 
 const (
@@ -56,7 +55,21 @@ type Server struct {
 	database         *sql.DB
 	db_gorm          *gorm.DB
 	rdb              *redis.Client
-	repo             *repo.Repository
+	repo             repo.Repository
+}
+
+func NewServer(accessJwtSecret string, refreshJwtSecret string, conn *Connections) *Server {
+	return &Server{
+		accessJwtSecret:  accessJwtSecret,
+		refreshJwtSecret: refreshJwtSecret,
+		database:         conn.Sql_db,
+		db_gorm:          conn.Gorm,
+		rdb:              conn.Rdb,
+		repo: repo.Repository{
+			Database: conn.Sql_db,
+			Gorm:     conn.Gorm,
+		},
+	}
 }
 
 func generateSalt() ([]byte, error) {
@@ -73,17 +86,6 @@ func HashPassword(password string, salt []byte) []byte {
 	hashed.Write(salt)
 	hashed.Write([]byte(password))
 	return hashed.Sum(nil)
-}
-
-func NewServer(accessJwtSecret string, refreshJwtSecret string, conn *Connections) *Server {
-	return &Server{
-		accessJwtSecret:  accessJwtSecret,
-		refreshJwtSecret: refreshJwtSecret,
-		database:         conn.Sql_db,
-		db_gorm:          conn.Gorm,
-		rdb:              conn.Rdb,
-		repo:             conn.Repo,
-	}
 }
 
 func (s *Server) GetEmployeeByEmail(_ context.Context, req *userpb.GetUserByEmailRequest) (*userpb.GetEmployeeResponse, error) {
