@@ -8,6 +8,7 @@ WORKDIR /src
 COPY go.work go.work.sum ./
 COPY pkg/go.mod pkg/go.sum ./pkg/
 COPY services/bank/go.mod services/bank/go.sum ./services/bank/
+COPY services/trading/go.mod services/trading/go.sum ./services/trading/
 COPY services/exchange/go.mod services/exchange/go.sum ./services/exchange/
 COPY services/gateway/go.mod services/gateway/go.sum ./services/gateway/
 COPY services/notification/go.mod services/notification/go.sum ./services/notification/

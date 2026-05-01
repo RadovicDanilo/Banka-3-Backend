@@ -125,6 +125,29 @@ services:
         condition: service_healthy
     networks: [ banka ]
 
+  trading:
+    container_name: trading
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: trading
+    restart: on-failure
+    ports:
+      - "${TRADING_GRPC_PORT:-50055}:50051"
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      GRPC_PORT: "50051"
+      EXCHANGE_GRPC_ADDR: ${EXCHANGE_GRPC_ADDR:-exchange:50051}
+      BANK_GRPC_ADDR: ${BANK_GRPC_ADDR:-bank:50051}
+      NOTIFICATION_GRPC_ADDR: ${NOTIFICATION_GRPC_ADDR:-notification:50051}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: ${LOG_FORMAT:-text}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [ banka ]
+
   gateway:
     container_name: gateway
     build:
@@ -140,7 +163,7 @@ services:
       NOTIFICATION_GRPC_ADDR: "notification:50051"
       BANK_GRPC_ADDR: "bank:50051"
       EXCHANGE_GRPC_ADDR: "exchange:50051"
-      TRADING_GRPC_ADDR: "bank:50051"
+      TRADING_GRPC_ADDR: "trading:50051"
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_FORMAT: ${LOG_FORMAT:-text}
     depends_on:
@@ -148,6 +171,7 @@ services:
       - notification
       - bank
       - exchange
+      - trading
     networks: [ banka ]
 
 volumes:
