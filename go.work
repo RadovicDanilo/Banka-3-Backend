@@ -7,5 +7,5 @@ use (
 	./services/gateway
 	./services/notification
 	./services/user
-	services/trading
+	./services/trading
 )
