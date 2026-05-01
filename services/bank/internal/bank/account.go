@@ -27,28 +27,6 @@ type callerIdentity struct {
 	IsEmployee bool
 }
 
-// CallerIdentity is the exported form of callerIdentity, exposed for other
-// services running in the bank process (e.g. trading) that reuse the same
-// metadata-based auth scheme.
-type CallerIdentity = callerIdentity
-
-// ResolveCaller is exported for in-process callers that share bank's auth
-// scheme. See authorizeAccountAccess for the ownership-check counterpart.
-func (s *Server) ResolveCaller(ctx context.Context) (*CallerIdentity, error) {
-	return s.resolveCaller(ctx)
-}
-
-// AuthorizeAccountAccess is exported for in-process callers.
-func (s *Server) AuthorizeAccountAccess(ctx context.Context, acc *Account) error {
-	return s.authorizeAccountAccess(ctx, acc)
-}
-
-// GetExchangeRateToRSD is exported for in-process callers (trading uses it to
-// convert approximate order price into RSD for agent-limit accounting).
-func (s *Server) GetExchangeRateToRSD(currencyLabel string) (float64, error) {
-	return s.getExchangeRateToRSD(currencyLabel)
-}
-
 func (s *Server) ListAccounts(ctx context.Context, req *bankpb.ListAccountsRequest) (*bankpb.ListAccountsResponse, error) {
 	caller, err := s.resolveCaller(ctx)
 	if err != nil {

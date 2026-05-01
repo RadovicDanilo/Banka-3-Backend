@@ -3,11 +3,11 @@ package trading
 import (
 	"errors"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank"
+	exchangepb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/exchange"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -134,7 +134,7 @@ func (s *Server) collectOneAccount(state stateRSDAccount, accountID, totalRSD in
 			return status.Errorf(codes.Internal, "%v", err)
 		}
 
-		debitAmount, err := convertRSDToAccountCcy(tx, acc.Currency, totalRSD)
+		debitAmount, err := convertRSDToAccountCcy(s, acc.Currency, totalRSD)
 		if err != nil {
 			return err
 		}
@@ -201,18 +201,13 @@ var errInsufficientFunds = fmt.Errorf("insufficient funds")
 // account's currency for the debit. RSD accounts skip the rate lookup.
 // Rounding is up so the placer never under-pays the recorded RSD amount when
 // rates create a fractional result.
-func convertRSDToAccountCcy(tx *gorm.DB, accCurrency string, totalRSD int64) (int64, error) {
-	if accCurrency == "RSD" {
-		return totalRSD, nil
+func convertRSDToAccountCcy(s *Server, accCurrency string, totalRSD int64) (int64, error) {
+	rate, err := s.exchangeService.ConvertMoney(nil, &exchangepb.ConversionRequest{FromCurrency: "RSD", ToCurrency: accCurrency, Amount: float64(totalRSD)})
+	if err != nil {
+		return 0, err
 	}
-	var rate bank.ExchangeRate
-	if err := tx.Where("currency_code = ?", accCurrency).First(&rate).Error; err != nil {
-		return 0, status.Errorf(codes.Internal, "exchange rate for %s: %v", accCurrency, err)
-	}
-	if rate.Rate_to_rsd <= 0 {
-		return 0, status.Errorf(codes.Internal, "non-positive exchange rate for %s", accCurrency)
-	}
-	return int64(math.Ceil(float64(totalRSD) / rate.Rate_to_rsd)), nil
+
+	return int64(rate.ConvertedAmount), nil
 }
 
 // RunMonthlyCapitalGainsCollection is the cron entrypoint — kicks off the

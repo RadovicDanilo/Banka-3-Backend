@@ -13,10 +13,8 @@ import (
 // StartScheduler kicks off background jobs for loan stuff, returns a cancel func for cleanup
 func (s *Server) StartScheduler() func() {
 	ctx, cancel := context.WithCancel(context.Background())
-
 	go s.runOnSchedule(ctx, 2, isFirstOfMonth, s.RunMonthlyVariableRateUpdate)
 	go s.runOnSchedule(ctx, 6, always, s.RunDailyInstallmentCollection)
-
 	return cancel
 }
 
@@ -47,21 +45,6 @@ func (s *Server) runOnScheduleAt(ctx context.Context, hour, minute int, filter f
 			}
 		}
 	}
-}
-
-// RunDailyUsedLimitReset zeroes used_limit on every employee row at end of day so
-// the per-actuary daily trading limit refreshes for the next day (spec p.39).
-func (s *Server) RunDailyUsedLimitReset() {
-	l := logger.L().With("job", "daily_used_limit_reset")
-	l.Info("cron start")
-	res := s.db_gorm.Table("employees").
-		Where("used_limit > 0").
-		Updates(map[string]any{"used_limit": 0, "updated_at": time.Now()})
-	if res.Error != nil {
-		l.Error("resetting used_limit failed", "err", res.Error)
-		return
-	}
-	l.Info("cron end", "rows", res.RowsAffected)
 }
 
 // RunMonthlyVariableRateUpdate recalculates rates for variable loans on the 1st of each month

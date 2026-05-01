@@ -150,7 +150,7 @@ func (s *Server) ListTaxDebts(_ context.Context, req *tradingpb.ListTaxDebtsRequ
 // rather than NotFound, mirroring ListHoldings: "no trading activity" is a
 // valid state, not an error.
 func (s *Server) GetMyTaxInfo(ctx context.Context, _ *tradingpb.GetMyTaxInfoRequest) (*tradingpb.GetMyTaxInfoResponse, error) {
-	caller, err := s.bank.ResolveCaller(ctx)
+	caller, err := s.ResolveCaller(ctx)
 	if err != nil {
 		return nil, err
 	}
