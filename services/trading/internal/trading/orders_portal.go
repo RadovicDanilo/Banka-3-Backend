@@ -7,7 +7,6 @@ import (
 	"time"
 
 	tradingpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/trading"
-	"github.com/RAF-SI-2025/Banka-3-Backend/services/bank/internal/bank"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -25,7 +24,7 @@ func requirePending(s OrderStatus) error {
 }
 
 // requireCancellable accepts pending and approved orders and rejects every
-// terminal state (done / declined / already-cancelled). Used by CancelOrder
+// terminal state (done / declined / already-canceled). Used by CancelOrder
 // so repeat cancels on the same row surface as FailedPrecondition.
 func requireCancellable(s OrderStatus) error {
 	switch s {
@@ -291,7 +290,7 @@ func (s *Server) ApproveOrder(_ context.Context, req *tradingpb.ApproveOrderRequ
 		order.Status = StatusApproved
 		order.ApprovedBy = &supID
 
-		if err := consumeAgentLimitOnApproval(tx, order, s.bank); err != nil {
+		if err := consumeAgentLimitOnApproval(tx, order, s); err != nil {
 			return err
 		}
 
@@ -358,13 +357,13 @@ func (s *Server) DeclineOrder(_ context.Context, req *tradingpb.DeclineOrderRequ
 // CancelOrder withdraws the remaining, unfilled portion of an order. The
 // caller must either be the placer (owner) or carry supervisor /
 // trading_cancel permissions (spec p.58). Pending and approved orders can be
-// cancelled; done, declined, and already-cancelled ones return
+// canceled; done, declined, and already-canceled ones return
 // FailedPrecondition.
 func (s *Server) CancelOrder(ctx context.Context, req *tradingpb.CancelOrderRequest) (*tradingpb.CancelOrderResponse, error) {
 	if req.OrderId <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "order_id required")
 	}
-	caller, err := s.bank.ResolveCaller(ctx)
+	caller, err := s.ResolveCaller(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -413,7 +412,7 @@ func (s *Server) CancelOrder(ctx context.Context, req *tradingpb.CancelOrderRequ
 // actually placed; employees who own the order are also allowed through the
 // ownership path (no perm needed) to mirror how CreateOrder's placer semantics
 // work for agent-placed orders.
-func authorizeCancel(tx *gorm.DB, order *Order, caller *bank.CallerIdentity) error {
+func authorizeCancel(tx *gorm.DB, order *Order, caller *CallerIdentity) error {
 	var placer OrderPlacer
 	if err := tx.First(&placer, order.PlacerID).Error; err != nil {
 		return status.Errorf(codes.Internal, "%v", err)
@@ -502,7 +501,7 @@ func supervisorEmployeeID(db *gorm.DB, email string) (int64, error) {
 // the order's approximate RSD notional. Done here rather than at placement
 // because pending orders deliberately skip the increment (spec p.39 — limit
 // consumed only once the order is live).
-func consumeAgentLimitOnApproval(tx *gorm.DB, order *Order, bankSrv *bank.Server) error {
+func consumeAgentLimitOnApproval(tx *gorm.DB, order *Order, s *Server) error {
 	var placer OrderPlacer
 	if err := tx.First(&placer, order.PlacerID).Error; err != nil {
 		return status.Errorf(codes.Internal, "%v", err)
@@ -545,7 +544,7 @@ func consumeAgentLimitOnApproval(tx *gorm.DB, order *Order, bankSrv *bank.Server
 	if currency == "RSD" {
 		approxRSD = approxNative
 	} else {
-		rate, err := bankSrv.GetExchangeRateToRSD(currency)
+		rate, err := s.GetExchangeRateToRSD(currency)
 		if err != nil {
 			return status.Errorf(codes.Internal, "failed to load exchange rate for %s: %v", currency, err)
 		}

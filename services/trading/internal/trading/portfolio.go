@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
+	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank"
 	tradingpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/trading"
-	"github.com/RAF-SI-2025/Banka-3-Backend/services/bank/internal/bank"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -111,11 +111,11 @@ func (s *Server) convertToAccountCcy(amount int64, from, accCurrency string) (in
 	if from == "" || from == accCurrency {
 		return amount, nil
 	}
-	rateAcc, err := s.bank.GetExchangeRateToRSD(accCurrency)
+	rateAcc, err := s.GetExchangeRateToRSD(accCurrency)
 	if err != nil {
 		return 0, status.Errorf(codes.Internal, "%v", err)
 	}
-	rateFrom, err := s.bank.GetExchangeRateToRSD(from)
+	rateFrom, err := s.GetExchangeRateToRSD(from)
 	if err != nil {
 		return 0, status.Errorf(codes.Internal, "%v", err)
 	}
@@ -185,7 +185,7 @@ func (s *Server) holdingToProto(tx *gorm.DB, h *Holding) (*tradingpb.Holding, er
 // placer row yet (no orders ever placed) gets an empty list rather than a
 // 404; the placer row is created lazily so subsequent holdings calls dedupe.
 func (s *Server) ListHoldings(ctx context.Context, _ *tradingpb.ListHoldingsRequest) (*tradingpb.ListHoldingsResponse, error) {
-	caller, err := s.bank.ResolveCaller(ctx)
+	caller, err := s.ResolveCaller(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +239,7 @@ func (s *Server) SellHolding(ctx context.Context, req *tradingpb.SellHoldingRequ
 		return nil, status.Error(codes.InvalidArgument, "order_type required")
 	}
 
-	caller, err := s.bank.ResolveCaller(ctx)
+	caller, err := s.ResolveCaller(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +317,7 @@ func listingIDForHolding(db *gorm.DB, h *Holding) (int64, error) {
 // scoped to the placer row, which is keyed per identity (client or employee)
 // — so the check reduces to comparing the caller's identity against the
 // placer the holding points at.
-func (s *Server) authorizeHoldingOwner(db *gorm.DB, h *Holding, caller *bank.CallerIdentity) error {
+func (s *Server) authorizeHoldingOwner(db *gorm.DB, h *Holding, caller *CallerIdentity) error {
 	var placer OrderPlacer
 	if err := db.First(&placer, h.PlacerID).Error; err != nil {
 		return status.Errorf(codes.Internal, "%v", err)
@@ -347,7 +347,7 @@ func (s *Server) SetHoldingPublic(ctx context.Context, req *tradingpb.SetHolding
 	if req.PublicAmount < 0 {
 		return nil, status.Error(codes.InvalidArgument, "public_amount must be >= 0")
 	}
-	caller, err := s.bank.ResolveCaller(ctx)
+	caller, err := s.ResolveCaller(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -410,7 +410,7 @@ func (s *Server) ExerciseOption(ctx context.Context, req *tradingpb.ExerciseOpti
 	if strings.TrimSpace(req.AccountNumber) == "" {
 		return nil, status.Error(codes.InvalidArgument, "account_number required")
 	}
-	caller, err := s.bank.ResolveCaller(ctx)
+	caller, err := s.ResolveCaller(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -418,15 +418,20 @@ func (s *Server) ExerciseOption(ctx context.Context, req *tradingpb.ExerciseOpti
 		return nil, status.Error(codes.PermissionDenied, "options are available to employees only")
 	}
 
-	acc, err := s.bank.GetAccountByNumber(req.AccountNumber)
+	acc, err := s.bankService.GetAccountDetails(ctx, &bankpb.GetAccountDetailsRequest{AccountNumber: req.AccountNumber})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "account not found")
 		}
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
-	if err := s.bank.AuthorizeAccountAccess(ctx, acc); err != nil {
+	resp, err := s.bankService.AuthorizeAccountAccess(ctx, &bankpb.AuthorizeAccountAccessRequest{AccountNumber: acc.Account.AccountNumber})
+	if err != nil {
 		return nil, err
+	}
+
+	if !resp.Authorized {
+		return nil, status.Error(codes.PermissionDenied, "account does not have access to option")
 	}
 
 	var payout, qty int64
@@ -504,12 +509,12 @@ func (s *Server) ExerciseOption(ctx context.Context, req *tradingpb.ExerciseOpti
 		// executor. Sell-side rounding (floor) so the bank doesn't pay an
 		// extra penny on conversion.
 		creditAcc := payoutInstr
-		if acc.Currency != ex.Currency {
-			rateAcc, err := s.bank.GetExchangeRateToRSD(acc.Currency)
+		if acc.Account.Currency != ex.Currency {
+			rateAcc, err := s.GetExchangeRateToRSD(acc.Account.Currency)
 			if err != nil {
 				return status.Errorf(codes.Internal, "%v", err)
 			}
-			rateInstr, err := s.bank.GetExchangeRateToRSD(ex.Currency)
+			rateInstr, err := s.GetExchangeRateToRSD(ex.Currency)
 			if err != nil {
 				return status.Errorf(codes.Internal, "%v", err)
 			}

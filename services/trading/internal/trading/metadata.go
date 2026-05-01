@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
-	"github.com/RAF-SI-2025/Banka-3-Backend/services/bank/internal/trading/pricing"
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/trading/internal/trading/pricing"
 	"gorm.io/gorm"
 )
 

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/RAF-SI-2025/Banka-3-Backend/services/bank/internal/bank"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -162,7 +161,9 @@ func findOrCreatePlacer(tx *gorm.DB, clientID, employeeID *int64) (int64, error)
 	if clientID != nil {
 		q = q.Where("client_id = ?", *clientID)
 	} else {
-		q = q.Where("employee_id = ?", *employeeID)
+		if employeeID != nil {
+			q = q.Where("employee_id = ?", *employeeID)
+		}
 	}
 	err := q.Take(&existing).Error
 	if err == nil {
@@ -183,7 +184,7 @@ func findOrCreatePlacer(tx *gorm.DB, clientID, employeeID *int64) (int64, error)
 // if needed. Used by RPCs that have to look up holdings (#207) for callers
 // who haven't placed any orders yet — without this, ListHoldings on a fresh
 // client would 404 even though "no orders" is a perfectly valid state.
-func resolvePlacerForCaller(tx *gorm.DB, caller *bank.CallerIdentity) (int64, error) {
+func resolvePlacerForCaller(tx *gorm.DB, caller *CallerIdentity) (int64, error) {
 	if caller.IsClient {
 		id := caller.ClientID
 		return findOrCreatePlacer(tx, &id, nil)

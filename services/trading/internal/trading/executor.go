@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
+	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -46,7 +47,7 @@ const (
 )
 
 // StartExecutor launches the market-order execution worker. Mirrors the
-// cancel-func pattern used by bank.StartScheduler so main.go treats both
+// cancel-func pattern used by StartScheduler so main.go treats both
 // the same way.
 func (s *Server) StartExecutor() func() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -63,7 +64,7 @@ func (s *Server) runExecutor(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case now := <-ticker.C:
-			s.executorTick(now, nextFillAt)
+			s.executorTick(now, nextFillAt, ctx)
 		}
 	}
 }
@@ -75,7 +76,7 @@ func (s *Server) runExecutor(ctx context.Context) {
 // fill phase that reuses the market/limit path. Listings only: options and
 // forex have no ask/bid + listing_daily_price_info.volume, so they'd need
 // their own engine and are out of scope here.
-func (s *Server) executorTick(now time.Time, nextFillAt map[int64]time.Time) {
+func (s *Server) executorTick(now time.Time, nextFillAt map[int64]time.Time, ctx context.Context) {
 	var orders []Order
 	err := s.db_gorm.Where(
 		"status = ? AND is_done = ? AND listing_id IS NOT NULL",
@@ -126,7 +127,7 @@ func (s *Server) executorTick(now time.Time, nextFillAt map[int64]time.Time) {
 		if now.Before(due) {
 			continue
 		}
-		next, err := s.executeFill(o, now)
+		next, err := s.executeFill(o, now, ctx)
 		if err != nil {
 			logger.L().Error("order fill failed", "order_id", o.ID, "err", err)
 			nextFillAt[o.ID] = now.Add(executorFailureBackoff)
@@ -201,7 +202,7 @@ func stopTrigger(o *Order) int64 {
 
 // executeFill fills one chunk in a transaction. Returns the scheduled time
 // for the next chunk; the zero time signals "order is complete, drop it".
-func (s *Server) executeFill(o *Order, now time.Time) (time.Time, error) {
+func (s *Server) executeFill(o *Order, now time.Time, ctx context.Context) (time.Time, error) {
 	var next time.Time
 	err := s.db_gorm.Transaction(func(tx *gorm.DB) error {
 		// Re-lock + re-check: a concurrent cancel or prior fill on the same
@@ -254,18 +255,18 @@ func (s *Server) executeFill(o *Order, now time.Time) (time.Time, error) {
 		chunk := chooseChunk(locked)
 		chunkCostInstr := chunk * locked.ContractSize * fillPPU
 
-		acc, err := s.bank.GetAccountByNumber(locked.AccountNumber)
+		acc, err := s.bankService.GetAccountDetails(ctx, &bankpb.GetAccountDetailsRequest{AccountNumber: locked.AccountNumber})
 		if err != nil {
 			return status.Errorf(codes.Internal, "%v", err)
 		}
 
 		instrCurrency := exch.Currency
-		settle, err := s.planSettlement(acc.Currency, instrCurrency, chunkCostInstr, locked.Direction)
+		settle, err := s.planSettlement(acc.Account.Currency, instrCurrency, chunkCostInstr, locked.Direction)
 		if err != nil {
 			return err
 		}
 
-		if err := applySettlement(tx, locked.Direction, locked.AccountNumber, acc.Currency, instrCurrency, settle); err != nil {
+		if err := applySettlement(tx, locked.Direction, locked.AccountNumber, acc.Account.Currency, instrCurrency, settle); err != nil {
 			return err
 		}
 
@@ -312,8 +313,8 @@ func (s *Server) executeFill(o *Order, now time.Time) (time.Time, error) {
 		// RSD accounts skip the rate lookup — the conversion is the identity.
 		if locked.Direction == DirectionSell && soldFromSnapshot != nil {
 			rateAccRSD := 1.0
-			if acc.Currency != "RSD" {
-				r, err := s.bank.GetExchangeRateToRSD(acc.Currency)
+			if acc.Account.Currency != "RSD" {
+				r, err := s.GetExchangeRateToRSD(acc.Account.Currency)
 				if err != nil {
 					return status.Errorf(codes.Internal, "%v", err)
 				}
@@ -461,7 +462,7 @@ type settlement struct {
 
 // planSettlement converts the instrument-currency chunk cost into the
 // account's currency via the existing menjacnica rates-to-RSD service
-// (bank.GetExchangeRateToRSD). Rounding sides with the bank: buyers round
+// (GetExchangeRateToRSD). Rounding sides with the bank: buyers round
 // up, sellers round down, so the placer doesn't pocket a rounding penny on
 // either side. No menjacnica fee is charged at fill — the placement
 // commission already covered it (commission.go, spec pp.27, 57).
@@ -476,11 +477,11 @@ func (s *Server) planSettlement(accCurrency, instrCurrency string, chunkCostInst
 		out.accAmount = chunkCostInstr
 		return out, nil
 	}
-	rateAccRSD, err := s.bank.GetExchangeRateToRSD(accCurrency)
+	rateAccRSD, err := s.GetExchangeRateToRSD(accCurrency)
 	if err != nil {
 		return settlement{}, status.Errorf(codes.Internal, "%v", err)
 	}
-	rateInstrRSD, err := s.bank.GetExchangeRateToRSD(instrCurrency)
+	rateInstrRSD, err := s.GetExchangeRateToRSD(instrCurrency)
 	if err != nil {
 		return settlement{}, status.Errorf(codes.Internal, "%v", err)
 	}
@@ -494,6 +495,7 @@ func (s *Server) planSettlement(accCurrency, instrCurrency string, chunkCostInst
 	return out, nil
 }
 
+// TODO: accCurrency unused
 // applySettlement moves the money for one chunk. With no real orderbook we
 // use the bank-system client (system@banka3.rs) as the standing
 // counterparty: buys debit the placer and credit the system's

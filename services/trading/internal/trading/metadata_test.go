@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/RAF-SI-2025/Banka-3-Backend/services/bank/internal/trading/pricing"
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/trading/internal/trading/pricing"
 )
 
 // overviewFake stubs the AV OVERVIEW client so syncer tests don't need

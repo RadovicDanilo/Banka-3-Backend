@@ -58,12 +58,12 @@ func TestNextDelayVolumeZeroUsesDefault(t *testing.T) {
 }
 
 func TestNextDelayFormula(t *testing.T) {
-	// remaining=100, volume=1440 → max = 1440*100/1440 = 100 seconds.
-	max := 100 * time.Second
+	// remaining=100, volume=1440 → maxDuration = 1440*100/1440 = 100 seconds.
+	maxDuration := 100 * time.Second
 	for i := 0; i < 200; i++ {
 		d := nextDelay(100, 1440, false)
-		if d < 0 || d > max {
-			t.Fatalf("delay %s outside [0, %s]", d, max)
+		if d < 0 || d > maxDuration {
+			t.Fatalf("delay %s outside [0, %s]", d, maxDuration)
 		}
 	}
 }

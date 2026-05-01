@@ -329,7 +329,7 @@ func periodStart(period string, now time.Time) (time.Time, bool) {
 // p.58 — only actuaries (employees) may see forex. caller_email must be set;
 // the trading server asks bank which role it maps to.
 func (s *Server) ListForexPairs(ctx context.Context, req *tradingpb.ListForexPairsRequest) (*tradingpb.ListForexPairsResponse, error) {
-	caller, err := s.bank.ResolveCaller(ctx)
+	caller, err := s.ResolveCaller(ctx)
 	if err != nil {
 		return nil, err
 	}

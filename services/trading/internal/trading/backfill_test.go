@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/RAF-SI-2025/Banka-3-Backend/services/bank/internal/trading/pricing"
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/trading/internal/trading/pricing"
 )
 
 // dailyHistoryFake stubs the AV daily-history client so backfiller tests don't

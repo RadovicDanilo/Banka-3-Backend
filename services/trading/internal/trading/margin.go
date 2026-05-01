@@ -59,7 +59,7 @@ func (s *Server) checkMarginEligibility(tx *gorm.DB, clientID int64, isClient bo
 		if err != nil {
 			return err
 		}
-		ok, err := clientHasQualifyingLoan(tx, s.bank.GetExchangeRateToRSD, clientID, imcRSD)
+		ok, err := clientHasQualifyingLoan(tx, s.GetExchangeRateToRSD, clientID, imcRSD)
 		if err != nil {
 			return err
 		}

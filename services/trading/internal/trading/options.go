@@ -16,7 +16,7 @@ import (
 // Options are actuary-only per spec p.59 — at this layer that translates to
 // "must be an employee" (the portal gates agent/supervisor features further).
 func (s *Server) requireActuary(ctx context.Context) error {
-	caller, err := s.bank.ResolveCaller(ctx)
+	caller, err := s.ResolveCaller(ctx)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (s *Server) ListOptions(ctx context.Context, req *tradingpb.ListOptionsRequ
 		put  *Option
 	}
 	byStrike := map[int64]*pair{}
-	strikes := []int64{}
+	var strikes []int64
 	for i := range opts {
 		o := &opts[i]
 		p, ok := byStrike[o.StrikePrice]

@@ -90,7 +90,7 @@ func (s *Server) approxPriceRSD(currency string, contractSize, pricePerUnit, qua
 	if currency == "RSD" {
 		return native, nil
 	}
-	rate, err := s.bank.GetExchangeRateToRSD(currency)
+	rate, err := s.GetExchangeRateToRSD(currency)
 	if err != nil {
 		return 0, status.Errorf(codes.Internal, "failed to load exchange rate for %s: %v", currency, err)
 	}
