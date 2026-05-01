@@ -113,7 +113,7 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 		return nil, err
 	}
 
-	caller, err := s.bank.ResolveCaller(ctx)
+	caller, err := s.ResolveCaller(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -127,15 +127,24 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 		}
 	}
 
-	acc, err := s.bank.GetAccountByNumber(req.AccountNumber)
+	acc, err := s.bankService.GetAccountDetails(ctx, &bankpb.GetAccountDetailsRequest{
+		AccountNumber: req.AccountNumber,
+	})
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "account not found")
 		}
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
-	if err := s.bank.AuthorizeAccountAccess(ctx, acc); err != nil {
+
+	resp, err := s.bankService.AuthorizeAccountAccess(ctx, &bankpb.AuthorizeAccountAccessRequest{AccountNumber: acc.Account.AccountNumber})
+	if err != nil {
 		return nil, err
+	}
+
+	if !resp.Authorized {
+		return nil, status.Error(codes.PermissionDenied, "not authorized")
 	}
 
 	info, err := s.resolveInstrument(req)
@@ -147,11 +156,11 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 	// loaded once here so downstream math (margin eligibility, commission
 	// conversion) uses a consistent snapshot.
 	var rateAccRSD, rateInstrRSD float64 = 1, 1
-	if acc.Currency != info.Currency {
-		if rateAccRSD, err = s.bank.GetExchangeRateToRSD(acc.Currency); err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to load exchange rate for %s: %v", acc.Currency, err)
+	if acc.Account.Currency != info.Currency {
+		if rateAccRSD, err = s.GetExchangeRateToRSD(acc.Account.Currency); err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to load exchange rate for %s: %v", acc.Account.Currency, err)
 		}
-		if rateInstrRSD, err = s.bank.GetExchangeRateToRSD(info.Currency); err != nil {
+		if rateInstrRSD, err = s.GetExchangeRateToRSD(info.Currency); err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to load exchange rate for %s: %v", info.Currency, err)
 		}
 	}
@@ -248,11 +257,11 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 			}
 			// Margin's native-currency check compares against the instrument
 			// currency, so cross-currency balances convert through RSD first.
-			debitBalance := acc.Balance
-			if acc.Currency != info.Currency {
-				debitBalance = int64(float64(acc.Balance) * rateAccRSD / rateInstrRSD)
+			debitBalance := acc.Account.Balance
+			if acc.Account.Currency != info.Currency {
+				debitBalance = acc.Account.Balance * rateAccRSD / rateInstrRSD
 			}
-			if err := s.checkMarginEligibility(tx, clientID, caller.IsClient, debitBalance, info, req.Quantity); err != nil {
+			if err := s.checkMarginEligibility(tx, clientID, caller.IsClient, int64(debitBalance), info, req.Quantity); err != nil {
 				return err
 			}
 		}
@@ -273,7 +282,7 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 		// (past settlement) skip the whole charge.
 		if order.Status != StatusDeclined {
 			plan := planCommissionCharge(
-				req.AccountNumber, acc.Currency, info.Currency,
+				req.AccountNumber, acc.Account.Currency, info.Currency,
 				commission, rateAccRSD, rateInstrRSD, caller.IsClient,
 			)
 			if err := chargeCommission(tx, plan); err != nil {

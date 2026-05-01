@@ -121,3 +121,10 @@ message ListClientTransactionsResponse {
   repeated ClientTransaction transactions = 1;
 }
 
+message AuthorizeAccountAccessRequest {
+  string account_number = 1;
+}
+
+message AuthorizeAccountAccessResponse {
+  bool authorized = 1;
+}

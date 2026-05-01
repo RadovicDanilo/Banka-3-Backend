@@ -180,6 +180,22 @@ func (s *Server) UpdateAccountLimits(ctx context.Context, req *bankpb.UpdateAcco
 	return &bankpb.UpdateAccountLimitsResponse{}, nil
 }
 
+func (s *Server) AuthorizeAccountAccess(ctx context.Context, req *bankpb.AuthorizeAccountAccessRequest) (*bankpb.AuthorizeAccountAccessResponse, error) {
+	accountNumber := strings.TrimSpace(req.AccountNumber)
+	if accountNumber == "" {
+		return &bankpb.AuthorizeAccountAccessResponse{Authorized: false}, status.Error(codes.InvalidArgument, "account number is required")
+	}
+	account, err := s.GetAccountByNumber(accountNumber)
+	if err != nil {
+		err = status.Error(codes.NotFound, "account not found")
+		return &bankpb.AuthorizeAccountAccessResponse{Authorized: false}, err
+	}
+	if err := s.authorizeAccountAccess(ctx, account); err != nil {
+		return &bankpb.AuthorizeAccountAccessResponse{Authorized: false}, err
+	}
+	return &bankpb.AuthorizeAccountAccessResponse{Authorized: true}, nil
+}
+
 func (s *Server) authorizeAccountAccess(ctx context.Context, acc *Account) error {
 	caller, err := s.resolveCaller(ctx)
 	if err != nil {

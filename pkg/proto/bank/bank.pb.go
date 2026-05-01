@@ -25,7 +25,7 @@ var File_bank_bank_proto protoreflect.FileDescriptor
 
 const file_bank_bank_proto_rawDesc = "" +
 	"\n" +
-	"\x0fbank/bank.proto\x12\x04bank\x1a\x1bgoogle/protobuf/empty.proto\x1a\x12bank/account.proto\x1a\x0fbank/card.proto\x1a\x12bank/company.proto\x1a\x0fbank/loan.proto\x1a\x14bank/recipient.proto\x1a\x16bank/transaction.proto2\x92\x14\n" +
+	"\x0fbank/bank.proto\x12\x04bank\x1a\x1bgoogle/protobuf/empty.proto\x1a\x12bank/account.proto\x1a\x0fbank/card.proto\x1a\x12bank/company.proto\x1a\x0fbank/loan.proto\x1a\x14bank/recipient.proto\x1a\x16bank/transaction.proto2\xf7\x14\n" +
 	"\vBankService\x12H\n" +
 	"\rCreateCompany\x12\x1a.bank.CreateCompanyRequest\x1a\x1b.bank.CreateCompanyResponse\x12K\n" +
 	"\x0eGetCompanyById\x12\x1b.bank.GetCompanyByIdRequest\x1a\x1c.bank.GetCompanyByIdResponse\x12E\n" +
@@ -60,7 +60,8 @@ const file_bank_bank_proto_rawDesc = "" +
 	"\x16GenerateTransactionPdf\x12#.bank.GenerateTransactionPdfRequest\x1a$.bank.GenerateTransactionPdfResponse\x12M\n" +
 	"\x1cTransferMoneyBetweenAccounts\x12\x15.bank.TransferRequest\x1a\x16.bank.TransferResponse\x12H\n" +
 	"\x19PayoutMoneyToOtherAccount\x12\x14.bank.PaymentRequest\x1a\x15.bank.PaymentResponse\x12^\n" +
-	"\x1fGetTransfersHistoryForUserEmail\x12\x1c.bank.TransferHistoryRequest\x1a\x1d.bank.TransferHistoryResponseB7Z5github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bankb\x06proto3"
+	"\x1fGetTransfersHistoryForUserEmail\x12\x1c.bank.TransferHistoryRequest\x1a\x1d.bank.TransferHistoryResponse\x12c\n" +
+	"\x16AuthorizeAccountAccess\x12#.bank.AuthorizeAccountAccessRequest\x1a$.bank.AuthorizeAccountAccessResponseB7Z5github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bankb\x06proto3"
 
 var file_bank_bank_proto_goTypes = []any{
 	(*CreateCompanyRequest)(nil),           // 0: bank.CreateCompanyRequest
@@ -95,37 +96,39 @@ var file_bank_bank_proto_goTypes = []any{
 	(*TransferRequest)(nil),                // 29: bank.TransferRequest
 	(*PaymentRequest)(nil),                 // 30: bank.PaymentRequest
 	(*TransferHistoryRequest)(nil),         // 31: bank.TransferHistoryRequest
-	(*CreateCompanyResponse)(nil),          // 32: bank.CreateCompanyResponse
-	(*GetCompanyByIdResponse)(nil),         // 33: bank.GetCompanyByIdResponse
-	(*GetCompaniesResponse)(nil),           // 34: bank.GetCompaniesResponse
-	(*UpdateCompanyResponse)(nil),          // 35: bank.UpdateCompanyResponse
-	(*CreateAccountResponse)(nil),          // 36: bank.CreateAccountResponse
-	(*UpdateAccountNameResponse)(nil),      // 37: bank.UpdateAccountNameResponse
-	(*UpdateAccountLimitsResponse)(nil),    // 38: bank.UpdateAccountLimitsResponse
-	(*ListAccountsResponse)(nil),           // 39: bank.ListAccountsResponse
-	(*GetAccountDetailsResponse)(nil),      // 40: bank.GetAccountDetailsResponse
-	(*ListClientTransactionsResponse)(nil), // 41: bank.ListClientTransactionsResponse
-	(*CardResponse)(nil),                   // 42: bank.CardResponse
-	(*RequestCardResponse)(nil),            // 43: bank.RequestCardResponse
-	(*ConfirmCardResponse)(nil),            // 44: bank.ConfirmCardResponse
-	(*GetCardsResponse)(nil),               // 45: bank.GetCardsResponse
-	(*BlockCardResponse)(nil),              // 46: bank.BlockCardResponse
-	(*GetLoansResponse)(nil),               // 47: bank.GetLoansResponse
-	(*Loan)(nil),                           // 48: bank.Loan
-	(*CreateLoanRequestResponse)(nil),      // 49: bank.CreateLoanRequestResponse
-	(*GetLoanRequestsResponse)(nil),        // 50: bank.GetLoanRequestsResponse
-	(*ApproveLoanRequestResponse)(nil),     // 51: bank.ApproveLoanRequestResponse
-	(*RejectLoanRequestResponse)(nil),      // 52: bank.RejectLoanRequestResponse
-	(*GetPaymentRecipientsResponse)(nil),   // 53: bank.GetPaymentRecipientsResponse
-	(*CreatePaymentRecipientResponse)(nil), // 54: bank.CreatePaymentRecipientResponse
-	(*UpdatePaymentRecipientResponse)(nil), // 55: bank.UpdatePaymentRecipientResponse
-	(*DeletePaymentRecipientResponse)(nil), // 56: bank.DeletePaymentRecipientResponse
-	(*GetTransactionsResponse)(nil),        // 57: bank.GetTransactionsResponse
-	(*GetTransactionByIdResponse)(nil),     // 58: bank.GetTransactionByIdResponse
-	(*GenerateTransactionPdfResponse)(nil), // 59: bank.GenerateTransactionPdfResponse
-	(*TransferResponse)(nil),               // 60: bank.TransferResponse
-	(*PaymentResponse)(nil),                // 61: bank.PaymentResponse
-	(*TransferHistoryResponse)(nil),        // 62: bank.TransferHistoryResponse
+	(*AuthorizeAccountAccessRequest)(nil),  // 32: bank.AuthorizeAccountAccessRequest
+	(*CreateCompanyResponse)(nil),          // 33: bank.CreateCompanyResponse
+	(*GetCompanyByIdResponse)(nil),         // 34: bank.GetCompanyByIdResponse
+	(*GetCompaniesResponse)(nil),           // 35: bank.GetCompaniesResponse
+	(*UpdateCompanyResponse)(nil),          // 36: bank.UpdateCompanyResponse
+	(*CreateAccountResponse)(nil),          // 37: bank.CreateAccountResponse
+	(*UpdateAccountNameResponse)(nil),      // 38: bank.UpdateAccountNameResponse
+	(*UpdateAccountLimitsResponse)(nil),    // 39: bank.UpdateAccountLimitsResponse
+	(*ListAccountsResponse)(nil),           // 40: bank.ListAccountsResponse
+	(*GetAccountDetailsResponse)(nil),      // 41: bank.GetAccountDetailsResponse
+	(*ListClientTransactionsResponse)(nil), // 42: bank.ListClientTransactionsResponse
+	(*CardResponse)(nil),                   // 43: bank.CardResponse
+	(*RequestCardResponse)(nil),            // 44: bank.RequestCardResponse
+	(*ConfirmCardResponse)(nil),            // 45: bank.ConfirmCardResponse
+	(*GetCardsResponse)(nil),               // 46: bank.GetCardsResponse
+	(*BlockCardResponse)(nil),              // 47: bank.BlockCardResponse
+	(*GetLoansResponse)(nil),               // 48: bank.GetLoansResponse
+	(*Loan)(nil),                           // 49: bank.Loan
+	(*CreateLoanRequestResponse)(nil),      // 50: bank.CreateLoanRequestResponse
+	(*GetLoanRequestsResponse)(nil),        // 51: bank.GetLoanRequestsResponse
+	(*ApproveLoanRequestResponse)(nil),     // 52: bank.ApproveLoanRequestResponse
+	(*RejectLoanRequestResponse)(nil),      // 53: bank.RejectLoanRequestResponse
+	(*GetPaymentRecipientsResponse)(nil),   // 54: bank.GetPaymentRecipientsResponse
+	(*CreatePaymentRecipientResponse)(nil), // 55: bank.CreatePaymentRecipientResponse
+	(*UpdatePaymentRecipientResponse)(nil), // 56: bank.UpdatePaymentRecipientResponse
+	(*DeletePaymentRecipientResponse)(nil), // 57: bank.DeletePaymentRecipientResponse
+	(*GetTransactionsResponse)(nil),        // 58: bank.GetTransactionsResponse
+	(*GetTransactionByIdResponse)(nil),     // 59: bank.GetTransactionByIdResponse
+	(*GenerateTransactionPdfResponse)(nil), // 60: bank.GenerateTransactionPdfResponse
+	(*TransferResponse)(nil),               // 61: bank.TransferResponse
+	(*PaymentResponse)(nil),                // 62: bank.PaymentResponse
+	(*TransferHistoryResponse)(nil),        // 63: bank.TransferHistoryResponse
+	(*AuthorizeAccountAccessResponse)(nil), // 64: bank.AuthorizeAccountAccessResponse
 }
 var file_bank_bank_proto_depIdxs = []int32{
 	0,  // 0: bank.BankService.CreateCompany:input_type -> bank.CreateCompanyRequest
@@ -160,40 +163,42 @@ var file_bank_bank_proto_depIdxs = []int32{
 	29, // 29: bank.BankService.TransferMoneyBetweenAccounts:input_type -> bank.TransferRequest
 	30, // 30: bank.BankService.PayoutMoneyToOtherAccount:input_type -> bank.PaymentRequest
 	31, // 31: bank.BankService.GetTransfersHistoryForUserEmail:input_type -> bank.TransferHistoryRequest
-	32, // 32: bank.BankService.CreateCompany:output_type -> bank.CreateCompanyResponse
-	33, // 33: bank.BankService.GetCompanyById:output_type -> bank.GetCompanyByIdResponse
-	34, // 34: bank.BankService.GetCompanies:output_type -> bank.GetCompaniesResponse
-	35, // 35: bank.BankService.UpdateCompany:output_type -> bank.UpdateCompanyResponse
-	36, // 36: bank.BankService.CreateAccount:output_type -> bank.CreateAccountResponse
-	37, // 37: bank.BankService.UpdateAccountName:output_type -> bank.UpdateAccountNameResponse
-	38, // 38: bank.BankService.UpdateAccountLimits:output_type -> bank.UpdateAccountLimitsResponse
-	39, // 39: bank.BankService.ListAccounts:output_type -> bank.ListAccountsResponse
-	40, // 40: bank.BankService.GetAccountDetails:output_type -> bank.GetAccountDetailsResponse
-	41, // 41: bank.BankService.ListClientTransactions:output_type -> bank.ListClientTransactionsResponse
-	42, // 42: bank.BankService.CreateCard:output_type -> bank.CardResponse
-	43, // 43: bank.BankService.RequestCard:output_type -> bank.RequestCardResponse
-	44, // 44: bank.BankService.ConfirmCard:output_type -> bank.ConfirmCardResponse
-	45, // 45: bank.BankService.GetCards:output_type -> bank.GetCardsResponse
-	46, // 46: bank.BankService.BlockCard:output_type -> bank.BlockCardResponse
-	47, // 47: bank.BankService.GetLoans:output_type -> bank.GetLoansResponse
-	48, // 48: bank.BankService.GetLoanByNumber:output_type -> bank.Loan
-	49, // 49: bank.BankService.CreateLoanRequest:output_type -> bank.CreateLoanRequestResponse
-	50, // 50: bank.BankService.GetLoanRequests:output_type -> bank.GetLoanRequestsResponse
-	51, // 51: bank.BankService.ApproveLoanRequest:output_type -> bank.ApproveLoanRequestResponse
-	52, // 52: bank.BankService.RejectLoanRequest:output_type -> bank.RejectLoanRequestResponse
-	47, // 53: bank.BankService.GetAllLoans:output_type -> bank.GetLoansResponse
-	53, // 54: bank.BankService.GetPaymentRecipients:output_type -> bank.GetPaymentRecipientsResponse
-	54, // 55: bank.BankService.CreatePaymentRecipient:output_type -> bank.CreatePaymentRecipientResponse
-	55, // 56: bank.BankService.UpdatePaymentRecipient:output_type -> bank.UpdatePaymentRecipientResponse
-	56, // 57: bank.BankService.DeletePaymentRecipient:output_type -> bank.DeletePaymentRecipientResponse
-	57, // 58: bank.BankService.GetTransactions:output_type -> bank.GetTransactionsResponse
-	58, // 59: bank.BankService.GetTransactionById:output_type -> bank.GetTransactionByIdResponse
-	59, // 60: bank.BankService.GenerateTransactionPdf:output_type -> bank.GenerateTransactionPdfResponse
-	60, // 61: bank.BankService.TransferMoneyBetweenAccounts:output_type -> bank.TransferResponse
-	61, // 62: bank.BankService.PayoutMoneyToOtherAccount:output_type -> bank.PaymentResponse
-	62, // 63: bank.BankService.GetTransfersHistoryForUserEmail:output_type -> bank.TransferHistoryResponse
-	32, // [32:64] is the sub-list for method output_type
-	0,  // [0:32] is the sub-list for method input_type
+	32, // 32: bank.BankService.AuthorizeAccountAccess:input_type -> bank.AuthorizeAccountAccessRequest
+	33, // 33: bank.BankService.CreateCompany:output_type -> bank.CreateCompanyResponse
+	34, // 34: bank.BankService.GetCompanyById:output_type -> bank.GetCompanyByIdResponse
+	35, // 35: bank.BankService.GetCompanies:output_type -> bank.GetCompaniesResponse
+	36, // 36: bank.BankService.UpdateCompany:output_type -> bank.UpdateCompanyResponse
+	37, // 37: bank.BankService.CreateAccount:output_type -> bank.CreateAccountResponse
+	38, // 38: bank.BankService.UpdateAccountName:output_type -> bank.UpdateAccountNameResponse
+	39, // 39: bank.BankService.UpdateAccountLimits:output_type -> bank.UpdateAccountLimitsResponse
+	40, // 40: bank.BankService.ListAccounts:output_type -> bank.ListAccountsResponse
+	41, // 41: bank.BankService.GetAccountDetails:output_type -> bank.GetAccountDetailsResponse
+	42, // 42: bank.BankService.ListClientTransactions:output_type -> bank.ListClientTransactionsResponse
+	43, // 43: bank.BankService.CreateCard:output_type -> bank.CardResponse
+	44, // 44: bank.BankService.RequestCard:output_type -> bank.RequestCardResponse
+	45, // 45: bank.BankService.ConfirmCard:output_type -> bank.ConfirmCardResponse
+	46, // 46: bank.BankService.GetCards:output_type -> bank.GetCardsResponse
+	47, // 47: bank.BankService.BlockCard:output_type -> bank.BlockCardResponse
+	48, // 48: bank.BankService.GetLoans:output_type -> bank.GetLoansResponse
+	49, // 49: bank.BankService.GetLoanByNumber:output_type -> bank.Loan
+	50, // 50: bank.BankService.CreateLoanRequest:output_type -> bank.CreateLoanRequestResponse
+	51, // 51: bank.BankService.GetLoanRequests:output_type -> bank.GetLoanRequestsResponse
+	52, // 52: bank.BankService.ApproveLoanRequest:output_type -> bank.ApproveLoanRequestResponse
+	53, // 53: bank.BankService.RejectLoanRequest:output_type -> bank.RejectLoanRequestResponse
+	48, // 54: bank.BankService.GetAllLoans:output_type -> bank.GetLoansResponse
+	54, // 55: bank.BankService.GetPaymentRecipients:output_type -> bank.GetPaymentRecipientsResponse
+	55, // 56: bank.BankService.CreatePaymentRecipient:output_type -> bank.CreatePaymentRecipientResponse
+	56, // 57: bank.BankService.UpdatePaymentRecipient:output_type -> bank.UpdatePaymentRecipientResponse
+	57, // 58: bank.BankService.DeletePaymentRecipient:output_type -> bank.DeletePaymentRecipientResponse
+	58, // 59: bank.BankService.GetTransactions:output_type -> bank.GetTransactionsResponse
+	59, // 60: bank.BankService.GetTransactionById:output_type -> bank.GetTransactionByIdResponse
+	60, // 61: bank.BankService.GenerateTransactionPdf:output_type -> bank.GenerateTransactionPdfResponse
+	61, // 62: bank.BankService.TransferMoneyBetweenAccounts:output_type -> bank.TransferResponse
+	62, // 63: bank.BankService.PayoutMoneyToOtherAccount:output_type -> bank.PaymentResponse
+	63, // 64: bank.BankService.GetTransfersHistoryForUserEmail:output_type -> bank.TransferHistoryResponse
+	64, // 65: bank.BankService.AuthorizeAccountAccess:output_type -> bank.AuthorizeAccountAccessResponse
+	33, // [33:66] is the sub-list for method output_type
+	0,  // [0:33] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name
