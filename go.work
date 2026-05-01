@@ -6,6 +6,6 @@ use (
 	./services/exchange
 	./services/gateway
 	./services/notification
-	./services/user
 	./services/trading
+	./services/user
 )
