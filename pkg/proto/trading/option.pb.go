@@ -504,8 +504,10 @@ func (x *ListOptionsResponse) GetRows() []*OptionGridRow {
 // ExerciseOption settles an option held by the caller. Actuary-only, the
 // option must not be past settlement, and it has to be in-the-money — calls
 // fire when spot > strike, puts when strike > spot. Payout per spec p.62:
-//   call: (spot - strike) * contract_size * quantity − premium * quantity
-//   put : (strike - spot) * contract_size * quantity − premium * quantity
+//
+//	call: (spot - strike) * contract_size * quantity − premium * quantity
+//	put : (strike - spot) * contract_size * quantity − premium * quantity
+//
 // The premium is paid back per contract held (not just once) — the user
 // effectively recoups what they paid to acquire the position. Settlement is
 // against the account_number passed in, which must belong to the caller.
