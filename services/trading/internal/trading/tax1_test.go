@@ -26,7 +26,7 @@ func newTaxTestServer(t *testing.T) (*Server, sqlmock.Sqlmock, func()) {
 	if err != nil {
 		t.Fatalf("gorm.Open: %v", err)
 	}
-	return &Server{db: gdb}, mock, func() { _ = raw.Close() }
+	return &Server{db_gorm: gdb}, mock, func() { _ = raw.Close() }
 }
 
 // expectSupervisorCheck stubs the callerIsSupervisor query so the caller is
@@ -126,7 +126,7 @@ func TestLookupPlacerID_ClientFound(t *testing.T) {
 		WithArgs(int64(42), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(7)))
 
-	got, err := lookupPlacerID(srv.db, true, 42, "")
+	got, err := lookupPlacerID(srv.db_gorm, true, 42, "")
 	if err != nil {
 		t.Fatalf("lookupPlacerID: %v", err)
 	}
@@ -149,7 +149,7 @@ func TestLookupPlacerID_NoPlacer(t *testing.T) {
 		WithArgs(int64(42), 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
-	got, err := lookupPlacerID(srv.db, true, 42, "")
+	got, err := lookupPlacerID(srv.db_gorm, true, 42, "")
 	if err != nil {
 		t.Fatalf("lookupPlacerID: %v", err)
 	}
@@ -176,7 +176,7 @@ func TestLookupPlacerID_EmployeeChain(t *testing.T) {
 		WithArgs(int64(11), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(99)))
 
-	got, err := lookupPlacerID(srv.db, false, 0, "agent@banka.raf")
+	got, err := lookupPlacerID(srv.db_gorm, false, 0, "agent@banka.raf")
 	if err != nil {
 		t.Fatalf("lookupPlacerID: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestAggregateMyTaxInfo(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"paid_this_year_rsd", "unpaid_this_month_rsd"}).
 			AddRow(int64(1500), int64(450)))
 
-	resp, err := aggregateMyTaxInfo(srv.db, 7, 2026)
+	resp, err := aggregateMyTaxInfo(srv.db_gorm, 7, 2026)
 	if err != nil {
 		t.Fatalf("aggregateMyTaxInfo: %v", err)
 	}

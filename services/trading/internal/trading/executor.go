@@ -77,7 +77,7 @@ func (s *Server) runExecutor(ctx context.Context) {
 // their own engine and are out of scope here.
 func (s *Server) executorTick(now time.Time, nextFillAt map[int64]time.Time) {
 	var orders []Order
-	err := s.db.Where(
+	err := s.db_gorm.Where(
 		"status = ? AND is_done = ? AND listing_id IS NOT NULL",
 		StatusApproved, false,
 	).Find(&orders).Error
@@ -161,7 +161,7 @@ func (s *Server) checkActivation(o *Order, now time.Time) (bool, error) {
 	if o.ListingID == nil {
 		return false, nil
 	}
-	if err := s.db.First(&listing, *o.ListingID).Error; err != nil {
+	if err := s.db_gorm.First(&listing, *o.ListingID).Error; err != nil {
 		return false, err
 	}
 	var triggered bool
@@ -175,7 +175,7 @@ func (s *Server) checkActivation(o *Order, now time.Time) (bool, error) {
 	}
 	// Persist triggered_at so a restart doesn't re-arm the order. Memory
 	// copy updated too so the caller can tell activation fired.
-	res := s.db.Model(&Order{}).
+	res := s.db_gorm.Model(&Order{}).
 		Where("id = ? AND triggered_at IS NULL", o.ID).
 		Update("triggered_at", now)
 	if res.Error != nil {
@@ -203,7 +203,7 @@ func stopTrigger(o *Order) int64 {
 // for the next chunk; the zero time signals "order is complete, drop it".
 func (s *Server) executeFill(o *Order, now time.Time) (time.Time, error) {
 	var next time.Time
-	err := s.db.Transaction(func(tx *gorm.DB) error {
+	err := s.db_gorm.Transaction(func(tx *gorm.DB) error {
 		// Re-lock + re-check: a concurrent cancel or prior fill on the same
 		// order might have moved the row out from under this tick.
 		locked, err := lockOrder(tx, o.ID)

@@ -18,7 +18,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestGetLoanRequests_Success(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	rows := sqlmock.NewRows([]string{
@@ -53,7 +53,7 @@ func TestGetLoanRequests_Success(t *testing.T) {
 }
 
 func TestGetLoanRequests_Empty(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	rows := sqlmock.NewRows([]string{
@@ -79,7 +79,7 @@ func TestGetLoanRequests_Empty(t *testing.T) {
 }
 
 func TestGetLoanRequests_DBError(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	mock.ExpectQuery(`SELECT`).WillReturnError(fmt.Errorf("db error"))
@@ -98,7 +98,7 @@ func TestGetLoanRequests_DBError(t *testing.T) {
 }
 
 func TestApproveLoanRequest_Success(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	now := time.Now()
@@ -212,7 +212,7 @@ func TestApproveLoanRequest_Success(t *testing.T) {
 }
 
 func TestApproveLoanRequest_NotFound(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "loan_request" WHERE "loan_request"."id" = $1`)).
@@ -238,7 +238,7 @@ func TestApproveLoanRequest_NotFound(t *testing.T) {
 }
 
 func TestApproveLoanRequest_AlreadyProcessed(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	now := time.Now()
@@ -270,7 +270,7 @@ func TestApproveLoanRequest_AlreadyProcessed(t *testing.T) {
 }
 
 func TestApproveLoanRequest_InvalidID(t *testing.T) {
-	server, _, db := newGormTestServer(t)
+	server, _, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	_, err := server.ApproveLoanRequest(context.Background(), &bankpb.ApproveLoanRequestRequest{Id: 0})
@@ -287,7 +287,7 @@ func TestApproveLoanRequest_InvalidID(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestRejectLoanRequest_Success(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	now := time.Now()
@@ -324,7 +324,7 @@ func TestRejectLoanRequest_Success(t *testing.T) {
 }
 
 func TestRejectLoanRequest_NotFound(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "loan_request" WHERE "loan_request"."id" = $1`)).
@@ -350,7 +350,7 @@ func TestRejectLoanRequest_NotFound(t *testing.T) {
 }
 
 func TestRejectLoanRequest_AlreadyProcessed(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	now := time.Now()
@@ -386,7 +386,7 @@ func TestRejectLoanRequest_AlreadyProcessed(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestGetAllLoans_Success(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	rows := sqlmock.NewRows([]string{
@@ -420,7 +420,7 @@ func TestGetAllLoans_Success(t *testing.T) {
 }
 
 func TestGetAllLoans_Empty(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	rows := sqlmock.NewRows([]string{
@@ -446,7 +446,7 @@ func TestGetAllLoans_Empty(t *testing.T) {
 }
 
 func TestGetAllLoans_DBError(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	mock.ExpectQuery(`SELECT`).WillReturnError(fmt.Errorf("db error"))

@@ -1,4 +1,4 @@
-package bank
+package trading
 
 import (
 	"errors"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
+	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -43,7 +44,7 @@ type CapitalGainsCollectionResult struct {
 func (s *Server) CollectCapitalGains(period string) (CapitalGainsCollectionResult, error) {
 	res := CapitalGainsCollectionResult{Period: period}
 	if s.db_gorm == nil {
-		return res, status.Error(codes.Internal, "gorm db not initialized")
+		return res, status.Error(codes.Internal, "gorm db_gorm not initialized")
 	}
 
 	stateAccount, err := lookupStateRSDAccount(s.db_gorm)
@@ -125,7 +126,7 @@ func (s *Server) collectOneAccount(state stateRSDAccount, accountID, totalRSD in
 		// trading/loan flow. Same FOR UPDATE pattern as elsewhere in the bank
 		// package — without it a parallel transaction could read a stale
 		// balance and over-/under-debit.
-		var acc Account
+		var acc bank.Account
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&acc, accountID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return status.Error(codes.NotFound, "source account missing")
@@ -204,7 +205,7 @@ func convertRSDToAccountCcy(tx *gorm.DB, accCurrency string, totalRSD int64) (in
 	if accCurrency == "RSD" {
 		return totalRSD, nil
 	}
-	var rate ExchangeRate
+	var rate bank.ExchangeRate
 	if err := tx.Where("currency_code = ?", accCurrency).First(&rate).Error; err != nil {
 		return 0, status.Errorf(codes.Internal, "exchange rate for %s: %v", accCurrency, err)
 	}

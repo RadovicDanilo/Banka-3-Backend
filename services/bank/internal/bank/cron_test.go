@@ -9,7 +9,7 @@ import (
 )
 
 func TestRunMonthlyVariableRateUpdate(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	now := time.Now()
@@ -55,7 +55,7 @@ func TestRunMonthlyVariableRateUpdate(t *testing.T) {
 }
 
 func TestRunDailyInstallmentCollection_Success(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	now := time.Now()
@@ -109,7 +109,7 @@ func TestRunDailyInstallmentCollection_Success(t *testing.T) {
 }
 
 func TestRunDailyInstallmentCollection_FullPayoff(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	now := time.Now()

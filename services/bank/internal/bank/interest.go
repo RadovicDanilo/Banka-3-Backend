@@ -2,7 +2,7 @@ package bank
 
 import "math"
 
-// base annual rate brackets in RSD paras, straight from the Celina 2 spec
+// BaseAnnualRate base annual rate brackets in RSD paras, straight from the Celina 2 spec
 func BaseAnnualRate(amountRSD int64) float64 {
 	switch {
 	case amountRSD <= 500_000_00:
@@ -22,7 +22,7 @@ func BaseAnnualRate(amountRSD int64) float64 {
 	}
 }
 
-// margin on top of the base rate, depends on how risky the loan type is
+// MarginForLoanType margin on top of the base rate, depends on how risky the loan type is
 func MarginForLoanType(lt loan_type) float64 {
 	switch lt {
 	case Cash:
@@ -40,7 +40,7 @@ func MarginForLoanType(lt loan_type) float64 {
 	}
 }
 
-// the classic annuity formula: A = P * r * (1+r)^n / ((1+r)^n - 1)
+// CalculateAnnuity the classic annuity formula: A = P * r * (1+r)^n / ((1+r)^n - 1)
 // r = annualRate/100/12, nothing fancy
 // principalParas is in smallest currency unit (paras), returns paras
 func CalculateAnnuity(principalParas int64, annualRatePercent float64, months int64) int64 {

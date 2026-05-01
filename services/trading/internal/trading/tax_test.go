@@ -1,4 +1,4 @@
-package bank
+package trading
 
 import (
 	"regexp"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/bank/internal/bank"
 )
 
 // TestIsLastOfMonth pins the cron filter so the capital-gains sweep doesn't
@@ -39,7 +40,7 @@ func TestIsLastOfMonth(t *testing.T) {
 // per-account debit/credit/mark-paid cycle hits all the right rows and that
 // the result counters add up.
 func TestCollectCapitalGains_HappyPath_RSD(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := bank.NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	// State RSD account lookup
@@ -114,7 +115,7 @@ func TestCollectCapitalGains_HappyPath_RSD(t *testing.T) {
 // the result counter increments instead of erroring out so the surrounding
 // loop continues with the remaining accounts.
 func TestCollectCapitalGains_InsufficientFunds(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := bank.NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT a.id, a.number FROM accounts a`)).
@@ -172,7 +173,7 @@ func TestCollectCapitalGains_InsufficientFunds(t *testing.T) {
 // the seed didn't run (or the tax_code=1 row was deleted): the cron should
 // bail instead of silently doing nothing.
 func TestCollectCapitalGains_StateAccountMissing(t *testing.T) {
-	server, mock, db := newGormTestServer(t)
+	server, mock, db := bank.NewGormTestServer(t)
 	defer func() { _ = db.Close() }()
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT a.id, a.number FROM accounts a`)).

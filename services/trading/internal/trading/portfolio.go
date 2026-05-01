@@ -191,7 +191,7 @@ func (s *Server) ListHoldings(ctx context.Context, _ *tradingpb.ListHoldingsRequ
 	}
 
 	var out []*tradingpb.Holding
-	err = s.db.Transaction(func(tx *gorm.DB) error {
+	err = s.db_gorm.Transaction(func(tx *gorm.DB) error {
 		placerID, err := resolvePlacerForCaller(tx, caller)
 		if err != nil {
 			return err
@@ -245,13 +245,13 @@ func (s *Server) SellHolding(ctx context.Context, req *tradingpb.SellHoldingRequ
 	}
 
 	var h Holding
-	if err := s.db.First(&h, req.HoldingId).Error; err != nil {
+	if err := s.db_gorm.First(&h, req.HoldingId).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "holding not found")
 		}
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
-	if err := s.authorizeHoldingOwner(s.db, &h, caller); err != nil {
+	if err := s.authorizeHoldingOwner(s.db_gorm, &h, caller); err != nil {
 		return nil, err
 	}
 	if req.Quantity > h.Amount {
@@ -269,7 +269,7 @@ func (s *Server) SellHolding(ctx context.Context, req *tradingpb.SellHoldingRequ
 	}
 	switch {
 	case h.StockID != nil, h.FutureID != nil:
-		listingID, err := listingIDForHolding(s.db, &h)
+		listingID, err := listingIDForHolding(s.db_gorm, &h)
 		if err != nil {
 			return nil, err
 		}
@@ -353,7 +353,7 @@ func (s *Server) SetHoldingPublic(ctx context.Context, req *tradingpb.SetHolding
 	}
 
 	var detail *tradingpb.Holding
-	err = s.db.Transaction(func(tx *gorm.DB) error {
+	err = s.db_gorm.Transaction(func(tx *gorm.DB) error {
 		var h Holding
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&h, req.HoldingId).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -430,7 +430,7 @@ func (s *Server) ExerciseOption(ctx context.Context, req *tradingpb.ExerciseOpti
 	}
 
 	var payout, qty int64
-	err = s.db.Transaction(func(tx *gorm.DB) error {
+	err = s.db_gorm.Transaction(func(tx *gorm.DB) error {
 		var opt Option
 		if err := tx.First(&opt, req.OptionId).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {

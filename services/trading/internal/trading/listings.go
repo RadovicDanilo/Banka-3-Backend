@@ -31,7 +31,7 @@ type listingRow struct {
 // the SQL-expressible filters. Derived-field filters/sort are applied in Go
 // by callers since they depend on per-instrument formulas.
 func (s *Server) fetchListingRows(req *tradingpb.ListListingsRequest, singleID int64) ([]listingRow, error) {
-	q := s.db.Table("listings AS l").
+	q := s.db_gorm.Table("listings AS l").
 		Select(`l.*,
 			e.acronym AS exchange_acronym,
 			s.ticker AS stock_ticker,
@@ -101,7 +101,7 @@ func (s *Server) latestDailyInfo(ids []int64) (map[int64]ListingDailyPriceInfo, 
 	}
 	var rows []ListingDailyPriceInfo
 	// DISTINCT ON is Postgres-specific; the project is PG-only.
-	err := s.db.Raw(`
+	err := s.db_gorm.Raw(`
 		SELECT DISTINCT ON (listing_id) *
 		FROM listing_daily_price_info
 		WHERE listing_id IN (?)
@@ -275,14 +275,14 @@ func (s *Server) ListListingHistory(_ context.Context, req *tradingpb.ListListin
 	// Confirm the listing exists so callers get 404 instead of an empty
 	// series when they type the wrong id.
 	var count int64
-	if err := s.db.Model(&Listing{}).Where("id = ?", req.ListingId).Count(&count).Error; err != nil {
+	if err := s.db_gorm.Model(&Listing{}).Where("id = ?", req.ListingId).Count(&count).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 	if count == 0 {
 		return nil, status.Error(codes.NotFound, "listing not found")
 	}
 
-	q := s.db.Where("listing_id = ?", req.ListingId).Order("date ASC")
+	q := s.db_gorm.Where("listing_id = ?", req.ListingId).Order("date ASC")
 	if !since.IsZero() {
 		q = q.Where("date >= ?", since)
 	}
@@ -339,7 +339,7 @@ func (s *Server) ListForexPairs(ctx context.Context, req *tradingpb.ListForexPai
 	_ = req // caller_email is forwarded but bank.ResolveCaller reads it from context metadata
 
 	var rows []ForexPair
-	if err := s.db.Find(&rows).Error; err != nil {
+	if err := s.db_gorm.Find(&rows).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 

@@ -215,7 +215,7 @@ func (s *Server) buildOrderDetail(tx *gorm.DB, o *Order, now time.Time) (*tradin
 // positive id naturally excludes client-placed orders since the join needs
 // a non-null employee_id.
 func (s *Server) ListOrders(_ context.Context, req *tradingpb.ListOrdersRequest) (*tradingpb.ListOrdersResponse, error) {
-	if !callerIsSupervisor(s.db, req.CallerEmail) {
+	if !callerIsSupervisor(s.db_gorm, req.CallerEmail) {
 		return nil, status.Error(codes.PermissionDenied, "supervisor permission required")
 	}
 
@@ -224,7 +224,7 @@ func (s *Server) ListOrders(_ context.Context, req *tradingpb.ListOrdersRequest)
 		return nil, err
 	}
 
-	q := s.db.Model(&Order{}).Joins("JOIN order_placers p ON p.id = orders.placer_id")
+	q := s.db_gorm.Model(&Order{}).Joins("JOIN order_placers p ON p.id = orders.placer_id")
 	if filter != "" {
 		q = q.Where("orders.status = ?", string(filter))
 	}
@@ -241,7 +241,7 @@ func (s *Server) ListOrders(_ context.Context, req *tradingpb.ListOrdersRequest)
 	now := time.Now()
 	out := make([]*tradingpb.OrderDetail, 0, len(orders))
 	for i := range orders {
-		d, err := s.buildOrderDetail(s.db, &orders[i], now)
+		d, err := s.buildOrderDetail(s.db_gorm, &orders[i], now)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "%v", err)
 		}
@@ -260,13 +260,13 @@ func (s *Server) ApproveOrder(_ context.Context, req *tradingpb.ApproveOrderRequ
 	if req.OrderId <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "order_id required")
 	}
-	supID, err := supervisorEmployeeID(s.db, req.CallerEmail)
+	supID, err := supervisorEmployeeID(s.db_gorm, req.CallerEmail)
 	if err != nil {
 		return nil, err
 	}
 
 	var detail *tradingpb.OrderDetail
-	err = s.db.Transaction(func(tx *gorm.DB) error {
+	err = s.db_gorm.Transaction(func(tx *gorm.DB) error {
 		order, err := lockOrder(tx, req.OrderId)
 		if err != nil {
 			return err
@@ -320,12 +320,12 @@ func (s *Server) DeclineOrder(_ context.Context, req *tradingpb.DeclineOrderRequ
 	if req.OrderId <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "order_id required")
 	}
-	if _, err := supervisorEmployeeID(s.db, req.CallerEmail); err != nil {
+	if _, err := supervisorEmployeeID(s.db_gorm, req.CallerEmail); err != nil {
 		return nil, err
 	}
 
 	var detail *tradingpb.OrderDetail
-	err := s.db.Transaction(func(tx *gorm.DB) error {
+	err := s.db_gorm.Transaction(func(tx *gorm.DB) error {
 		order, err := lockOrder(tx, req.OrderId)
 		if err != nil {
 			return err
@@ -370,7 +370,7 @@ func (s *Server) CancelOrder(ctx context.Context, req *tradingpb.CancelOrderRequ
 	}
 
 	var detail *tradingpb.OrderDetail
-	err = s.db.Transaction(func(tx *gorm.DB) error {
+	err = s.db_gorm.Transaction(func(tx *gorm.DB) error {
 		order, err := lockOrder(tx, req.OrderId)
 		if err != nil {
 			return err

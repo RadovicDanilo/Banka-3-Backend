@@ -3,27 +3,66 @@ package trading
 import (
 	"context"
 	"errors"
+	"os"
 	"strings"
 	"time"
 
+	bankpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank"
+	exchangepb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/exchange"
 	tradingpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/trading"
-	"github.com/RAF-SI-2025/Banka-3-Backend/services/bank/internal/bank"
+	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 )
 
 type Server struct {
 	tradingpb.UnimplementedTradingServiceServer
-	db   *gorm.DB
-	bank *bank.Server
+	db_gorm         *gorm.DB
+	bankService     bankpb.BankServiceClient
+	exchangeService exchangepb.ExchangeServiceClient
+	userService     userpb.UserServiceClient
 }
 
 // NewServer wires trading to the bank server running in the same process —
 // trading reuses bank's auth (ResolveCaller) and account lookups since orders
 // always debit a bank account.
-func NewServer(db *gorm.DB, bankSrv *bank.Server) *Server {
-	return &Server{db: db, bank: bankSrv}
+func NewServer(db *gorm.DB) (*Server, error) {
+	exchangeAddr := os.Getenv("EXCHANGE_GRPC_ADDR")
+	if exchangeAddr == "" {
+		exchangeAddr = "exchange:50051"
+	}
+	exchangeConn, err := grpc.NewClient(exchangeAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+
+	bankAddr := os.Getenv("BANK_GRPC_ADDR")
+	if bankAddr == "" {
+		bankAddr = "bank:50051"
+	}
+	bankConn, err := grpc.NewClient(bankAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+
+	userAddr := os.Getenv("USER_GRPC_ADDR")
+	if userAddr == "" {
+		userAddr = "user:50051"
+	}
+	userConn, err := grpc.NewClient(userAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+
+	return &Server{
+		db_gorm:         db,
+		bankService:     bankpb.NewBankServiceClient(bankConn),
+		exchangeService: exchangepb.NewExchangeServiceClient(exchangeConn),
+		userService:     userpb.NewUserServiceClient(userConn),
+	}, nil
 }
 
 func (s *Server) ListExchanges(_ context.Context, _ *tradingpb.ListExchangesRequest) (*tradingpb.ListExchangesResponse, error) {
@@ -83,7 +122,7 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 	// placers (spec p.56). Checked up front so clients skip the DB round-trip
 	// and the denial surfaces before we touch the DB.
 	if req.Margin && caller.IsEmployee {
-		if !callerHasMarginPermission(s.db, caller.Email) {
+		if !callerHasMarginPermission(s.db_gorm, caller.Email) {
 			return nil, status.Error(codes.PermissionDenied, "margin_trading permission required")
 		}
 	}
@@ -170,7 +209,7 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 		order.ForexPairID = &v
 	}
 
-	if err := s.db.Transaction(func(tx *gorm.DB) error {
+	if err := s.db_gorm.Transaction(func(tx *gorm.DB) error {
 		role := roleClient
 		var limits agentLimits
 		var employeeID int64
@@ -274,18 +313,18 @@ func (s *Server) SetExchangeOpenOverride(_ context.Context, req *tradingpb.SetEx
 	if req.ExchangeId <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "exchange_id required")
 	}
-	if !callerIsSupervisor(s.db, req.CallerEmail) {
+	if !callerIsSupervisor(s.db_gorm, req.CallerEmail) {
 		return nil, status.Error(codes.PermissionDenied, "only admins and supervisors may toggle open_override")
 	}
 
 	var exch Exchange
-	if err := s.db.First(&exch, req.ExchangeId).Error; err != nil {
+	if err := s.db_gorm.First(&exch, req.ExchangeId).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Error(codes.NotFound, "exchange not found")
 		}
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
-	if err := s.db.Model(&exch).Update("open_override", req.OpenOverride).Error; err != nil {
+	if err := s.db_gorm.Model(&exch).Update("open_override", req.OpenOverride).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 	exch.OpenOverride = req.OpenOverride

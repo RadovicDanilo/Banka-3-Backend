@@ -133,14 +133,14 @@ func (s *Server) resolveInstrument(req *tradingpb.CreateOrderRequest) (*instrume
 	switch {
 	case req.ListingId != 0:
 		var listing Listing
-		if err := s.db.First(&listing, req.ListingId).Error; err != nil {
+		if err := s.db_gorm.First(&listing, req.ListingId).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, status.Error(codes.NotFound, "listing not found")
 			}
 			return nil, status.Errorf(codes.Internal, "%v", err)
 		}
 		var exch Exchange
-		if err := s.db.First(&exch, listing.ExchangeID).Error; err != nil {
+		if err := s.db_gorm.First(&exch, listing.ExchangeID).Error; err != nil {
 			return nil, status.Errorf(codes.Internal, "%v", err)
 		}
 		info := &instrumentInfo{
@@ -153,7 +153,7 @@ func (s *Server) resolveInstrument(req *tradingpb.CreateOrderRequest) (*instrume
 		}
 		if listing.FutureID != nil {
 			var fut Future
-			if err := s.db.First(&fut, *listing.FutureID).Error; err != nil {
+			if err := s.db_gorm.First(&fut, *listing.FutureID).Error; err != nil {
 				return nil, status.Errorf(codes.Internal, "%v", err)
 			}
 			info.ContractSize = fut.ContractSize
@@ -165,21 +165,21 @@ func (s *Server) resolveInstrument(req *tradingpb.CreateOrderRequest) (*instrume
 
 	case req.OptionId != 0:
 		var opt Option
-		if err := s.db.First(&opt, req.OptionId).Error; err != nil {
+		if err := s.db_gorm.First(&opt, req.OptionId).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, status.Error(codes.NotFound, "option not found")
 			}
 			return nil, status.Errorf(codes.Internal, "%v", err)
 		}
 		var listing Listing
-		if err := s.db.Where("stock_id = ?", opt.StockID).First(&listing).Error; err != nil {
+		if err := s.db_gorm.Where("stock_id = ?", opt.StockID).First(&listing).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, status.Error(codes.FailedPrecondition, "underlying stock has no listing")
 			}
 			return nil, status.Errorf(codes.Internal, "%v", err)
 		}
 		var exch Exchange
-		if err := s.db.First(&exch, listing.ExchangeID).Error; err != nil {
+		if err := s.db_gorm.First(&exch, listing.ExchangeID).Error; err != nil {
 			return nil, status.Errorf(codes.Internal, "%v", err)
 		}
 		sd := opt.SettlementDate
@@ -195,7 +195,7 @@ func (s *Server) resolveInstrument(req *tradingpb.CreateOrderRequest) (*instrume
 
 	default: // forex pair — no exchange
 		var fx ForexPair
-		if err := s.db.First(&fx, req.ForexPairId).Error; err != nil {
+		if err := s.db_gorm.First(&fx, req.ForexPairId).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, status.Error(codes.NotFound, "forex pair not found")
 			}

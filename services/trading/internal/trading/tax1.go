@@ -31,7 +31,7 @@ const (
 // share one code path. Supervisor-only at the trading layer; the gateway
 // also gates the route with `secured("supervisor")`.
 func (s *Server) RunCapitalGains(_ context.Context, req *tradingpb.RunCapitalGainsRequest) (*tradingpb.RunCapitalGainsResponse, error) {
-	if !callerIsSupervisor(s.db, req.CallerEmail) {
+	if !callerIsSupervisor(s.db_gorm, req.CallerEmail) {
 		return nil, status.Error(codes.PermissionDenied, "supervisor permission required")
 	}
 	month := strings.TrimSpace(req.Month)
@@ -39,7 +39,7 @@ func (s *Server) RunCapitalGains(_ context.Context, req *tradingpb.RunCapitalGai
 		return nil, status.Error(codes.InvalidArgument, "month must be YYYY-MM")
 	}
 
-	res, err := s.bank.CollectCapitalGains(month)
+	res, err := s.CollectCapitalGains(month)
 	if err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err
@@ -66,7 +66,7 @@ func (s *Server) RunCapitalGains(_ context.Context, req *tradingpb.RunCapitalGai
 // portal as "users who can trade", and listing every dormant client/employee
 // in the system would drown the actually-relevant rows.
 func (s *Server) ListTaxDebts(_ context.Context, req *tradingpb.ListTaxDebtsRequest) (*tradingpb.ListTaxDebtsResponse, error) {
-	if !callerIsSupervisor(s.db, req.CallerEmail) {
+	if !callerIsSupervisor(s.db_gorm, req.CallerEmail) {
 		return nil, status.Error(codes.PermissionDenied, "supervisor permission required")
 	}
 	team := strings.ToLower(strings.TrimSpace(req.Team))
@@ -91,7 +91,7 @@ func (s *Server) ListTaxDebts(_ context.Context, req *tradingpb.ListTaxDebtsRequ
 	// level so the client-side never sees rows it shouldn't, and the LIKE is
 	// parametrized to keep the filter injection-safe.
 	var rows []debtorRow
-	q := s.db.Table("capital_gains AS cg").
+	q := s.db_gorm.Table("capital_gains AS cg").
 		Select(`
 			COALESCE(c.id, e.id) AS user_id,
 			COALESCE(c.first_name, e.first_name) AS first_name,
@@ -158,14 +158,14 @@ func (s *Server) GetMyTaxInfo(ctx context.Context, _ *tradingpb.GetMyTaxInfoRequ
 		return nil, status.Error(codes.PermissionDenied, "caller is neither client nor employee")
 	}
 
-	placerID, err := lookupPlacerID(s.db, caller.IsClient, caller.ClientID, caller.Email)
+	placerID, err := lookupPlacerID(s.db_gorm, caller.IsClient, caller.ClientID, caller.Email)
 	if err != nil {
 		return nil, err
 	}
 	if placerID == 0 {
 		return &tradingpb.GetMyTaxInfoResponse{}, nil
 	}
-	return aggregateMyTaxInfo(s.db, placerID, time.Now().Year())
+	return aggregateMyTaxInfo(s.db_gorm, placerID, time.Now().Year())
 }
 
 // lookupPlacerID resolves the caller's order_placers.id without creating the

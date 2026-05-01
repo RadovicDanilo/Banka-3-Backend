@@ -30,7 +30,7 @@ func (s *Server) requireActuary(ctx context.Context) error {
 // Used both to anchor the options grid and to return shared_price.
 func (s *Server) stockListingPrice(stockID int64) (int64, error) {
 	var l Listing
-	err := s.db.Where("stock_id = ?", stockID).First(&l).Error
+	err := s.db_gorm.Where("stock_id = ?", stockID).First(&l).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return 0, status.Error(codes.NotFound, "stock has no listing")
@@ -52,7 +52,7 @@ func (s *Server) ListOptionDates(ctx context.Context, req *tradingpb.ListOptionD
 	}
 
 	var dates []time.Time
-	err := s.db.Model(&Option{}).
+	err := s.db_gorm.Model(&Option{}).
 		Where("stock_id = ?", req.StockId).
 		Distinct("settlement_date").
 		Order("settlement_date ASC").
@@ -96,7 +96,7 @@ func (s *Server) ListOptions(ctx context.Context, req *tradingpb.ListOptionsRequ
 	}
 
 	var opts []Option
-	if err := s.db.
+	if err := s.db_gorm.
 		Where("stock_id = ? AND settlement_date = ?", req.StockId, settle).
 		Order("strike_price ASC").
 		Find(&opts).Error; err != nil {
