@@ -92,7 +92,7 @@ func (c *ExchangeRateClient) GetRates(ctx context.Context, base string) (map[str
 	if body.ErrorType != "" {
 		// Unsupported / unknown bases come back as 200 with an error envelope.
 		// Map the obvious not-found shapes; everything else is surfaced for
-		// logs (bad keys, plan-quota, etc).
+		// logs (bad keys, plan-quota, etc.).
 		switch body.ErrorType {
 		case "unsupported-code", "malformed-request", "base-code":
 			return nil, ErrNotFound

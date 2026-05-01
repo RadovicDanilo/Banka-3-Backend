@@ -117,12 +117,12 @@ func main() {
 	logger.L().Info("connected to database")
 	defer func() { _ = db.Close() }()
 
-	stopScheduler := trading.StartScheduler()
-	defer stopScheduler()
-
 	tradingService, _ := trading.NewServer(gorm_db)
 	stopExecutor := tradingService.StartExecutor()
 	defer stopExecutor()
+
+	stopScheduler := tradingService.StartScheduler()
+	defer stopScheduler()
 
 	// External-pricing refresher (#184). No-op when no API keys are
 	// configured, so dev/CI keep operating off the static seed data from
