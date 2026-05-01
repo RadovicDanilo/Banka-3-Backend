@@ -6,8 +6,7 @@ ARG SERVICE
 WORKDIR /src
 
 COPY go.work go.work.sum ./
-COPY pkg/logger/go.mod pkg/logger/go.sum ./pkg/logger/
-COPY pkg/proto/go.mod pkg/proto/go.sum ./pkg/proto/
+COPY pkg/go.mod pkg/go.sum ./pkg/
 COPY services/bank/go.mod services/bank/go.sum ./services/bank/
 COPY services/exchange/go.mod services/exchange/go.sum ./services/exchange/
 COPY services/gateway/go.mod services/gateway/go.sum ./services/gateway/
@@ -18,8 +17,7 @@ WORKDIR /src/services/${SERVICE}
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 
 WORKDIR /src
-COPY pkg/logger ./pkg/logger
-COPY pkg/proto ./pkg/proto
+COPY pkg ./pkg
 COPY services/${SERVICE} ./services/${SERVICE}
 
 WORKDIR /src/services/${SERVICE}

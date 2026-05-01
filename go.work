@@ -1,8 +1,7 @@
 go 1.25.0
 
 use (
-	./pkg/logger
-	./pkg/proto
+	./pkg
 	./services/bank
 	./services/exchange
 	./services/gateway
