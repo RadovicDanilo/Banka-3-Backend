@@ -37,7 +37,7 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 	permissions := make([]model.Permission, 0, len(reqPerms))
 	for _, permName := range reqPerms {
 		var perm model.Permission
-		if err := s.db_gorm.First(&perm, "name = ?", permName).Error; err != nil {
+		if err := s.repo.Gorm.First(&perm, "name = ?", permName).Error; err != nil {
 			logger.FromContext(ctx).WarnContext(ctx, "permission not found, skipping", "name", permName)
 			continue
 		}
@@ -157,7 +157,7 @@ func (s *Server) UpdateEmployeeTradingLimit(ctx context.Context, req *userpb.Upd
 		updates["used_limit"] = *req.UsedLimit
 	}
 
-	if err := s.db_gorm.Model(&model.Employee{}).Where("id = ?", target.Id).Updates(updates).Error; err != nil {
+	if err := s.repo.Gorm.Model(&model.Employee{}).Where("id = ?", target.Id).Updates(updates).Error; err != nil {
 		return nil, status.Error(codes.Internal, "failed to update trading limit")
 	}
 
@@ -186,7 +186,7 @@ func (s *Server) UpdateEmployeeNeedApproval(ctx context.Context, req *userpb.Upd
 		return nil, status.Error(codes.Internal, "failed to load employee")
 	}
 
-	if err := s.db_gorm.Model(&model.Employee{}).Where("id = ?", target.Id).Updates(map[string]any{
+	if err := s.repo.Gorm.Model(&model.Employee{}).Where("id = ?", target.Id).Updates(map[string]any{
 		"need_approval": req.NeedApproval,
 		"updated_at":    time.Now(),
 	}).Error; err != nil {

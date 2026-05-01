@@ -33,8 +33,6 @@ type Server struct {
 	userpb.UnimplementedTOTPServiceServer
 	accessJwtSecret  string
 	refreshJwtSecret string
-	database         *sql.DB
-	db_gorm          *gorm.DB
 	rdb              *redis.Client
 	repo             repo.Repository
 }
@@ -43,8 +41,6 @@ func NewServer(accessJwtSecret string, refreshJwtSecret string, conn *Connection
 	return &Server{
 		accessJwtSecret:  accessJwtSecret,
 		refreshJwtSecret: refreshJwtSecret,
-		database:         conn.Sql_db,
-		db_gorm:          conn.Gorm,
 		rdb:              conn.Rdb,
 		repo: repo.Repository{
 			Database: conn.Sql_db,

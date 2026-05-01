@@ -34,7 +34,7 @@ func (s *Server) SetPasswordWithToken(ctx context.Context, req *userpb.SetPasswo
 		return nil, status.Error(codes.InvalidArgument, "token and new password are required")
 	}
 
-	tx, err := s.database.Begin()
+	tx, err := s.repo.Database.Begin()
 	if err != nil {
 		return nil, status.Error(codes.Internal, "starting transaction failed")
 	}
@@ -60,7 +60,7 @@ func (s *Server) SetPasswordWithToken(ctx context.Context, req *userpb.SetPasswo
 	}
 
 	if actionType == PasswordActionInitialSet {
-		if _, err := tx.Exec(`UPDATE employees SET active = true, updated_at = NOW() WHERE email = $1`, email); err != nil {
+		if err := s.repo.ActivateEmployeeByEmail(tx, email); err != nil {
 			return nil, status.Error(codes.Internal, "employee activation failed")
 		}
 	}

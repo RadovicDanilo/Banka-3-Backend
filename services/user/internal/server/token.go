@@ -121,7 +121,7 @@ func (s *Server) Refresh(ctx context.Context, req *userpb.RefreshRequest) (*user
 		return nil, fmt.Errorf("getting expiry: %w", err)
 	}
 
-	tx, err := s.database.Begin()
+	tx, err := s.repo.Database.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("starting transaction: %w", err)
 	}

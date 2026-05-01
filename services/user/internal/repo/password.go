@@ -88,3 +88,11 @@ func (r *Repository) UpdatePasswordByEmail(tx *sql.Tx, email string, hashedPassw
 	}
 	return nil
 }
+
+// ActivateEmployeeByEmail marks an employee as active.
+func (r *Repository) ActivateEmployeeByEmail(tx *sql.Tx, email string) error {
+	if _, err := tx.Exec(`UPDATE employees SET active = true, updated_at = NOW() WHERE email = $1`, email); err != nil {
+		return fmt.Errorf("activating employee: %w", err)
+	}
+	return nil
+}

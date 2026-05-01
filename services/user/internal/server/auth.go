@@ -64,7 +64,7 @@ func (s *Server) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.L
 
 func (s *Server) Logout(ctx context.Context, req *userpb.LogoutRequest) (*userpb.LogoutResponse, error) {
 	email := req.Email
-	tx, err := s.database.Begin()
+	tx, err := s.repo.Database.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("starting transaction: %w", err)
 	}
