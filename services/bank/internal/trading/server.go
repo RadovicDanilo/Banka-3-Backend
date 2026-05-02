@@ -3,6 +3,7 @@ package trading
 import (
 	"context"
 	"errors"
+	"math"
 	"strings"
 	"time"
 
@@ -142,6 +143,38 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 	}
 	pastSettlement := isPastSettlement(info.SettlementDate, now)
 	commission := computeCommission(orderType, approxNative)
+
+	// Predict whether this order would route to pending (agent over limit /
+	// need_approval), so we can skip the pre-flight funds check for it — a
+	// pending order doesn't debit until a supervisor approves, and the funds
+	// check will run again at that point.
+	predictedPending := false
+	if caller.IsEmployee && caller.Email != "" {
+		_, predRole, predLimits, predErr := resolveEmployeeRole(s.db, caller.Email)
+		if predErr == nil {
+			predictedPending = decideOrderStatus(predRole, predLimits, approxRSD, pastSettlement) == StatusPending
+		}
+	}
+
+	// Pre-flight funds check for non-margin BUYs (spec p.57 / #43): reject at
+	// placement instead of waiting for execution to fail. Margin orders run
+	// their own eligibility check below; past-settlement orders auto-decline
+	// without a debit, so both skip this guard. Pending orders also skip — the
+	// funds requirement is re-evaluated when the supervisor approves.
+	if direction == DirectionBuy && !req.Margin && !pastSettlement && !predictedPending {
+		approxAcc := approxNative
+		commissionDebit := commission
+		if acc.Currency != info.Currency {
+			approxAcc = int64(math.Ceil(float64(approxNative) * rateInstrRSD / rateAccRSD))
+			commissionDebit = int64(math.Ceil(float64(commission) * rateInstrRSD / rateAccRSD))
+			if caller.IsClient {
+				commissionDebit += (commissionDebit*menjacnicaCommissionPermille + 999) / 1000
+			}
+		}
+		if acc.Balance < approxAcc+commissionDebit {
+			return nil, status.Error(codes.FailedPrecondition, "insufficient funds for order")
+		}
+	}
 
 	order := Order{
 		OrderType:         orderType,

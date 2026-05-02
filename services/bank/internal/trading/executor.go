@@ -591,16 +591,31 @@ func debitSystemAccount(tx *gorm.DB, currency string, amount int64) error {
 // fill size, creating today's row from the listing's current quote if it
 // doesn't exist yet. Returns the post-update volume so the executor can
 // feed it into the delay formula without an extra SELECT.
+//
+// On first insert we seed today's volume from the most recent prior day's
+// volume so the delay formula (1440 * remaining / volume) lands on
+// realistic numbers from the first fill. Without this seed, today's
+// volume would start at just the executor's first chunk size (e.g. 4),
+// producing tens-of-minutes delays for typical small orders. Subsequent
+// fills simply add chunk on top.
 func upsertDailyVolume(tx *gorm.DB, listingID int64, now time.Time, chunk int64, listing Listing) (int64, error) {
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	var volume int64
 	err := tx.Raw(
 		`INSERT INTO listing_daily_price_info (listing_id, date, price, ask_price, bid_price, change, volume)
-		 VALUES (?, ?, ?, ?, ?, 0, ?)
+		 VALUES (
+		     ?, ?, ?, ?, ?, 0,
+		     COALESCE((
+		         SELECT volume FROM listing_daily_price_info
+		         WHERE listing_id = ? AND date < ?
+		         ORDER BY date DESC LIMIT 1
+		     ), 0) + ?
+		 )
 		 ON CONFLICT (listing_id, date)
-		 DO UPDATE SET volume = listing_daily_price_info.volume + EXCLUDED.volume
+		 DO UPDATE SET volume = listing_daily_price_info.volume + ?
 		 RETURNING volume`,
-		listingID, today, listing.Price, listing.AskPrice, listing.BidPrice, chunk,
+		listingID, today, listing.Price, listing.AskPrice, listing.BidPrice,
+		listingID, today, chunk, chunk,
 	).Scan(&volume).Error
 	if err != nil {
 		return 0, status.Errorf(codes.Internal, "%v", err)

@@ -26,6 +26,10 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 		return nil, status.Error(codes.InvalidArgument, "One of the required cols is null")
 	}
 
+	if req.Gender != "" && req.Gender != "M" && req.Gender != "F" {
+		return nil, status.Error(codes.InvalidArgument, "Gender must be one of M or F")
+	}
+
 	salt, salt_err := generateSalt()
 	if salt_err != nil {
 		logger.FromContext(ctx).ErrorContext(ctx, "error generating salt", "err", salt_err)
@@ -55,6 +59,9 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 
 	if err != nil {
 		logger.FromContext(ctx).ErrorContext(ctx, "employee creation failed", "err", err)
+		if errors.Is(err, repo.ErrEmployeeEmailExists) {
+			return nil, status.Error(codes.AlreadyExists, "Employee with this email or username already exists")
+		}
 		return nil, status.Error(codes.Internal, "Employee creation failed")
 	}
 
@@ -360,7 +367,10 @@ func (s *Server) GetEmployeeById(_ context.Context, req *userpb.GetUserByIdReque
 	resp, err := s.repo.GetEmployeeByAttribute("id", req.Id)
 
 	if err != nil {
-		return nil, err
+		if errors.Is(err, repo.ErrUserNotFound) || errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "employee not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to get employee")
 	}
 	return resp.ToProtobuf(), nil
 }
