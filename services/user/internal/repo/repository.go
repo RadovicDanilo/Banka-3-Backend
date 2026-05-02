@@ -21,6 +21,7 @@ var (
 	ErrClientEmailExists          = errors.New("client email already exists")
 	ErrClientNoFieldsToUpdate     = errors.New("no client fields to update")
 	ErrEmployeeNotFound           = errors.New("employee not found")
+	ErrEmployeeEmailExists        = errors.New("employee email or username already exists")
 	ErrUnknownPermission          = errors.New("unknown permissions")
 	ErrUserNotFound               = errors.New("user not found")
 )

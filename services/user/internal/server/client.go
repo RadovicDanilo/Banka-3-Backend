@@ -118,6 +118,9 @@ func (s *Server) CreateClientAccount(ctx context.Context, req *userpb.CreateClie
 	err := s.repo.CreateClient(client)
 	if err != nil {
 		logger.FromContext(ctx).ErrorContext(ctx, "client creation failed", "err", err)
+		if errors.Is(err, repo.ErrClientEmailExists) {
+			return nil, status.Error(codes.AlreadyExists, "Client with this email already exists")
+		}
 		return nil, status.Error(codes.Internal, "Client creation failed")
 	}
 	return &userpb.CreateClientResponse{Valid: true}, nil

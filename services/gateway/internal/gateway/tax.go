@@ -7,6 +7,7 @@ import (
 
 	tradingpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/trading"
 	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc/metadata"
 )
 
 // RunCapitalGains backs `POST /api/tax/run?month=YYYY-MM`. Supervisor-only;
@@ -79,9 +80,13 @@ func (s *Server) GetMyTaxInfo(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
-	resp, err := s.TradingClient.GetMyTaxInfo(ctx, &tradingpb.GetMyTaxInfoRequest{
-		CallerEmail: c.GetString("email"),
-	})
+	// bank.ResolveCaller reads "user-email" from gRPC metadata, not from
+	// the request body — the proto's CallerEmail field is unused here.
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(
+		"user-email", c.GetString("email"),
+	))
+
+	resp, err := s.TradingClient.GetMyTaxInfo(ctx, &tradingpb.GetMyTaxInfoRequest{})
 	if err != nil {
 		writeGRPCError(c, err)
 		return
