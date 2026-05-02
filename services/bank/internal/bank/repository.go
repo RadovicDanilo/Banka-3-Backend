@@ -764,8 +764,8 @@ func (s *Server) DecreaseAccountBalance(tx *sql.Tx, number string, amount int64)
 		WHERE
 			number = $1
 			AND balance >= $2
-			AND (COALESCE(daily_expenditure, 0) + $2) <= daily_limit
-			AND (COALESCE(monthly_expenditure, 0) + $2) <= monthly_limit
+			AND (daily_limit IS NULL OR daily_limit = 0 OR (COALESCE(daily_expenditure, 0) + $2) <= daily_limit)
+			AND (monthly_limit IS NULL OR monthly_limit = 0 OR (COALESCE(monthly_expenditure, 0) + $2) <= monthly_limit)
 		RETURNING number
 	`, number, amount)
 	//Did we get account from this query?
@@ -788,8 +788,8 @@ func (s *Server) DecreaseAccountBalance(tx *sql.Tx, number string, amount int64)
 		SELECT balance,
 		       COALESCE(daily_expenditure, 0),
 		       COALESCE(monthly_expenditure, 0),
-		       daily_limit,
-		       monthly_limit
+		       COALESCE(daily_limit, 0),
+		       COALESCE(monthly_limit, 0)
 		FROM accounts
 		WHERE number = $1
 	`, number).Scan(&balance, &dailyExp, &monthlyExp, &dailyLimit, &monthlyLimit)
@@ -802,7 +802,7 @@ func (s *Server) DecreaseAccountBalance(tx *sql.Tx, number string, amount int64)
 		return nil, ErrInsufficientFunds
 	}
 
-	if dailyExp+amount > dailyLimit || monthlyExp+amount > monthlyLimit {
+	if (dailyLimit > 0 && dailyExp+amount > dailyLimit) || (monthlyLimit > 0 && monthlyExp+amount > monthlyLimit) {
 		return nil, ErrLimitExceeded
 	}
 
