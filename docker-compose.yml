@@ -19,7 +19,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly no --save ""
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:

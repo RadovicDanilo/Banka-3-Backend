@@ -84,20 +84,25 @@ FROM employees e, permissions p
 WHERE e.email = 'limited_emp@banka.raf' AND p.name = 'view_stocks'
 ON CONFLICT DO NOTHING;
 
--- trading agent (password: "Test1234!") — has `agent` perm with a 100,000 RSD daily limit
+-- trading agent (password: "Test1234!") — has `agent` perm with a 200.000 RSD daily limit.
+-- Cypress E2E suite (cypress/e2e/integration/trading-day-e2e.cy.js) asserts on this exact
+-- limit + need_approval=TRUE to drive the "agent → supervisor approval" routing path.
 INSERT INTO employees (
     first_name, last_name, date_of_birth, gender, email,
     phone_number, address, username, password, salt_password,
-    position, department, active, "limit", used_limit
+    position, department, active, "limit", used_limit, need_approval
 )
 VALUES (
     'Agent', 'Trgovac', '1990-01-01', 'M', 'agent@banka.raf',
     '+381649990003', 'Test Adresa 3', 'agent',
     '\xa514f71947f5447cdfc2845f40d020cea4146ba28e84cb1a82662a6286f8228d'::BYTEA,
     '\x11223344556677889900aabbccddeeff'::BYTEA,
-    'Trader', 'Brokersko', true, 10000000, 0
+    'Trader', 'Brokersko', true, 200000, 0, TRUE
 )
-ON CONFLICT (email) DO NOTHING;
+ON CONFLICT (email) DO UPDATE SET
+    "limit"        = EXCLUDED."limit",
+    used_limit     = EXCLUDED.used_limit,
+    need_approval  = EXCLUDED.need_approval;
 
 INSERT INTO employee_permissions (employee_id, permission_id)
 SELECT e.id, p.id
@@ -272,8 +277,8 @@ SELECT
     'business'::owner_type AS owner_type,
     'checking'::account_type AS account_type,
     0 AS maintainance_cost,
-    NULL AS daily_limit,
-    NULL AS monthly_limit,
+    0 AS daily_limit,
+    0 AS monthly_limit,
     0 AS daily_expenditure,
     0 AS monthly_expenditure
 FROM clients c, employees e
@@ -293,8 +298,8 @@ SELECT
     'business'::owner_type AS owner_type,
     'foreign'::account_type AS account_type,
     0 AS maintainance_cost,
-    NULL AS daily_limit,
-    NULL AS monthly_limit,
+    0 AS daily_limit,
+    0 AS monthly_limit,
     0 AS daily_expenditure,
     0 AS monthly_expenditure
 FROM clients c, employees e
@@ -314,8 +319,8 @@ SELECT
     'business'::owner_type AS owner_type,
     'foreign'::account_type AS account_type,
     0 AS maintainance_cost,
-    NULL AS daily_limit,
-    NULL AS monthly_limit,
+    0 AS daily_limit,
+    0 AS monthly_limit,
     0 AS daily_expenditure,
     0 AS monthly_expenditure
 FROM clients c, employees e
@@ -335,8 +340,8 @@ SELECT
     'business'::owner_type AS owner_type,
     'foreign'::account_type AS account_type,
     0 AS maintainance_cost,
-    NULL AS daily_limit,
-    NULL AS monthly_limit,
+    0 AS daily_limit,
+    0 AS monthly_limit,
     0 AS daily_expenditure,
     0 AS monthly_expenditure
 FROM clients c, employees e
@@ -356,8 +361,8 @@ SELECT
     'business'::owner_type AS owner_type,
     'foreign'::account_type AS account_type,
     0 AS maintainance_cost,
-    NULL AS daily_limit,
-    NULL AS monthly_limit,
+    0 AS daily_limit,
+    0 AS monthly_limit,
     0 AS daily_expenditure,
     0 AS monthly_expenditure
 FROM clients c, employees e
@@ -377,8 +382,8 @@ SELECT
     'business'::owner_type AS owner_type,
     'foreign'::account_type AS account_type,
     0 AS maintainance_cost,
-    NULL AS daily_limit,
-    NULL AS monthly_limit,
+    0 AS daily_limit,
+    0 AS monthly_limit,
     0 AS daily_expenditure,
     0 AS monthly_expenditure
 FROM clients c, employees e
@@ -398,8 +403,8 @@ SELECT
     'business'::owner_type AS owner_type,
     'foreign'::account_type AS account_type,
     0 AS maintainance_cost,
-    NULL AS daily_limit,
-    NULL AS monthly_limit,
+    0 AS daily_limit,
+    0 AS monthly_limit,
     0 AS daily_expenditure,
     0 AS monthly_expenditure
 FROM clients c, employees e
@@ -419,8 +424,8 @@ SELECT
     'business'::owner_type AS owner_type,
     'foreign'::account_type AS account_type,
     0 AS maintainance_cost,
-    NULL AS daily_limit,
-    NULL AS monthly_limit,
+    0 AS daily_limit,
+    0 AS monthly_limit,
     0 AS daily_expenditure,
     0 AS monthly_expenditure
 FROM clients c, employees e
@@ -640,6 +645,61 @@ INSERT INTO transfers (from_account, to_account, start_amount, end_amount, start
 SELECT
     '333000112345678910', '333000112345678920', 117150, 1000, cur.id, 117.15, 500
 FROM currencies cur WHERE cur.label = 'RSD';
+
+-------------------------------------------------------------------------------
+-- Sample payments and transfers for Jovana (default cypress test client)
+-------------------------------------------------------------------------------
+INSERT INTO payments (from_account, to_account, start_amount, end_amount, commission, status, recipient_id, transaction_code, call_number, reason)
+SELECT '333000155555555510', '333000112345678910', 12000, 12000, 0, 'realized', c.id, 289, '00100100', 'Pozajmica'
+FROM clients c WHERE c.email = 'petar@primer.raf';
+
+INSERT INTO payments (from_account, to_account, start_amount, end_amount, commission, status, recipient_id, transaction_code, call_number, reason)
+SELECT '333000198765432110', '333000155555555510', 30000, 30000, 0, 'realized', c.id, 290, '00200200', 'Refundacija'
+FROM clients c WHERE c.email = 'jovana@primer.raf';
+
+INSERT INTO payments (from_account, to_account, start_amount, end_amount, commission, status, recipient_id, transaction_code, call_number, reason)
+SELECT '333000155555555510', '333000198765432110', 8000, 8000, 0, 'pending', c.id, 289, '00300300', 'Plaćanje u obradi'
+FROM clients c WHERE c.email = 'marko@primer.raf';
+
+INSERT INTO payments (from_account, to_account, start_amount, end_amount, commission, status, recipient_id, transaction_code, call_number, reason)
+SELECT '333000155555555510', '333000112345678910', 5000, 5000, 0, 'rejected', c.id, 289, '00400400', 'Odbijeno plaćanje'
+FROM clients c WHERE c.email = 'petar@primer.raf';
+
+INSERT INTO transfers (from_account, to_account, start_amount, end_amount, start_currency_id, exchange_rate, commission, status)
+SELECT '333000155555555510', '333000155555555520', 117150, 1000, cur.id, 117.15, 500, 'realized'
+FROM currencies cur WHERE cur.label = 'RSD';
+
+INSERT INTO transfers (from_account, to_account, start_amount, end_amount, start_currency_id, exchange_rate, commission, status)
+SELECT '333000155555555520', '333000155555555620', 1000, 940, cur.id, 0.94, 5, 'realized'
+FROM currencies cur WHERE cur.label = 'EUR';
+
+-------------------------------------------------------------------------------
+-- Sample tax debts (capital gains) so /tax portal has rows to display.
+-- Creates order_placer rows for Marko (client) and Petar (client) and seeds
+-- one unpaid + one paid capital_gains row each.
+-------------------------------------------------------------------------------
+INSERT INTO order_placers (client_id)
+SELECT c.id FROM clients c WHERE c.email = 'marko@primer.raf'
+ON CONFLICT (client_id) WHERE client_id IS NOT NULL DO NOTHING;
+
+INSERT INTO order_placers (client_id)
+SELECT c.id FROM clients c WHERE c.email = 'petar@primer.raf'
+ON CONFLICT (client_id) WHERE client_id IS NOT NULL DO NOTHING;
+
+INSERT INTO capital_gains (seller_placer_id, account_id, realized_profit, tax_due, period, paid_at)
+SELECT p.id, a.id, 100000, 15000, '2026-04', NULL
+FROM order_placers p JOIN clients c ON c.id = p.client_id, accounts a
+WHERE c.email = 'marko@primer.raf' AND a.number = '333000198765432110';
+
+INSERT INTO capital_gains (seller_placer_id, account_id, realized_profit, tax_due, period, paid_at)
+SELECT p.id, a.id, 200000, 30000, '2026-03', NOW() - INTERVAL '20 days'
+FROM order_placers p JOIN clients c ON c.id = p.client_id, accounts a
+WHERE c.email = 'marko@primer.raf' AND a.number = '333000198765432110';
+
+INSERT INTO capital_gains (seller_placer_id, account_id, realized_profit, tax_due, period, paid_at)
+SELECT p.id, a.id, 50000, 7500, '2026-04', NULL
+FROM order_placers p JOIN clients c ON c.id = p.client_id, accounts a
+WHERE c.email = 'petar@primer.raf' AND a.number = '333000112345678910';
 
 -------------------------------------------------------------------------------
 -- Sample loan for Petar
@@ -909,8 +969,8 @@ SELECT
     'business'::owner_type AS owner_type,
     'checking'::account_type AS account_type,
     0 AS maintainance_cost,
-    NULL AS daily_limit,
-    NULL AS monthly_limit,
+    0 AS daily_limit,
+    0 AS monthly_limit,
     0 AS daily_expenditure,
     0 AS monthly_expenditure
 FROM clients c, companies co, employees e

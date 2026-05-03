@@ -45,13 +45,11 @@ func (s *Server) GetTransactions(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"transactions": resp.Transactions,
-		"page":         resp.Page,
-		"page_size":    resp.PageSize,
-		"total":        resp.Total,
-		"total_pages":  resp.TotalPages,
-	})
+	if resp.Transactions == nil {
+		c.JSON(http.StatusOK, []any{})
+		return
+	}
+	c.JSON(http.StatusOK, resp.Transactions)
 }
 
 func (s *Server) GetTransactionByID(c *gin.Context) {

@@ -50,6 +50,9 @@ func (r *Repository) CreateEmployee(employee model.Employee) error {
 	result := r.Gorm.Create(&employee)
 	if result.Error != nil {
 		logger.L().Error("create employee failed", "err", result.Error)
+		if isUniqueViolation(result.Error) {
+			return ErrEmployeeEmailExists
+		}
 		return result.Error
 	}
 	return nil

@@ -50,6 +50,9 @@ func (r *Repository) CreateClient(client model.Client) error {
 	result := r.Gorm.Create(&client)
 	if result.Error != nil {
 		logger.L().Error("create client failed", "err", result.Error)
+		if isUniqueViolation(result.Error) {
+			return ErrClientEmailExists
+		}
 		return result.Error
 	}
 	return nil

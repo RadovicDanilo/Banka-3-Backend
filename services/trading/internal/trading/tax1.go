@@ -121,6 +121,7 @@ func (s *Server) ListTaxDebts(_ context.Context, req *tradingpb.ListTaxDebtsRequ
 		COALESCE(c.first_name, e.first_name),
 		COALESCE(c.last_name, e.last_name),
 		CASE WHEN p.client_id IS NOT NULL THEN 'client' ELSE 'actuary' END`).
+		Having("SUM(CASE WHEN cg.paid_at IS NULL THEN cg.tax_due ELSE 0 END) > 0").
 		Order("unpaid_rsd DESC, last_name ASC, first_name ASC")
 
 	if err := q.Scan(&rows).Error; err != nil {
