@@ -11,6 +11,7 @@ import (
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
 	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/model"
 	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/repo"
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -30,22 +31,18 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 		return nil, status.Error(codes.InvalidArgument, "Gender must be one of M or F")
 	}
 
-	salt, salt_err := generateSalt()
+	salt, salt_err := utils.GenerateSalt()
 	if salt_err != nil {
 		logger.FromContext(ctx).ErrorContext(ctx, "error generating salt", "err", salt_err)
 	}
 
 	// Spec p.38: every admin is also a supervisor.
-	reqPerms := EnsureAdminImpliesSupervisor(req.Permissions)
+	reqPerms := utils.EnsureAdminImpliesSupervisor(req.Permissions)
 
-	permissions := make([]model.Permission, 0, len(reqPerms))
-	for _, permName := range reqPerms {
-		var perm model.Permission
-		if err := s.repo.Gorm.First(&perm, "name = ?", permName).Error; err != nil {
-			logger.FromContext(ctx).WarnContext(ctx, "permission not found, skipping", "name", permName)
-			continue
-		}
-		permissions = append(permissions, perm)
+	// Call the repo method instead of looping over the DB directly
+	permissions, err := s.repo.GetPermissionsByNames(ctx, reqPerms)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to retrieve permissions: %v", err)
 	}
 
 	employee := model.Employee{First_name: req.FirstName,
@@ -55,7 +52,7 @@ func (s *Server) CreateEmployeeAccount(ctx context.Context, req *userpb.CreateEm
 		Department: req.Department, Salt_password: salt,
 		Password: []byte{}, Active: true, Permissions: permissions}
 
-	err := s.repo.CreateEmployee(employee)
+	err = s.repo.CreateEmployee(employee)
 
 	if err != nil {
 		logger.FromContext(ctx).ErrorContext(ctx, "employee creation failed", "err", err)
@@ -164,8 +161,9 @@ func (s *Server) UpdateEmployeeTradingLimit(ctx context.Context, req *userpb.Upd
 		updates["used_limit"] = *req.UsedLimit
 	}
 
-	if err := s.repo.Gorm.Model(&model.Employee{}).Where("id = ?", target.Id).Updates(updates).Error; err != nil {
-		return nil, status.Error(codes.Internal, "failed to update trading limit")
+	err = s.repo.ApplyEmployeeUpdates(target.Id, updates)
+	if err != nil {
+		return nil, err
 	}
 
 	reloaded, err := s.repo.GetEmployeeByAttribute("id", req.Id)
@@ -193,11 +191,14 @@ func (s *Server) UpdateEmployeeNeedApproval(ctx context.Context, req *userpb.Upd
 		return nil, status.Error(codes.Internal, "failed to load employee")
 	}
 
-	if err := s.repo.Gorm.Model(&model.Employee{}).Where("id = ?", target.Id).Updates(map[string]any{
+	updates := map[string]any{
 		"need_approval": req.NeedApproval,
 		"updated_at":    time.Now(),
-	}).Error; err != nil {
-		return nil, status.Error(codes.Internal, "failed to update need_approval")
+	}
+
+	err = s.repo.ApplyEmployeeUpdates(target.Id, updates)
+	if err != nil {
+		return nil, err
 	}
 
 	reloaded, err := s.repo.GetEmployeeByAttribute("id", req.Id)
@@ -273,7 +274,7 @@ func (s *Server) UpdateEmployee(ctx context.Context, req *userpb.UpdateEmployeeR
 
 	// Spec p.38: an admin may not edit another admin. Self-edits are allowed.
 	if existingErr == nil && existing != nil {
-		existingPerms := permissionSet(existing.Permissions)
+		existingPerms := utils.PermissionSet(existing.Permissions)
 		if _, targetIsAdmin := existingPerms["admin"]; targetIsAdmin &&
 			!strings.EqualFold(strings.TrimSpace(req.CallerEmail), existing.Email) {
 			return nil, status.Error(codes.PermissionDenied, "admins cannot edit other admins")
@@ -293,14 +294,14 @@ func (s *Server) UpdateEmployee(ctx context.Context, req *userpb.UpdateEmployeeR
 	// Spec p.38: every admin is also a supervisor. Granting admin implicitly
 	// grants supervisor; revoking admin leaves supervisor untouched.
 	if req.Permissions != nil {
-		req.Permissions = EnsureAdminImpliesSupervisor(req.Permissions)
+		req.Permissions = utils.EnsureAdminImpliesSupervisor(req.Permissions)
 	}
 
 	// Only admins may grant or revoke the `agent` / `supervisor` permissions.
 	if req.Permissions != nil && existingErr == nil && existing != nil {
-		oldSet := permissionSet(existing.Permissions)
-		newSet := NamesToSet(req.Permissions)
-		if TogglesTradingRole(oldSet, newSet) {
+		oldSet := utils.PermissionSet(existing.Permissions)
+		newSet := utils.NamesToSet(req.Permissions)
+		if utils.TogglesTradingRole(oldSet, newSet) {
 			if !callerIsAdmin(ctx, s, req.CallerEmail) {
 				return nil, status.Error(codes.PermissionDenied, "only admins may grant or revoke agent/supervisor permissions")
 			}

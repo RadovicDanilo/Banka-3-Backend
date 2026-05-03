@@ -7,7 +7,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
-	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/server"
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -74,7 +74,7 @@ func TestLoginCorrectCreds(t *testing.T) {
 	testServer, mock, db := NewFullTestServer(t)
 	defer func() { _ = db.Close() }()
 
-	mockPassword := server.HashPassword("password", []byte{3, 2, 1})
+	mockPassword := utils.HashPassword("password", []byte{3, 2, 1})
 
 	email := "admin@banka.raf"
 	mock.ExpectQuery(regexp.QuoteMeta(`

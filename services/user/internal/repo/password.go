@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
+
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/utils"
 )
 
 // UpsertPasswordActionToken creates or updates a password action token.
@@ -18,7 +20,7 @@ func (r *Repository) UpsertPasswordActionToken(email, actionType string, hashedT
 		used = FALSE,
 		used_at = NULL
 	`
-	_, err := r.Database.Exec(query, email, actionType, hashedToken, validUntil)
+	_, err := r.database.Exec(query, email, actionType, hashedToken, validUntil)
 	if err != nil {
 		return fmt.Errorf("upserting password action token: %w", err)
 	}
@@ -95,4 +97,45 @@ func (r *Repository) ActivateEmployeeByEmail(tx *sql.Tx, email string) error {
 		return fmt.Errorf("activating employee: %w", err)
 	}
 	return nil
+}
+
+// ResetPasswordWithToken orchestrates the token consumption, password update, and account activation.
+func (r *Repository) ResetPasswordWithToken(token, newPassword string) (string, error) {
+	tx, err := r.database.Begin()
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// If your Consume func returns (string, string, error), just use '_' for the second value
+	email, _, err := r.ConsumePasswordActionToken(tx, utils.HashValue(token))
+	if err != nil {
+		return "", err
+	}
+
+	user, err := r.GetUserByEmail(email)
+	if err != nil || user == nil {
+		return "", fmt.Errorf("user lookup failed")
+	}
+
+	hashedPassword := utils.HashPassword(newPassword, user.Salt)
+
+	if err := r.UpdatePasswordByEmail(tx, email, hashedPassword); err != nil {
+		return "", err
+	}
+
+	// Activate the employee and revoke old sessions as part of the password change
+	if err := r.ActivateEmployeeByEmail(tx, email); err != nil {
+		return "", err
+	}
+
+	if err := r.RevokeRefreshTokensByEmail(tx, email); err != nil {
+		return "", err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+
+	return email, nil
 }

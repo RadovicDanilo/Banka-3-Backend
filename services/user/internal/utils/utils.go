@@ -1,4 +1,4 @@
-package server
+package utils
 
 import (
 	"crypto/rand"
@@ -13,7 +13,7 @@ import (
 
 // all **shared** utilties go here
 
-func generateSalt() ([]byte, error) {
+func GenerateSalt() ([]byte, error) {
 	salt := make([]byte, 16)
 	_, err := rand.Read(salt)
 	if err != nil {
@@ -37,7 +37,7 @@ func NamesToSet(names []string) map[string]struct{} {
 	return out
 }
 
-func generateOpaqueToken() (string, error) {
+func GenerateOpaqueToken() (string, error) {
 	random := make([]byte, 32)
 	if _, err := rand.Read(random); err != nil {
 		return "", err
@@ -50,7 +50,7 @@ func HashValue(value string) []byte {
 	return sum[:]
 }
 
-func buildActionLink(baseURL string, token string) (string, error) {
+func BuildActionLink(baseURL string, token string) (string, error) {
 	if strings.TrimSpace(baseURL) == "" {
 		return "", fmt.Errorf("base URL is empty")
 	}
@@ -67,8 +67,8 @@ func buildActionLink(baseURL string, token string) (string, error) {
 	return parsedURL.String(), nil
 }
 
-// permissionSet converts a list of Permission rows to a string set for easy membership tests.
-func permissionSet(perms []model.Permission) map[string]struct{} {
+// PermissionSet converts a list of Permission rows to a string set for easy membership tests.
+func PermissionSet(perms []model.Permission) map[string]struct{} {
 	out := make(map[string]struct{}, len(perms))
 	for _, p := range perms {
 		out[p.Name] = struct{}{}

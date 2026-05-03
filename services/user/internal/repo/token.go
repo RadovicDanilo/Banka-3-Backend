@@ -7,13 +7,23 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/utils"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 // RotateRefreshToken replaces an old refresh token hash with a new one inside a transaction.
-func (r *Repository) RotateRefreshToken(tx *sql.Tx, email string, oldHash, newHash []byte, newExpiry time.Time) error {
+func (r *Repository) RotateRefreshToken(email string, oldToken, newToken string, newExpiry time.Time) error {
+	tx, err := r.database.Begin()
+	if err != nil {
+		return fmt.Errorf("starting transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	oldHash := utils.HashValue(oldToken)
+	newHash := utils.HashValue(newToken)
+
 	var storedHash []byte
-	err := tx.QueryRow(`
+	err = tx.QueryRow(`
         SELECT hashed_token FROM refresh_tokens
         WHERE email = $1 AND revoked = FALSE AND valid_until > now()
         FOR UPDATE
@@ -37,7 +47,11 @@ func (r *Repository) RotateRefreshToken(tx *sql.Tx, email string, oldHash, newHa
         SET hashed_token = $1, valid_until = $2, revoked = FALSE
         WHERE email = $3
     `, newHash, newExpiry, email)
-	return err
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 // InsertRefreshToken stores a new refresh token (hashed).
@@ -63,7 +77,7 @@ func (r *Repository) InsertRefreshToken(token string) error {
 	INSERT INTO refresh_tokens VALUES ($1, $2, $3, FALSE)
 	ON CONFLICT (email) DO UPDATE SET (hashed_token, valid_until, revoked) = (excluded.hashed_token, excluded.valid_until, excluded.revoked)
 	`
-	_, err = r.Database.Exec(query, email, hashedToken, expiry.Time)
+	_, err = r.database.Exec(query, email, hashedToken, expiry.Time)
 	if err != nil {
 		return fmt.Errorf("inserting refresh token: %w", err)
 	}

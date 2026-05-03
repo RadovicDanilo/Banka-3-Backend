@@ -7,6 +7,8 @@ import (
 
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/model"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 )
 
@@ -36,7 +38,7 @@ func (r *Repository) GetAllEmployees(constraints UserRestrictions) ([]model.Empl
 	}
 
 	var employees []model.Employee
-	query := r.Gorm.Model(&model.Employee{}).Preload("Permissions")
+	query := r.gorm_db.Model(&model.Employee{}).Preload("Permissions")
 	query = addConstraints(query, constraints)
 	err := query.Find(&employees).Error
 	if err != nil {
@@ -47,7 +49,7 @@ func (r *Repository) GetAllEmployees(constraints UserRestrictions) ([]model.Empl
 
 // CreateEmployee creates a new employee.
 func (r *Repository) CreateEmployee(employee model.Employee) error {
-	result := r.Gorm.Create(&employee)
+	result := r.gorm_db.Create(&employee)
 	if result.Error != nil {
 		logger.L().Error("create employee failed", "err", result.Error)
 		if isUniqueViolation(result.Error) {
@@ -61,7 +63,7 @@ func (r *Repository) CreateEmployee(employee model.Employee) error {
 // GetEmployeeByAttribute retrieves an employee by a specific attribute, preloading Permissions.
 func (r *Repository) GetEmployeeByAttribute(attributeName string, attributeValue any) (*model.Employee, error) {
 	var employee model.Employee
-	err := r.Gorm.Preload("Permissions").Where(attributeName+" = ?", attributeValue).First(&employee).Error
+	err := r.gorm_db.Preload("Permissions").Where(attributeName+" = ?", attributeValue).First(&employee).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrUserNotFound
@@ -75,7 +77,7 @@ func (r *Repository) GetEmployeeByAttribute(attributeName string, attributeValue
 
 // DeleteEmployee deletes an employee.
 func (r *Repository) DeleteEmployee(employee model.Employee) error {
-	result := r.Gorm.Delete(&employee)
+	result := r.gorm_db.Delete(&employee)
 	if result.RowsAffected == 0 {
 		return ErrEmployeeNotFound
 	}
@@ -88,7 +90,7 @@ func (r *Repository) DeleteEmployee(employee model.Employee) error {
 
 // EmployeeExists checks if an employee exists.
 func (r *Repository) EmployeeExists(employee model.Employee) bool {
-	result := r.Gorm.First(&employee)
+	result := r.gorm_db.First(&employee)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return false
 	}
@@ -104,7 +106,7 @@ func (r *Repository) UpdateEmployee(employee model.Employee) (*model.Employee, e
 	// find permission IDs by name
 	findPermByName := func(permName string) uint64 {
 		var perm model.Permission
-		r.Gorm.First(&perm, "name = ?", permName)
+		r.gorm_db.First(&perm, "name = ?", permName)
 		return perm.Id
 	}
 	for i, val := range employee.Permissions {
@@ -114,7 +116,7 @@ func (r *Repository) UpdateEmployee(employee model.Employee) (*model.Employee, e
 	if !r.EmployeeExists(employee) {
 		return nil, ErrEmployeeNotFound
 	}
-	result := r.Gorm.Model(&employee).Updates(employee)
+	result := r.gorm_db.Model(&employee).Updates(employee)
 	if result.Error != nil {
 		return nil, fmt.Errorf("updating employee: %w", result.Error)
 	}
@@ -122,4 +124,11 @@ func (r *Repository) UpdateEmployee(employee model.Employee) (*model.Employee, e
 		return nil, ErrEmployeeNotFound
 	}
 	return &employee, nil
+}
+
+func (r *Repository) ApplyEmployeeUpdates(Id uint64, updates map[string]any) error {
+	if err := r.gorm_db.Model(&model.Employee{}).Where("id = ?", Id).Updates(updates).Error; err != nil {
+		return status.Error(codes.Internal, "failed to update trading limit")
+	}
+	return nil
 }

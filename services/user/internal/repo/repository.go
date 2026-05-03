@@ -10,8 +10,15 @@ import (
 
 // Repository holds database connections for all operations
 type Repository struct {
-	Database *sql.DB
-	Gorm     *gorm.DB
+	database *sql.DB
+	gorm_db  *gorm.DB
+}
+
+func NewRepository(db *sql.DB, gorm_db *gorm.DB) *Repository {
+	return &Repository{
+		database: db,
+		gorm_db:  gorm_db,
+	}
 }
 
 // Common errors

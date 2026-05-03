@@ -121,19 +121,9 @@ func (s *Server) Refresh(ctx context.Context, req *userpb.RefreshRequest) (*user
 		return nil, fmt.Errorf("getting expiry: %w", err)
 	}
 
-	tx, err := s.repo.Database.Begin()
-	if err != nil {
-		return nil, fmt.Errorf("starting transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	err = s.repo.RotateRefreshToken(tx, email, HashValue(req.RefreshToken), HashValue(newSignedToken), newExpiry.Time)
+	err = s.repo.RotateRefreshToken(email, req.RefreshToken, newSignedToken, newExpiry.Time)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "wrong token")
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, fmt.Errorf("committing transaction: %w", err)
 	}
 
 	if err := s.CreateSession(ctx, email, SessionData{

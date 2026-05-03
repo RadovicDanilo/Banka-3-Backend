@@ -34,7 +34,7 @@ type Server struct {
 	accessJwtSecret  string
 	refreshJwtSecret string
 	rdb              *redis.Client
-	repo             repo.Repository
+	repo             *repo.Repository
 }
 
 func NewServer(accessJwtSecret string, refreshJwtSecret string, conn *Connections) *Server {
@@ -42,9 +42,6 @@ func NewServer(accessJwtSecret string, refreshJwtSecret string, conn *Connection
 		accessJwtSecret:  accessJwtSecret,
 		refreshJwtSecret: refreshJwtSecret,
 		rdb:              conn.Rdb,
-		repo: repo.Repository{
-			Database: conn.Sql_db,
-			Gorm:     conn.Gorm,
-		},
+		repo:             repo.NewRepository(conn.Sql_db, conn.Gorm),
 	}
 }

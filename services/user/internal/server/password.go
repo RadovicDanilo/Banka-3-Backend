@@ -12,6 +12,7 @@ import (
 	notificationpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/notification"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
 	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/repo"
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -34,48 +35,18 @@ func (s *Server) SetPasswordWithToken(ctx context.Context, req *userpb.SetPasswo
 		return nil, status.Error(codes.InvalidArgument, "token and new password are required")
 	}
 
-	tx, err := s.repo.Database.Begin()
-	if err != nil {
-		return nil, status.Error(codes.Internal, "starting transaction failed")
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	email, actionType, err := s.repo.ConsumePasswordActionToken(tx, HashValue(token))
+	// Call the repository to handle the transaction and logic
+	email, err := s.repo.ResetPasswordWithToken(token, newPassword)
 	if err != nil {
 		if errors.Is(err, repo.ErrInvalidPasswordActionToken) {
 			return nil, status.Error(codes.InvalidArgument, "invalid or expired token")
 		}
-		return nil, status.Error(codes.Internal, "token validation failed")
-	}
-
-	user, err := s.repo.GetUserByEmail(email)
-	if err != nil || user == nil {
-		return nil, status.Error(codes.Internal, "user lookup failed")
-	}
-
-	hashedPassword := HashPassword(newPassword, user.Salt)
-
-	if err := s.repo.UpdatePasswordByEmail(tx, email, hashedPassword); err != nil {
-		return nil, status.Error(codes.Internal, "password update failed")
-	}
-
-	if actionType == PasswordActionInitialSet {
-		if err := s.repo.ActivateEmployeeByEmail(tx, email); err != nil {
-			return nil, status.Error(codes.Internal, "employee activation failed")
-		}
-	}
-
-	if err := s.repo.RevokeRefreshTokensByEmail(tx, email); err != nil {
-		return nil, status.Error(codes.Internal, "refresh token revocation failed")
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, status.Error(codes.Internal, "committing transaction failed")
+		return nil, status.Error(codes.Internal, "password reset failed")
 	}
 
 	_ = s.DeleteSession(ctx, email)
 
-	logger.FromContext(ctx).InfoContext(ctx, "audit: password set via token", "email", email, "action", actionType)
+	logger.FromContext(ctx).InfoContext(ctx, "audit: password set via token", "email", email)
 	return &userpb.SetPasswordWithTokenResponse{Successful: true}, nil
 }
 
@@ -93,7 +64,7 @@ func (s *Server) requestPasswordAction(ctx context.Context, email string, action
 		return &userpb.PasswordActionResponse{Accepted: true}, nil
 	}
 
-	token, err := generateOpaqueToken()
+	token, err := utils.GenerateOpaqueToken()
 	if err != nil {
 		return nil, status.Error(codes.Internal, "token generation failed")
 	}
@@ -103,7 +74,7 @@ func (s *Server) requestPasswordAction(ctx context.Context, email string, action
 		validUntil = time.Now().Add(initialSetPasswordTTL)
 	}
 
-	if err := s.repo.UpsertPasswordActionToken(user.Email, actionType, HashValue(token), validUntil); err != nil {
+	if err := s.repo.UpsertPasswordActionToken(user.Email, actionType, utils.HashValue(token), validUntil); err != nil {
 		return nil, status.Error(codes.Internal, "storing token failed")
 	}
 
@@ -111,7 +82,7 @@ func (s *Server) requestPasswordAction(ctx context.Context, email string, action
 	if actionType == PasswordActionInitialSet {
 		baseURL = os.Getenv("PASSWORD_SET_BASE_URL")
 	}
-	link, err := buildActionLink(baseURL, token)
+	link, err := utils.BuildActionLink(baseURL, token)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "building password link failed")
 	}

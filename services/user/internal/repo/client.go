@@ -36,7 +36,7 @@ func (r *Repository) GetAllClients(constraints UserRestrictions) ([]model.Client
 	}
 
 	var clients []model.Client
-	query := r.Gorm.Model(&model.Client{})
+	query := r.gorm_db.Model(&model.Client{})
 	query = addConstraints(query, constraints)
 	err := query.Find(&clients).Error
 	if err != nil {
@@ -47,7 +47,7 @@ func (r *Repository) GetAllClients(constraints UserRestrictions) ([]model.Client
 
 // CreateClient creates a new client.
 func (r *Repository) CreateClient(client model.Client) error {
-	result := r.Gorm.Create(&client)
+	result := r.gorm_db.Create(&client)
 	if result.Error != nil {
 		logger.L().Error("create client failed", "err", result.Error)
 		if isUniqueViolation(result.Error) {
@@ -61,7 +61,7 @@ func (r *Repository) CreateClient(client model.Client) error {
 // GetClientByAttribute retrieves a client by a specific attribute (e.g., "email").
 func (r *Repository) GetClientByAttribute(attributeName string, attributeValue any) (*model.Client, error) {
 	var client model.Client
-	err := r.Gorm.Model(&model.Client{}).Where(attributeName+" = ?", attributeValue).First(&client).Error
+	err := r.gorm_db.Model(&model.Client{}).Where(attributeName+" = ?", attributeValue).First(&client).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrUserNotFound
@@ -75,7 +75,7 @@ func (r *Repository) GetClientByAttribute(attributeName string, attributeValue a
 
 // DeleteClient deletes a client.
 func (r *Repository) DeleteClient(client model.Client) error {
-	result := r.Gorm.Delete(&client)
+	result := r.gorm_db.Delete(&client)
 	if result.RowsAffected == 0 {
 		return ErrClientNotFound
 	}
@@ -88,7 +88,7 @@ func (r *Repository) DeleteClient(client model.Client) error {
 
 // ClientExists checks if a client exists.
 func (r *Repository) ClientExists(client model.Client) bool {
-	result := r.Gorm.First(&client)
+	result := r.gorm_db.First(&client)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return false
 	}
@@ -104,7 +104,7 @@ func (r *Repository) UpdateClient(client model.Client) (*model.Client, error) {
 	if !r.ClientExists(client) {
 		return nil, ErrClientNotFound
 	}
-	result := r.Gorm.Model(&client).Updates(client)
+	result := r.gorm_db.Model(&client).Updates(client)
 	if result.Error != nil {
 		if isUniqueViolation(result.Error) {
 			return nil, ErrClientEmailExists

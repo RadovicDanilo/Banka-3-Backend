@@ -8,7 +8,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
-	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/server"
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -29,7 +29,7 @@ func TestTogglesTradingRoleDetectsGrantRevoke(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := server.TogglesTradingRole(server.NamesToSet(tc.old), server.NamesToSet(tc.new))
+			got := utils.TogglesTradingRole(utils.NamesToSet(tc.old), utils.NamesToSet(tc.new))
 			if got != tc.want {
 				t.Fatalf("togglesTradingRole(%v -> %v) = %v, want %v", tc.old, tc.new, got, tc.want)
 			}
@@ -37,7 +37,7 @@ func TestTogglesTradingRoleDetectsGrantRevoke(t *testing.T) {
 	}
 }
 
-// UpdateEmployeeTradingLimit validates its arguments before touching the DB, so
+// ApplyEmployeeUpdates validates its arguments before touching the DB, so
 // we can exercise those branches without plumbing gorm/sqlmock expectations.
 func TestUpdateEmployeeTradingLimitArgValidation(t *testing.T) {
 	gormTestServer, _, db := NewGormTestServer(t)
@@ -109,11 +109,11 @@ func TestEnsureAdminImpliesSupervisor(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := server.EnsureAdminImpliesSupervisor(tc.in)
+			got := utils.EnsureAdminImpliesSupervisor(tc.in)
 			if len(got) != len(tc.want) {
 				t.Fatalf("len mismatch: got %v want %v", got, tc.want)
 			}
-			gotSet := server.NamesToSet(got)
+			gotSet := utils.NamesToSet(got)
 			for _, p := range tc.want {
 				if _, ok := gotSet[p]; !ok {
 					t.Fatalf("missing %q in result %v", p, got)

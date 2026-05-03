@@ -3,30 +3,28 @@ package server
 import (
 	"context"
 	"crypto/rand"
-	"database/sql"
 	"errors"
 	"fmt"
 	"math/big"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	notificationpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/notification"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
 	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/repo"
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/utils"
 	"github.com/pquerna/otp/totp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-const totpAlreadyEnabledCode = 20
-
 type TOTPServer struct {
 	userpb.UnimplementedTOTPServiceServer
 	notificationService notificationpb.NotificationServiceClient
 	totpDisableUrl      string
-	db                  *sql.DB
-	repo                repo.Repository
+	repo                *repo.Repository
 }
 
 const (
@@ -43,11 +41,7 @@ func NewTotpServer(conn *Connections) *TOTPServer {
 	return &TOTPServer{
 		notificationService: conn.NotificationClient,
 		totpDisableUrl:      baseURL,
-		db:                  conn.Sql_db,
-		repo: repo.Repository{
-			Database: conn.Sql_db,
-			Gorm:     conn.Gorm,
-		},
+		repo:                repo.NewRepository(conn.Sql_db, conn.Gorm),
 	}
 }
 
@@ -102,42 +96,24 @@ func (s *TOTPServer) EnrollBegin(_ context.Context, req *userpb.EnrollBeginReque
 		return nil, err
 	}
 	userId := client.Id
-	tx, err := s.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	active, err := s.repo.Status(tx, userId)
-	if err != nil {
-		if errors.Is(err, repo.ErrUserNotFound) {
-			return nil, status.Error(codes.NotFound, "user not found")
-		}
-		return nil, err
-	}
-	if *active {
-		return nil, status.Error(totpAlreadyEnabledCode, "totp already enabled")
-	}
 
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      "Banka3",
 		AccountName: req.Email,
 	})
 
-	if err != nil {
-		return nil, err
-	}
-
 	secret := key.Secret()
 
-	err = s.repo.SetTempTOTPSecret(tx, userId, secret)
 	if err != nil {
 		return nil, err
 	}
-	err = tx.Commit()
+
+	err = s.repo.EnrollBegin(userId, secret)
+
 	if err != nil {
 		return nil, err
 	}
+
 	return &userpb.EnrollBeginResponse{
 		Url: key.URL(),
 	}, nil
@@ -166,13 +142,8 @@ func (s *TOTPServer) EnrollConfirm(ctx context.Context, req *userpb.EnrollConfir
 	}
 	userId := client.Id
 
-	tx, err := s.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	tempSecret, err := s.repo.GetTempSecret(tx, userId)
+	// 1. Get temp secret to validate the code (read-only, no tx needed here if handled in repo)
+	tempSecret, err := s.repo.GetTempSecretNoTx(strconv.FormatUint(userId, 10))
 	if err != nil {
 		if errors.Is(err, repo.ErrUserNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
@@ -180,32 +151,26 @@ func (s *TOTPServer) EnrollConfirm(ctx context.Context, req *userpb.EnrollConfir
 		return nil, err
 	}
 
+	// 2. Validate the TOTP code
 	valid := totp.Validate(req.Code, *tempSecret)
-
 	if !valid {
 		return &userpb.EnrollConfirmResponse{
 			Success: false,
 		}, nil
 	}
 
-	err = s.repo.EnableTOTP(tx, userId, *tempSecret)
-	if err != nil {
-		return nil, err
-	}
-
+	// 3. Generate backup codes
 	backupCodes, err := generateBackupCodes(5)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.repo.InsertGeneratedCodes(tx, userId, *backupCodes)
+	// 4. Commit everything to the database in one repo call
+	err = s.repo.FinalizeTOTPEnrollment(userId, *tempSecret, *backupCodes)
 	if err != nil {
 		return nil, err
 	}
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
+
 	logger.FromContext(ctx).InfoContext(ctx, "audit: totp enabled", "user_id", userId, "email", req.Email)
 	return &userpb.EnrollConfirmResponse{
 		Success:     true,
@@ -222,13 +187,7 @@ func (s *TOTPServer) Status(_ context.Context, req *userpb.StatusRequest) (*user
 		return nil, err
 	}
 
-	tx, err := s.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	active, err := s.repo.Status(tx, *userId)
+	active, err := s.repo.Status(*userId)
 	if err != nil {
 		if errors.Is(err, repo.ErrUserNotFound) {
 			return nil, status.Error(codes.NotFound, "user not found")
@@ -236,10 +195,6 @@ func (s *TOTPServer) Status(_ context.Context, req *userpb.StatusRequest) (*user
 		return nil, err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
 	return &userpb.StatusResponse{
 		Active: *active,
 	}, nil
@@ -248,18 +203,18 @@ func (s *TOTPServer) Status(_ context.Context, req *userpb.StatusRequest) (*user
 func (s *TOTPServer) DisableBegin(ctx context.Context, req *userpb.DisableBeginRequest) (*userpb.DisableBeginResponse, error) {
 	email := req.Email
 
-	token, err := generateOpaqueToken()
+	token, err := utils.GenerateOpaqueToken()
 	if err != nil {
 		return nil, status.Error(codes.Internal, "token generation failed")
 	}
 
 	validUntil := time.Now().Add(time.Hour)
 
-	if err := s.repo.UpsertPasswordActionToken(email, totpDisableAction, HashValue(token), validUntil); err != nil {
+	if err := s.repo.UpsertPasswordActionToken(email, totpDisableAction, utils.HashValue(token), validUntil); err != nil {
 		return nil, status.Error(codes.Internal, "storing token failed")
 	}
 
-	link, err := buildActionLink(s.totpDisableUrl, token)
+	link, err := utils.BuildActionLink(s.totpDisableUrl, token)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "building password link failed")
 	}
@@ -285,34 +240,11 @@ func (s *TOTPServer) DisableConfirm(ctx context.Context, req *userpb.DisableConf
 		return nil, err
 	}
 	userId := client.Id
-	tx, err := s.db.Begin()
-	if err != nil {
-		return nil, status.Error(codes.Internal, "starting transaction failed")
-	}
-	defer func() { _ = tx.Rollback() }()
 
-	token := req.Token
+	err = s.repo.DisableConfirm(userId, req.Token)
 
-	_, _, err = s.repo.ConsumePasswordActionToken(tx, HashValue(token))
-	if err != nil {
-		if errors.Is(err, repo.ErrInvalidPasswordActionToken) {
-			return nil, status.Error(codes.InvalidArgument, "invalid or expired token")
-		}
-		return nil, status.Error(codes.Internal, "token validation failed")
-	}
-
-	err = s.repo.DeleteOldCodes(tx, userId)
 	if err != nil {
 		return nil, err
-	}
-
-	err = s.repo.DisableTOTP(tx, userId)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, status.Error(codes.Internal, "committing transaction failed")
 	}
 
 	logger.FromContext(ctx).InfoContext(ctx, "audit: totp disabled", "user_id", userId, "email", req.Email)

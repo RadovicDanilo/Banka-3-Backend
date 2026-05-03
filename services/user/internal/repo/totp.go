@@ -4,6 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/utils"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // SetTempTOTPSecret stores a temporary TOTP secret for a user.
@@ -41,7 +45,7 @@ func (r *Repository) GetTempSecret(tx *sql.Tx, id uint64) (*string, error) {
 // GetSecret returns the active TOTP secret for a user.
 func (r *Repository) GetSecret(id uint64) (*string, error) {
 	var secret string
-	row := r.Database.QueryRow(`
+	row := r.database.QueryRow(`
 		SELECT secret
 		FROM verification_codes
 		WHERE client_id = $1 AND enabled = TRUE
@@ -110,7 +114,13 @@ func (r *Repository) InsertGeneratedCodes(tx *sql.Tx, id uint64, codes []string)
 }
 
 // Status returns whether TOTP is currently enabled for a user.
-func (r *Repository) Status(tx *sql.Tx, id uint64) (*bool, error) {
+func (r *Repository) Status(id uint64) (*bool, error) {
+	tx, err := r.database.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
 	var active bool
 	row := tx.QueryRow(`
 		SELECT enabled
@@ -118,7 +128,7 @@ func (r *Repository) Status(tx *sql.Tx, id uint64) (*bool, error) {
 		WHERE client_id = $1
 		FOR UPDATE
 	`, id)
-	err := row.Scan(&active)
+	err = row.Scan(&active)
 	if err != nil {
 		dummy := false
 		if errors.Is(err, sql.ErrNoRows) {
@@ -126,6 +136,12 @@ func (r *Repository) Status(tx *sql.Tx, id uint64) (*bool, error) {
 		}
 		return nil, err
 	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
 	return &active, nil
 }
 
@@ -136,7 +152,7 @@ func (r *Repository) TryBurnBackupCode(id uint64, code string) (*bool, error) {
 		SET used = TRUE
 		WHERE client_id = $1 AND token = $2
 	`
-	res, err := r.Database.Exec(query, id, code)
+	res, err := r.database.Exec(query, id, code)
 	if err != nil {
 		return nil, err
 	}
@@ -146,4 +162,101 @@ func (r *Repository) TryBurnBackupCode(id uint64, code string) (*bool, error) {
 	}
 	success := rows == 1
 	return &success, nil
+}
+
+func (r *Repository) DisableConfirm(userId uint64, token string) error {
+	tx, err := r.database.Begin()
+	if err != nil {
+		return status.Error(codes.Internal, "starting transaction failed")
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	_, _, err = r.ConsumePasswordActionToken(tx, utils.HashValue(token))
+	if err != nil {
+		if errors.Is(err, ErrInvalidPasswordActionToken) {
+			return status.Error(codes.InvalidArgument, "invalid or expired token")
+		}
+		return status.Error(codes.Internal, "token validation failed")
+	}
+
+	err = r.DeleteOldCodes(tx, userId)
+	if err != nil {
+		return err
+	}
+
+	err = r.DisableTOTP(tx, userId)
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return status.Error(codes.Internal, "committing transaction failed")
+	}
+
+	return nil
+}
+
+func (r *Repository) EnrollBegin(userId uint64, secret string) error {
+	tx, err := r.database.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	active, err := r.Status(userId)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return status.Error(codes.NotFound, "user not found")
+		}
+		return err
+	}
+	if *active {
+		return status.Error(20, "totp already enabled")
+	}
+
+	err = r.SetTempTOTPSecret(tx, userId, secret)
+	if err != nil {
+		return err
+	}
+	err = tx.Commit()
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// FinalizeTOTPEnrollment enables TOTP and saves backup codes in a single transaction.
+func (r *Repository) FinalizeTOTPEnrollment(userId uint64, secret string, backupCodes []string) error {
+	tx, err := r.database.Begin() // using r.db instead of s.db
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Enable TOTP
+	err = r.EnableTOTP(tx, userId, secret)
+	if err != nil {
+		return err
+	}
+
+	// Insert backup codes
+	err = r.InsertGeneratedCodes(tx, userId, backupCodes)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// GetTempSecretNoTx helper to fetch temp secret without requiring a caller-managed transaction.
+func (r *Repository) GetTempSecretNoTx(userId string) (*string, error) {
+	// This can simply call your existing GetTempSecret if you pass nil,
+	// or just run a quick stand-alone query.
+	var secret string
+	err := r.database.QueryRow("SELECT temp_secret FROM users WHERE id = $1", userId).Scan(&secret)
+	if err != nil {
+		return nil, err
+	}
+	return &secret, nil
 }

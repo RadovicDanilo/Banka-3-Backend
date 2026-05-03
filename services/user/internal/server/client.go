@@ -12,6 +12,7 @@ import (
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
 	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/model"
 	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/repo"
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -103,7 +104,7 @@ func (s *Server) CreateClientAccount(ctx context.Context, req *userpb.CreateClie
 		return nil, status.Error(codes.InvalidArgument, "Gender must be one of M or F")
 	}
 
-	salt, salt_err := generateSalt()
+	salt, salt_err := utils.GenerateSalt()
 	if salt_err != nil {
 		logger.FromContext(ctx).ErrorContext(ctx, "error generating salt", "err", salt_err)
 		return nil, status.Error(codes.Internal, "Password salting failed")
@@ -112,7 +113,7 @@ func (s *Server) CreateClientAccount(ctx context.Context, req *userpb.CreateClie
 	client := model.Client{First_name: req.FirstName,
 		Last_name: req.LastName, Date_of_birth: time.Unix(req.BirthDate, 0),
 		Gender: req.Gender, Email: req.Email, Phone_number: req.PhoneNumber,
-		Address: req.Address, Password: HashPassword(req.Password, salt),
+		Address: req.Address, Password: utils.HashPassword(req.Password, salt),
 		Salt_password: salt}
 
 	err := s.repo.CreateClient(client)

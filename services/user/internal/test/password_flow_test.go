@@ -10,6 +10,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/server"
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -215,32 +216,49 @@ func TestSetPasswordWithTokenSuccess(t *testing.T) {
 	salt := []byte{3, 2, 1}
 
 	mock.ExpectBegin()
+
+	// 1. Validate Token
 	mock.ExpectQuery("SELECT email, action_type").
-		WithArgs(server.HashValue(token)).
+		WithArgs(utils.HashValue(token)).
 		WillReturnRows(sqlmock.NewRows([]string{"email", "action_type"}).AddRow(email, server.PasswordActionReset))
+
+	// 2. Consume Token
 	mock.ExpectExec("UPDATE password_action_tokens").
 		WithArgs(email, server.PasswordActionReset).
 		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	// 3. Fetch User Info
 	mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT email, password, salt_password FROM employees WHERE email = $1
-		UNION ALL
-		SELECT email, password, salt_password FROM clients WHERE email = $1
-		LIMIT 1
-	`)).
+       SELECT email, password, salt_password FROM employees WHERE email = $1
+       UNION ALL
+       SELECT email, password, salt_password FROM clients WHERE email = $1
+       LIMIT 1
+    `)).
 		WithArgs(email).
 		WillReturnRows(sqlmock.NewRows([]string{"email", "password", "salt_password"}).AddRow(email, []byte{1, 2, 3}, salt))
+
+	// 4. Update Password
 	mock.ExpectExec("UPDATE employees").
-		WithArgs(server.HashPassword(newPassword, salt), email).
+		WithArgs(utils.HashPassword(newPassword, salt), email).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectExec("UPDATE refresh_tokens SET revoked = TRUE WHERE email = \\$1").
+
+	// 5. ACTIVATE EMPLOYEE (The missing piece causing your error)
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE employees SET active = true, updated_at = NOW() WHERE email = $1")).
 		WithArgs(email).
 		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	// 6. Revoke Tokens
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE refresh_tokens SET revoked = TRUE WHERE email = $1")).
+		WithArgs(email).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
 	mock.ExpectCommit()
 
 	resp, err := testServer.SetPasswordWithToken(context.Background(), &userpb.SetPasswordWithTokenRequest{
 		Token:       token,
 		NewPassword: newPassword,
 	})
+
 	if err != nil {
 		t.Fatalf("SetPasswordWithToken returned error: %v", err)
 	}
@@ -259,7 +277,7 @@ func TestSetPasswordWithTokenInvalidOrExpiredToken(t *testing.T) {
 
 	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT email, action_type").
-		WithArgs(server.HashValue("expired-token")).
+		WithArgs(utils.HashValue("expired-token")).
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectRollback()
 

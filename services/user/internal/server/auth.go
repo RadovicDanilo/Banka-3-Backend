@@ -3,10 +3,10 @@ package server
 import (
 	"bytes"
 	"context"
-	"fmt"
 
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	userpb "github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/user"
+	"github.com/RAF-SI-2025/Banka-3-Backend/services/user/internal/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -18,7 +18,7 @@ func (s *Server) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.L
 		l.WarnContext(ctx, "audit: login failed", "reason", "unknown user")
 		return nil, status.Error(codes.Unauthenticated, "wrong creds")
 	}
-	hashedPassword := HashPassword(req.Password, user.Salt)
+	hashedPassword := utils.HashPassword(req.Password, user.Salt)
 
 	if bytes.Equal(hashedPassword, user.HashedPassword) {
 		role, permissions, active := s.getRoleAndPermissions(user.Email)
@@ -64,18 +64,11 @@ func (s *Server) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.L
 
 func (s *Server) Logout(ctx context.Context, req *userpb.LogoutRequest) (*userpb.LogoutResponse, error) {
 	email := req.Email
-	tx, err := s.repo.Database.Begin()
-	if err != nil {
-		return nil, fmt.Errorf("starting transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-	err = s.repo.RevokeRefreshTokensByEmail(tx, email)
+
+	// Delegate database work to the repository
+	err := s.repo.LogoutUser(email)
 	if err != nil {
 		return nil, err
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, fmt.Errorf("committing transaction: %w", err)
 	}
 
 	_ = s.DeleteSession(ctx, email)
