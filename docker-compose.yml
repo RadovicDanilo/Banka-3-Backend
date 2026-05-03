@@ -7,8 +7,13 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
+    # Postgres 18+ stores data under /var/lib/postgresql/<major>/<cluster>
+    # to support pg_ctlcluster-style upgrades. Mounting /var/lib/postgresql
+    # (parent dir) instead of /var/lib/postgresql/data lets the image manage
+    # the version subdirectory itself; mounting /data triggers a hard fail
+    # at boot. See docker-library/postgres#1259.
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]

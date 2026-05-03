@@ -80,6 +80,18 @@ func (s *Server) CreateOrder(ctx context.Context, req *tradingpb.CreateOrderRequ
 		return nil, err
 	}
 
+	// Spec pp.50, 59: clients may only trade stocks and futures. Options and
+	// forex are actuary-only. Block at placement so a client who guesses an
+	// option_id/forex_pair_id off another endpoint can't slip a trade through.
+	if caller.IsClient {
+		if req.OptionId != 0 {
+			return nil, status.Error(codes.PermissionDenied, "options are available to employees only")
+		}
+		if req.ForexPairId != 0 {
+			return nil, status.Error(codes.PermissionDenied, "forex is available to employees only")
+		}
+	}
+
 	// Margin orders require the `margin_trading` permission for employee
 	// placers (spec p.56). Checked up front so clients skip the DB round-trip
 	// and the denial surfaces before we touch the DB.

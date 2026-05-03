@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/exchange"
@@ -16,8 +17,23 @@ import (
 	"gorm.io/gorm"
 )
 
+// dsnWithExecMode forces pgx's `default_query_exec_mode=exec` unless the
+// caller has already pinned it. See bank/cmd/main.go for the rationale —
+// the schema-then-connection ordering produces the same "cached plan must
+// not change result type" pgx error here too when /listings is queried.
+func dsnWithExecMode(dsn string) string {
+	if strings.Contains(dsn, "default_query_exec_mode") {
+		return dsn
+	}
+	sep := "?"
+	if strings.Contains(dsn, "?") {
+		sep = "&"
+	}
+	return dsn + sep + "default_query_exec_mode=exec"
+}
+
 func connect_to_db_gorm() *gorm.DB {
-	dsn := os.Getenv("DATABASE_URL")
+	dsn := dsnWithExecMode(os.Getenv("DATABASE_URL"))
 	gorm_db, gorm_err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if gorm_err != nil {
 		logger.L().Error("gorm open failed", "err", gorm_err)
@@ -27,7 +43,7 @@ func connect_to_db_gorm() *gorm.DB {
 }
 
 func connectToDB() *sql.DB {
-	connStr := os.Getenv("DATABASE_URL")
+	connStr := dsnWithExecMode(os.Getenv("DATABASE_URL"))
 	db, err := sql.Open("pgx", connStr)
 	if err != nil {
 		logger.L().Error("sql open failed", "err", err)

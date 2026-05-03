@@ -3,20 +3,33 @@ package gateway
 import (
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
+// setupCors registers the CORS middleware. CORS_ORIGIN env may be a single
+// origin or a comma-separated list — both vite dev (5173) and the nginx
+// production bundle (3000) need to work side-by-side without per-deploy
+// re-configuration. AllowMethods used to be a single comma-joined string,
+// which doesn't match gin-contrib/cors's Method() check (it splits on
+// individual entries), so preflights silently fell through to 403.
 func setupCors(router *gin.Engine) {
-	origin := os.Getenv("CORS_ORIGIN")
-	if origin == "" {
-		origin = "http://localhost:5173"
+	raw := os.Getenv("CORS_ORIGIN")
+	if raw == "" {
+		raw = "http://localhost:3000,http://localhost:5173"
+	}
+	origins := make([]string, 0, 2)
+	for _, o := range strings.Split(raw, ",") {
+		if trimmed := strings.TrimSpace(o); trimmed != "" {
+			origins = append(origins, trimmed)
+		}
 	}
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{origin},
-		AllowMethods:     []string{"GET, POST, PUT, PATCH, DELETE, OPTIONS"},
+		AllowOrigins:     origins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Content-Type", "Authorization", "TOTP", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length", "X-Custom-Header"},
 		AllowCredentials: true,
@@ -146,6 +159,10 @@ func SetupApi(router *gin.Engine, server *Server) {
 	orders := api.Group("/orders", auth)
 	{
 		orders.POST("", secured("role:client|employee"), server.CreateOrder)
+		// "Moji orderi" — open to any authenticated client or employee. The
+		// trading RPC scopes results to the caller's placer row, so this
+		// can sit on the same RPC as the supervisor list without leaking.
+		orders.GET("/my", secured("role:client|employee"), server.ListMyOrders)
 		// Supervisor orders portal (spec pp.57–58 / #204). list+approve+decline
 		// are supervisor-only; cancel is open to placers and supervisors, with
 		// the owner-vs-permission check done inside the trading RPC.
