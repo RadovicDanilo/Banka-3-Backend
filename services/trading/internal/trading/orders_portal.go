@@ -37,6 +37,10 @@ func requireCancellable(s OrderStatus) error {
 // parseListStatus accepts the supervisor portal's status filter (spec p.57).
 // Empty or "all" means no filter; anything else must be a valid OrderStatus.
 // Returning an empty string tells the caller to skip the WHERE clause.
+//
+// "mine" is a sentinel used by the my-orders route. parseListStatus does not
+// recognize it (it isn't a real OrderStatus) — ListOrders peels it off before
+// calling parseListStatus. See ListOrders for the routing logic.
 func parseListStatus(s string) (OrderStatus, error) {
 	switch strings.ToLower(strings.TrimSpace(s)) {
 	case "", "all":
@@ -53,6 +57,38 @@ func parseListStatus(s string) (OrderStatus, error) {
 		return StatusCancelled, nil
 	}
 	return "", status.Errorf(codes.InvalidArgument, "invalid status filter %q", s)
+}
+
+// myOrdersSentinel is the magic Status value the gateway forwards on
+// `GET /orders/my`. We piggy-back on the existing ListOrders RPC instead of
+// adding a new one (avoids regenerating the protobuf bindings) — this keeps
+// the wire shape identical while bypassing the supervisor gate and scoping
+// results to the caller's placer.
+const myOrdersSentinel = "mine"
+
+// optionalStatus parses a status filter that may be combined with the
+// my-orders sentinel. The first return is the parsed OrderStatus filter
+// (empty = "no status filter"); the second is true when the request should
+// be treated as "my orders only".
+func parseStatusOrMine(raw string) (OrderStatus, bool, error) {
+	parts := strings.Split(strings.TrimSpace(raw), ",")
+	mine := false
+	statusFilter := ""
+	for _, p := range parts {
+		p = strings.ToLower(strings.TrimSpace(p))
+		if p == myOrdersSentinel {
+			mine = true
+			continue
+		}
+		if p != "" {
+			statusFilter = p
+		}
+	}
+	parsed, err := parseListStatus(statusFilter)
+	if err != nil {
+		return "", false, err
+	}
+	return parsed, mine, nil
 }
 
 // orderSettlementDate re-resolves the underlying's settlement date for an
@@ -208,27 +244,53 @@ func (s *Server) buildOrderDetail(tx *gorm.DB, o *Order, now time.Time) (*tradin
 	return detail, nil
 }
 
-// ListOrders returns the supervisor's orders portal view (spec pp.57–58).
-// Supervisor-only — the gateway gates with `secured("supervisor")` and we
-// re-check here. agent_id filters on the placer's employee_id; passing a
-// positive id naturally excludes client-placed orders since the join needs
-// a non-null employee_id.
-func (s *Server) ListOrders(_ context.Context, req *tradingpb.ListOrdersRequest) (*tradingpb.ListOrdersResponse, error) {
-	if !callerIsSupervisor(s.db_gorm, req.CallerEmail) {
-		return nil, status.Error(codes.PermissionDenied, "supervisor permission required")
-	}
-
-	filter, err := parseListStatus(req.Status)
+// ListOrders serves two portals through one RPC:
+//
+//  1. Supervisor "Pregled ordera" (spec pp.57–58) — full feed, gated on the
+//     caller carrying admin/supervisor.
+//  2. "Moji orderi" — invoked when Status contains the `mine` sentinel
+//     (gateway routes /orders/my here). Skips the supervisor gate and scopes
+//     the result to the caller's own placer row, so a freshly-logged-in
+//     client/agent only sees their orders.
+//
+// agent_id filters on the placer's employee_id and only applies in supervisor
+// mode; passing a positive id naturally excludes client-placed orders since
+// the join needs a non-null employee_id.
+func (s *Server) ListOrders(ctx context.Context, req *tradingpb.ListOrdersRequest) (*tradingpb.ListOrdersResponse, error) {
+	filter, mine, err := parseStatusOrMine(req.Status)
 	if err != nil {
 		return nil, err
 	}
 
 	q := s.db_gorm.Model(&Order{}).Joins("JOIN order_placers p ON p.id = orders.placer_id")
+
+	if mine {
+		// "Moji orderi" — auth via bank.ResolveCaller, scope by placer_id. We
+		// don't lazy-create the placer row here: a caller with no orders ever
+		// placed gets an empty list rather than a write side-effect.
+		caller, err := s.ResolveCaller(ctx)
+		if err != nil {
+			return nil, err
+		}
+		placerID, err := lookupPlacerID(s.db_gorm, caller.IsClient, caller.ClientID, caller.Email)
+		if err != nil {
+			return nil, err
+		}
+		if placerID == 0 {
+			return &tradingpb.ListOrdersResponse{Orders: []*tradingpb.OrderDetail{}}, nil
+		}
+		q = q.Where("orders.placer_id = ?", placerID)
+	} else {
+		if !callerIsSupervisor(s.db_gorm, req.CallerEmail) {
+			return nil, status.Error(codes.PermissionDenied, "supervisor permission required")
+		}
+		if req.AgentId > 0 {
+			q = q.Where("p.employee_id = ?", req.AgentId)
+		}
+	}
+
 	if filter != "" {
 		q = q.Where("orders.status = ?", string(filter))
-	}
-	if req.AgentId > 0 {
-		q = q.Where("p.employee_id = ?", req.AgentId)
 	}
 	q = q.Order("orders.created_at DESC")
 
@@ -501,7 +563,7 @@ func supervisorEmployeeID(db *gorm.DB, email string) (int64, error) {
 // the order's approximate RSD notional. Done here rather than at placement
 // because pending orders deliberately skip the increment (spec p.39 — limit
 // consumed only once the order is live).
-func consumeAgentLimitOnApproval(tx *gorm.DB, order *Order, s *Server) error {
+func consumeAgentLimitOnApproval(tx *gorm.DB, order *Order, tradingSrv *Server) error {
 	var placer OrderPlacer
 	if err := tx.First(&placer, order.PlacerID).Error; err != nil {
 		return status.Errorf(codes.Internal, "%v", err)
@@ -544,7 +606,7 @@ func consumeAgentLimitOnApproval(tx *gorm.DB, order *Order, s *Server) error {
 	if currency == "RSD" {
 		approxRSD = approxNative
 	} else {
-		rate, err := s.GetExchangeRateToRSD(currency)
+		rate, err := tradingSrv.GetExchangeRateToRSD(currency)
 		if err != nil {
 			return status.Errorf(codes.Internal, "failed to load exchange rate for %s: %v", currency, err)
 		}
