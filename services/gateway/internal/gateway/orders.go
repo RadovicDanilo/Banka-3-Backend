@@ -87,6 +87,40 @@ func orderDetailToJSON(o *tradingpb.OrderDetail) gin.H {
 	}
 }
 
+// ListMyOrders backs `GET /orders/my` — the caller's own order feed (spec
+// p.57 — agent/client visibility into their own queue). The trading RPC
+// scopes results to the caller's placer via the `mine` sentinel, so this
+// gateway handler just forwards the user-email metadata and an optional
+// status filter combined with the sentinel.
+func (s *Server) ListMyOrders(c *gin.Context) {
+	statusFilter := c.Query("status")
+	combined := "mine"
+	if statusFilter != "" {
+		combined = statusFilter + ",mine"
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(
+		"user-email", c.GetString("email"),
+	))
+
+	resp, err := s.TradingClient.ListOrders(ctx, &tradingpb.ListOrdersRequest{
+		CallerEmail: c.GetString("email"),
+		Status:      combined,
+	})
+	if err != nil {
+		writeGRPCError(c, err)
+		return
+	}
+
+	out := make([]gin.H, 0, len(resp.Orders))
+	for _, o := range resp.Orders {
+		out = append(out, orderDetailToJSON(o))
+	}
+	c.JSON(http.StatusOK, out)
+}
+
 // ListOrders surfaces the supervisor's orders portal feed. Both filters are
 // optional: `status` accepts all|pending|approved|declined|done|cancelled,
 // `agent` accepts an employee id to scope down to a single actuary.

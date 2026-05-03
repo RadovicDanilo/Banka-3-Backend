@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/logger"
 	"github.com/RAF-SI-2025/Banka-3-Backend/pkg/proto/bank"
@@ -19,8 +20,25 @@ import (
 	"gorm.io/gorm"
 )
 
+// dsnWithExecMode forces pgx's `default_query_exec_mode=exec` unless the
+// caller has already pinned it. This sidesteps the "cached plan must not
+// change result type" failure that hits when migrations land *after* the
+// service connects (typical: docker compose up → schema.sql → seed.sql,
+// where the connection pool predates the schema). `exec` skips the per-
+// statement describe-cache without dropping prepared statements wholesale.
+func dsnWithExecMode(dsn string) string {
+	if strings.Contains(dsn, "default_query_exec_mode") {
+		return dsn
+	}
+	sep := "?"
+	if strings.Contains(dsn, "?") {
+		sep = "&"
+	}
+	return dsn + sep + "default_query_exec_mode=exec"
+}
+
 func connect_to_db_gorm() *gorm.DB {
-	dsn := os.Getenv("DATABASE_URL")
+	dsn := dsnWithExecMode(os.Getenv("DATABASE_URL"))
 	gorm_db, gorm_err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if gorm_err != nil {
 		logger.L().Error("gorm open failed", "err", gorm_err)
@@ -30,7 +48,7 @@ func connect_to_db_gorm() *gorm.DB {
 }
 
 func connectToDB() *sql.DB {
-	connStr := os.Getenv("DATABASE_URL")
+	connStr := dsnWithExecMode(os.Getenv("DATABASE_URL"))
 	db, err := sql.Open("pgx", connStr)
 	if err != nil {
 		logger.L().Error("sql open failed", "err", err)

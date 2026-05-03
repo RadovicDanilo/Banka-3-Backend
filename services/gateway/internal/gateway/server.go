@@ -49,7 +49,7 @@ func NewServer() (*Server, error) {
 
 	exchangeAddr := os.Getenv("EXCHANGE_GRPC_ADDR")
 	if exchangeAddr == "" {
-		exchangeAddr = "exhcange:50051"
+		exchangeAddr = "exchange:50051"
 	}
 
 	tradingAddr := os.Getenv("TRADING_GRPC_ADDR")
